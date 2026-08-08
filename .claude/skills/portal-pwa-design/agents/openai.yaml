@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portal PWA: diseño"
+  short_description: "Aplica el diseño responsivo Data-Dense del Portal"
+  default_prompt: "Usa $portal-pwa-design para mejorar una vista responsiva del Portal."
