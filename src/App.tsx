@@ -103,6 +103,7 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [section, setSection] = useState<SectionId>('home');
+  const desktop = useDesktopNavigation();
   const [theme, toggleTheme] = useTheme();
   const online = useOnlineStatus();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -111,11 +112,12 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
   const dark = theme === 'dark';
 
   return (
-    <div className="pwa-shell">
+    <div className={`pwa-shell ${desktop ? 'desktop-shell' : ''}`}>
       <a href="#main-container" className="skip-link">Saltar al contenido principal</a>
 
       <NavDrawer
         open={drawerOpen}
+        persistent={desktop}
         user={user}
         settings={settings}
         isAdmin={isAdmin}
@@ -129,10 +131,10 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
 
       <header className="top-bar">
         <div className="title-group">
-          <button ref={menuButtonRef} type="button" className="icon-btn" onClick={() => setDrawerOpen(true)}
+          {!desktop && <button ref={menuButtonRef} type="button" className="icon-btn" onClick={() => setDrawerOpen(true)}
                   aria-label="Abrir menú de navegación" aria-expanded={drawerOpen} aria-controls="nav-drawer">
             <span className="material-symbols-outlined" aria-hidden="true">menu</span>
-          </button>
+          </button>}
           <span className="app-title">{settingText(settings, 'appName')}</span>
         </div>
         <div className="controls">
@@ -160,4 +162,17 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
       <AppFooter isAdmin={isAdmin} section={active} onNavigate={setSection} />
     </div>
   );
+}
+
+/** En escritorio la navegación es persistente; en móvil y tableta es un drawer modal. */
+function useDesktopNavigation(): boolean {
+  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const update = () => setDesktop(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return desktop;
 }

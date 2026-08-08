@@ -5,6 +5,8 @@ import type { User } from './api';
 
 interface Props {
   open: boolean;
+  /** En escritorio la navegación forma parte del marco, no un diálogo superpuesto. */
+  persistent: boolean;
   user: User;
   /** Identidad configurable de la app: versión y organización del pie */
   settings: AppSettings;
@@ -18,7 +20,7 @@ interface Props {
   onLogout: () => void;
 }
 
-export default function NavDrawer({ open, user, settings, isAdmin, section, online, menuButtonRef, onClose, onNavigate, onLogout }: Props) {
+export default function NavDrawer({ open, persistent, user, settings, isAdmin, section, online, menuButtonRef, onClose, onNavigate, onLogout }: Props) {
   const [expanded, setExpanded] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
   const firstLinkRef = useRef<HTMLButtonElement>(null);
@@ -31,18 +33,25 @@ export default function NavDrawer({ open, user, settings, isAdmin, section, onli
   useEffect(() => {
     // Cerrado sigue en el DOM para conservar la animación de salida: `inert` lo
     // saca del recorrido de teclado y del árbol de accesibilidad.
-    drawerRef.current?.toggleAttribute('inert', !open);
-    if (!open) { setExpanded(false); return; }
+    drawerRef.current?.toggleAttribute('inert', !open && !persistent);
+    if (!open && !persistent) { setExpanded(false); return; }
+    if (persistent) return;
     // Foco al primer destino del menú (lector de pantalla y teclado)
     const focus = setTimeout(() => firstLinkRef.current?.focus({ preventScroll: true }), 120);
     // escape-routes: Escape cierra el panel lateral (patrón esperado en diálogos)
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKeyDown);
     return () => { clearTimeout(focus); document.removeEventListener('keydown', onKeyDown); };
-  }, [open, onClose]);
+  }, [open, persistent, onClose]);
 
-  const close = () => { onClose(); menuButtonRef.current?.focus({ preventScroll: true }); };
-  const go = (id: SectionId) => { onClose(); onNavigate(id); };
+  const close = () => {
+    if (!persistent) onClose();
+    menuButtonRef.current?.focus({ preventScroll: true });
+  };
+  const go = (id: SectionId) => {
+    if (!persistent) onClose();
+    onNavigate(id);
+  };
 
   const link = (item: NavItem, index: number) => (
     <button
@@ -60,22 +69,22 @@ export default function NavDrawer({ open, user, settings, isAdmin, section, onli
 
   return (
     <>
-      <button
+      {!persistent && <button
         type="button"
         className={`nav-overlay ${open ? 'overlay-visible' : ''}`}
         tabIndex={open ? 0 : -1}
         aria-hidden={!open}
         aria-label="Cerrar menú de navegación"
         onClick={close}
-      />
-      <aside ref={drawerRef} id="nav-drawer" className={`nav-drawer ${open ? 'drawer-open' : ''}`} role="dialog" aria-modal="true" aria-label="Menú de navegación">
+      />}
+      <aside ref={drawerRef} id="nav-drawer" className={`nav-drawer ${open ? 'drawer-open' : ''} ${persistent ? 'drawer-persistent' : ''}`} role={persistent ? undefined : 'dialog'} aria-modal={persistent ? undefined : true} aria-label="Menú de navegación">
 
         {/* ═══ Cabecera: perfil con degradado de marca ═══ */}
         <div className="drawer-head">
           <div className="drawer-head-pattern" aria-hidden="true" />
-          <button type="button" className="drawer-close" onClick={close} title="Cerrar menú" aria-label="Cerrar menú">
+          {!persistent && <button type="button" className="drawer-close" onClick={close} title="Cerrar menú" aria-label="Cerrar menú">
             <span className="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
+          </button>}
           <div className="drawer-profile">
             <div className="drawer-avatar" aria-hidden="true">{initial}</div>
             <div className="drawer-username">{`${user.nombres} ${user.apellidos}`.trim() || 'Usuario'}</div>
@@ -104,7 +113,7 @@ export default function NavDrawer({ open, user, settings, isAdmin, section, onli
 
           {/* destructive-nav-separation: cerrar sesión, separado del resto */}
           <div className="drawer-divider" />
-          <button type="button" className="drawer-nav-link is-destructive" onClick={() => { onClose(); onLogout(); }}>
+          <button type="button" className="drawer-nav-link is-destructive" onClick={() => { if (!persistent) onClose(); onLogout(); }}>
             <span className="material-symbols-outlined" aria-hidden="true">logout</span>
             <span className="drawer-link-label">Cerrar sesión</span>
           </button>

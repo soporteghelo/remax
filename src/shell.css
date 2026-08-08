@@ -3,11 +3,21 @@
    Portado de MOTOR PWA (00_Config/Index.html). Depende de design-system.css.
    ══════════════════════════════════════════════════════════════════════════ */
 
+html, body, #root {
+  width: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: var(--color-bg);
+}
+
 :root { background: var(--color-bg); color: var(--color-text); }
 
 .pwa-shell {
   display: flex;
   flex-direction: column;
+  width: 100vw;
+  min-width: 100%;
   height: 100vh;
   height: 100dvh;
   overflow: hidden; /* solo el contenedor central navega verticalmente */
@@ -99,6 +109,35 @@
   transition: opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .nav-overlay.overlay-visible { opacity: 1; pointer-events: auto; cursor: pointer; }
+
+/* Escritorio: la navegación pertenece al marco de la aplicación. Así el
+   contenido conserva todo su ancho útil y nunca queda oscurecido por el menú. */
+@media (min-width: 1024px) {
+  .desktop-shell { padding-left: var(--drawer-width); }
+  .desktop-shell .nav-drawer {
+    transform: none;
+    box-shadow: none;
+    border-right-color: var(--ds-border);
+  }
+  .desktop-shell .top-bar { padding-inline: 28px; }
+  .desktop-shell .main-container {
+    width: 100%;
+    padding: 32px clamp(32px, 4vw, 64px) 48px;
+  }
+  .desktop-shell .main-footer { display: none; }
+  /* Todo módulo parte del ancho disponible; cada componente decide luego su
+     propia rejilla o el ancho cómodo de sus campos de edición. */
+  .desktop-shell .dash,
+  .desktop-shell .page-content { max-width: none; width: 100%; }
+  /* Configuración es una herramienta de trabajo: ocupa el ancho disponible y
+     reparte sus controles en tantas columnas legibles como quepan. */
+  .desktop-shell .app-settings-page,
+  .desktop-shell .app-settings-page .cfg { max-width: none; width: 100%; }
+  .desktop-shell .app-settings-page .cfg-fields {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 18px 20px;
+  }
+}
 
 /* Cabecera: perfil con degradado de marca.
    --drawer-ink es la tinta legible sobre ese degradado (la calcula

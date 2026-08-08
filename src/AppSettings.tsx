@@ -68,7 +68,7 @@ export default function AppSettings({ user, settings, onSaved }: { user: User; s
   const warnings = contrastWarnings(draft);
 
   return (
-    <section className="page-content">
+    <section className="page-content app-settings-page">
       <p className="eyebrow dark">ADMINISTRACIÓN</p>
       <h1>Configuración de la app</h1>
       <p className="subtitle">
