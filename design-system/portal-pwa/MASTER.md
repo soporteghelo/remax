@@ -176,9 +176,31 @@ Barra inferior persistente, alto `--footer-height`, columnas centradas de
 112–136px (a pantalla completa bajo 480px). Cada botón: icono + texto, mínimo
 44px de alto, estado activo con fondo teñido al 12% del primario.
 
+### Sincronización global (`.global-sync-button`)
+
+**Es el único control de sincronización de toda la aplicación.** Vive en la barra
+superior (`src/SyncControl.tsx`, montado una sola vez en `App.tsx`) y su icono
+resume el estado: verde `cloud_done` al día, ámbar `cloud_upload` con cambios en
+cola (insignia con la cantidad), rojo `cloud_off` sin conexión, `sync` girando
+mientras trabaja. Pulsarlo envía la cola y actualiza **todos** los módulos
+registrados; no abre paneles ni exige confirmación.
+
+Ningún módulo lleva botón propio de "Sincronizar", "Actualizar" o "Recargar".
+Para que un módulo nuevo entre en esa pulsación:
+
+1. Regístralo una vez, al importarse (no al montar un componente):
+   `registerSyncModule({ id, label, appliesTo?, refresh })` en `src/sync.ts`.
+   `refresh` trae los datos de la nube y los guarda en su caché local.
+2. En la vista, relee esa caché reaccionando a `useSyncState().dataVersion`.
+3. Las escrituras usan `reportSaved` (llegó a la nube) o `reportQueued` (falló
+   por conexión y espera en la cola).
+
+Los textos de estado remiten siempre a "la nube de la barra superior"; el sello
+de frescura (`.dash-updated`, resúmenes) es texto, nunca un botón.
+
 ### Botones e inputs heredados
 
-`.primary-button`, `.secondary-button`, `.sync-button`, `.new-user-button`,
+`.primary-button`, `.secondary-button`, `.new-user-button`,
 `.admin-form input|select` viven en `src/styles.css`. Al modificarlos, replica el
 cambio en todos los módulos que usen el mismo patrón.
 
@@ -218,6 +240,10 @@ Cada dato aparece **una sola vez**.
 - ❌ **Foco invisible** — el anillo de foco es obligatorio
 - ❌ **Hex crudos en componentes** — siempre tokens
 - ❌ **Tarjeta repetida** solo para enmarcar datos relacionados
+- ❌ **Botones de sincronizar o actualizar dentro de un módulo** — el único es la
+  nube de la barra superior
+- ❌ **Altas y ediciones en ventana flotante** — son vistas del módulo, con el
+  mismo formulario y el mismo ancho
 
 ---
 
@@ -233,4 +259,7 @@ Cada dato aparece **una sola vez**.
 - [ ] Responsive verificado a 375px, 768px, 1024px y 1440px
 - [ ] Sin contenido oculto tras la barra superior o el footer fijo
 - [ ] Sin scroll horizontal en móvil
+- [ ] Ningún botón de sincronizar/actualizar fuera de la nube de la barra superior
+- [ ] Módulo nuevo registrado con `registerSyncModule` y releyendo su caché con
+      `useSyncState().dataVersion`
 - [ ] Tokens claro y oscuro actualizados juntos

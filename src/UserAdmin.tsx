@@ -1,40 +1,49 @@
 import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createUser, isNetworkError, readUsersCache, syncUsers, updateUser, writeUsersCache, type User } from './api';
-import { markSynced, reportQueued, reportSaved } from './sync';
+import { createUser, isNetworkError, readUsersCache, updateUser, writeUsersCache, type User } from './api';
+import { reportQueued, reportSaved, useSyncState } from './sync';
 
-/** Resumen → Detalle → Edición, el mismo recorrido de los módulos de MOTOR. */
-type View = { name: 'list' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string };
+/**
+ * Resumen → Detalle → Edición, el mismo recorrido de los módulos de MOTOR.
+ * El alta es una vista más, no una ventana flotante: se escribe con el mismo
+ * ancho y el mismo formulario que la edición.
+ */
+type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string };
 
 export default function UserAdmin({ user, onSessionUserChange }: { user: User; onSessionUserChange: (user: User) => void }) {
   const [view, setView] = useState<View>({ name: 'list' });
-  const [showForm, setShowForm] = useState(false);
   const [users, setUsers] = useState<User[]>([user]);
   const [lastSync, setLastSync] = useState('');
-  const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const syncState = useSyncState();
 
   useEffect(() => {
     const cached = readUsersCache(user.dni);
     if (cached.users.length) setUsers(cached.users);
     if (cached.lastSync) setLastSync(cached.lastSync);
-  }, [user.dni]);
+  }, [user.dni, syncState.dataVersion]);
 
   const saveCache = (nextUsers: User[], date = new Date().toISOString()) => {
     setUsers(nextUsers); setLastSync(date); writeUsersCache(user.dni, { users: nextUsers, lastSync: date });
-  };
-  const sync = async () => {
-    setSyncing(true); setSyncMessage('Sincronizando con la base de datos…');
-    try { const remoteUsers = await syncUsers(user.dni); saveCache(remoteUsers); markSynced(); setSyncMessage(`Sincronización correcta: ${remoteUsers.length} usuario(s) actualizado(s).`); }
-    catch (cause) { setSyncMessage(cause instanceof Error ? cause.message : 'No se pudo sincronizar. Se conserva la información local.'); }
-    finally { setSyncing(false); }
   };
   const upsert = (saved: User) => {
     saveCache([...users.filter((item) => item.dni !== saved.dni), saved].sort((a, b) => a.apellidos.localeCompare(b.apellidos, 'es')));
     if (saved.dni === user.dni) onSessionUserChange(saved);
   };
 
+  const list = <UserList {...{ user, users, lastSync, syncMessage }}
+                         onNew={() => { setSyncMessage(''); setView({ name: 'create' }); }}
+                         onOpen={(dni) => setView({ name: 'detail', dni })} />;
+
+  if (view.name === 'create') {
+    return <UserCreate
+      adminDni={user.dni}
+      onCancel={() => setView({ name: 'list' })}
+      onCreated={(created) => { upsert(created); setSyncMessage(`Usuario creado. Su contraseña inicial es su DNI: ${created.dni}.`); setView({ name: 'list' }); }}
+    />;
+  }
+
   const selected = view.name === 'list' ? null : users.find((item) => item.dni === view.dni) ?? null;
-  if (view.name !== 'list' && !selected) return <UserList {...{ user, users, lastSync, syncing, syncMessage, sync, showForm, setShowForm, upsert, setSyncMessage }} onOpen={(dni) => setView({ name: 'detail', dni })} />;
+  if (view.name !== 'list' && !selected) return list;
 
   if (view.name === 'detail' && selected) {
     return <UserDetail user={selected} isSelf={selected.dni === user.dni} onBack={() => setView({ name: 'list' })} onEdit={() => setView({ name: 'edit', dni: selected.dni })} />;
@@ -47,30 +56,28 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
       onSaved={(saved, message) => { upsert(saved); setSyncMessage(message); setView({ name: 'detail', dni: saved.dni }); }}
     />;
   }
-  return <UserList {...{ user, users, lastSync, syncing, syncMessage, sync, showForm, setShowForm, upsert, setSyncMessage }} onOpen={(dni) => setView({ name: 'detail', dni })} />;
+  return list;
 }
 
 /* ─── Resumen ─── */
 interface ListProps {
-  user: User; users: User[]; lastSync: string; syncing: boolean; syncMessage: string;
-  sync: () => void; showForm: boolean; setShowForm: (open: boolean) => void;
-  upsert: (saved: User) => void; setSyncMessage: (message: string) => void; onOpen: (dni: string) => void;
+  user: User; users: User[]; lastSync: string; syncMessage: string;
+  onNew: () => void; onOpen: (dni: string) => void;
 }
 
-function UserList({ user, users, lastSync, syncing, syncMessage, sync, showForm, setShowForm, upsert, setSyncMessage, onOpen }: ListProps) {
+function UserList({ user, users, lastSync, syncMessage, onNew, onOpen }: ListProps) {
   const syncedAt = lastSync ? new Date(lastSync).toLocaleString('es-PE') : 'Aún no sincronizado';
   const activos = users.filter((row) => row.estado === 'ACTIVO').length;
   return <section className="page-content user-admin-page"><p className="eyebrow dark">MÓDULO TEMPORAL</p><h1>Administrador de usuarios</h1><p className="subtitle">Toca una fila para ver o editar la cuenta. El listado se guarda localmente y se actualiza al sincronizar.</p>
     <div className="user-admin-summary" aria-label="Resumen de usuarios">
       <article><span className="material-symbols-outlined" aria-hidden="true">group</span><div><small>USUARIOS</small><b>{users.length}</b><em>{activos} activo(s)</em></div></article>
-      <article><span className="material-symbols-outlined" aria-hidden="true">sync</span><div><small>SINCRONIZACIÓN</small><b>{lastSync ? 'Actualizada' : 'Pendiente'}</b><em>{lastSync ? syncedAt : 'Usa el botón para actualizar'}</em></div></article>
+      <article><span className="material-symbols-outlined" aria-hidden="true">sync</span><div><small>SINCRONIZACIÓN</small><b>{lastSync ? 'Actualizada' : 'Pendiente'}</b><em>{lastSync ? syncedAt : 'Toca la nube de la barra superior'}</em></div></article>
     </div>
     <section className="panel">
       <div className="panel-title">
-        <div><h2>Usuarios</h2><p>{syncMessage || 'Sincroniza para consultar los datos actuales de la base de datos.'}</p></div>
+        <div><h2>Usuarios</h2><p>{syncMessage || 'La nube de la barra superior actualiza los datos de la base de datos.'}</p></div>
         <div className="panel-actions">
-          <button className="sync-button" onClick={sync} disabled={syncing}>{syncing ? 'Sincronizando…' : '↻ Sincronizar'}</button>
-          <button className="new-user-button" onClick={() => setShowForm(true)}>+ Nuevo usuario</button>
+          <button type="button" className="new-user-button" onClick={onNew}>+ Nuevo usuario</button>
         </div>
       </div>
       <div className="user-table">
@@ -84,7 +91,6 @@ function UserList({ user, users, lastSync, syncing, syncMessage, sync, showForm,
         ))}
       </div>
     </section>
-    {showForm && <NewUserModal adminDni={user.dni} onClose={() => setShowForm(false)} onCreated={(created) => { upsert(created); setSyncMessage(`Usuario creado. Su contraseña inicial es su DNI: ${created.dni}.`); setShowForm(false); }} />}
   </section>;
 }
 
@@ -149,7 +155,7 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
     } catch (cause) {
       if (isNetworkError(cause)) {
         reportQueued({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined } });
-        setError('El cambio quedó guardado en este dispositivo. Usa Sincronizar cuando vuelva la conexión.');
+        setError('El cambio quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el usuario.');
     }
     finally { setSaving(false); }
@@ -204,7 +210,8 @@ function AutoGrowTextarea({ value, onChange }: { value: string; onChange: (value
   return <textarea ref={ref} className="edit-textarea" rows={1} value={value} onInput={resize} onChange={(event) => onChange(event.target.value)} />;
 }
 
-function NewUserModal({ adminDni, onClose, onCreated }: { adminDni: string; onClose: () => void; onCreated: (created: User) => void }) {
+/** Misma página que la edición: nada flota, se llega y se vuelve con el mismo gesto. */
+function UserCreate({ adminDni, onCancel, onCreated }: { adminDni: string; onCancel: () => void; onCreated: (created: User) => void }) {
   const [dni, setDni] = useState(''); const [apellidos, setApellidos] = useState(''); const [nombres, setNombres] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState<User['tipoUsuario']>('USUARIO'); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
   const submit = async (event: FormEvent) => {
@@ -219,23 +226,33 @@ function NewUserModal({ adminDni, onClose, onCreated }: { adminDni: string; onCl
     } catch (cause) {
       if (isNetworkError(cause)) {
         reportQueued({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario } });
-        setError('El usuario quedó guardado en este dispositivo. Usa Sincronizar cuando vuelva la conexión.');
+        setError('El usuario quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo crear el usuario.');
     }
     finally { setSaving(false); }
   };
-  return <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="new-user-title"><div className="modal">
-    <button className="modal-close" onClick={onClose} aria-label="Cerrar">×</button>
-    <p className="eyebrow dark">ADMINISTRADOR</p>
-    <h2 id="new-user-title">Crear usuario</h2>
-    <p className="modal-copy">La cuenta se registra en la base de datos y se agrega al listado local. La contraseña inicial es el propio DNI.</p>
-    <form className="admin-form" onSubmit={submit}>
-      <label>DNI<input value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" maxLength={8} /></label>
-      <label>Apellidos<input value={apellidos} onChange={(e) => setApellidos(e.target.value.toUpperCase())} autoCapitalize="characters" /></label>
-      <label>Nombres<input value={nombres} onChange={(e) => setNombres(e.target.value.toUpperCase())} autoCapitalize="characters" /></label>
-      <label>Tipo de usuario<select value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value as User['tipoUsuario'])}><option value="USUARIO">USUARIO</option><option value="ADMINISTRADOR">ADMINISTRADOR</option></select></label>
-      {error && <p className="form-error">{error}</p>}
-      <button className="primary-button" disabled={saving}>{saving ? 'Creando…' : 'Crear usuario'}</button>
+  return <section className="page-content user-edit-page">
+    <button type="button" className="back-button" onClick={onCancel}>
+      <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      Volver al listado
+    </button>
+    <p className="eyebrow dark">ALTA</p>
+    <h1>Nuevo usuario</h1>
+    <p className="subtitle">La cuenta se registra en la base de datos y se agrega al listado. El DNI identifica la cuenta y no se podrá cambiar después.</p>
+    <form className="admin-form edit-form" onSubmit={submit}>
+      <label>DNI<input value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" maxLength={8} placeholder="8 dígitos" autoFocus /></label>
+      <label>Tipo de usuario<select value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value as User['tipoUsuario'])}>
+        <option value="USUARIO">USUARIO</option>
+        <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+      </select></label>
+      <label>Apellidos<AutoGrowTextarea value={apellidos} onChange={(value) => setApellidos(value.toUpperCase())} /></label>
+      <label>Nombres<AutoGrowTextarea value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
+      <p className="form-hint span-2">La contraseña inicial es el propio DNI; puedes cambiarla luego desde la edición de la cuenta.</p>
+      {error && <p className="form-error span-2">{error}</p>}
+      <div className="form-buttons">
+        <button type="button" className="back-button" onClick={onCancel}>Cancelar</button>
+        <button className="primary-button" disabled={saving}>{saving ? 'Creando…' : 'Crear usuario'}</button>
+      </div>
     </form>
-  </div></div>;
+  </section>;
 }

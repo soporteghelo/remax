@@ -12,6 +12,7 @@ import './admin-compact.css';
 import './detail-compact.css';
 import './edit-compact.css';
 import './sync-control.css';
+import './desktop-layout.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode><App /></StrictMode>,

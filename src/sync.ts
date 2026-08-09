@@ -22,6 +22,10 @@ import { toastError, toastInfo, toastOk } from './toasts';
  * Los componentes no reciben los datos por aquí: al terminar una
  * sincronización sube `dataVersion`, y cada módulo vuelve a leer su caché. Así
  * el centro no necesita conocer a nadie.
+ *
+ * La sincronización se dispara SOLO desde la nube de la barra superior
+ * (`SyncControl`). Ningún módulo lleva su propio botón de sincronizar o
+ * actualizar: se registra con `registerSyncModule` y entra en esa misma pulsación.
  */
 export type SyncStatus = 'sincronizado' | 'pendiente' | 'sincronizando' | 'sin-conexion';
 
@@ -55,6 +59,31 @@ export interface SyncState {
 }
 
 const EMPTY: SyncState = { status: 'sincronizado', pending: [], lastSync: '', lastMessage: '', dataVersion: 0 };
+
+/* ─── Registro de módulos: lo que la nube de la barra superior trae de vuelta ─── */
+export interface SyncModuleContext { dni: string; isAdmin: boolean }
+
+export interface SyncModule {
+  id: string;
+  /** Nombre legible; encabeza el aviso cuando ese módulo falla */
+  label: string;
+  /** Se omite cuando la sesión no puede leer esos datos (p. ej. solo administración) */
+  appliesTo?: (context: SyncModuleContext) => boolean;
+  /** Trae los datos de la nube y los deja en la caché local del propio módulo */
+  refresh: (context: SyncModuleContext) => Promise<void>;
+}
+
+const modules = new Map<string, SyncModule>();
+
+/**
+ * Suma un módulo a la sincronización global. Se llama UNA vez, al importarse el
+ * módulo (no al montar un componente): el botón debe poder actualizarlo aunque
+ * la persona esté viendo otra pantalla. Registrar dos veces el mismo `id`
+ * reemplaza al anterior, así que recargar en caliente no duplica trabajo.
+ */
+export function registerSyncModule(module: SyncModule): void {
+  modules.set(module.id, module);
+}
 
 let state: SyncState = EMPTY;
 let owner = '';
@@ -163,18 +192,21 @@ export async function runSync({ silent = false } = {}): Promise<void> {
     }
   }
 
+  // Cada módulo registrado se actualiza en la misma pulsación. Un rechazo del
+  // servidor solo hunde a ese módulo: los demás siguen trayendo sus datos.
   let refreshed = false;
   let refreshError = '';
   if (!offline) {
-    try {
-      if (ownerIsAdmin) {
-        const users = await syncUsers(owner);
-        writeUsersCache(owner, { users, lastSync: new Date().toISOString() });
+    const context: SyncModuleContext = { dni: owner, isAdmin: ownerIsAdmin };
+    for (const module of modules.values()) {
+      if (module.appliesTo && !module.appliesTo(context)) continue;
+      try {
+        await module.refresh(context);
+        refreshed = true;
+      } catch (cause) {
+        if (isNetworkError(cause)) { offline = true; break; }
+        refreshError = refreshError || `${module.label}: ${describe(cause)}`;
       }
-      writeSettingsCache(await fetchSettings());
-      refreshed = true;
-    } catch (cause) {
-      if (isNetworkError(cause)) offline = true; else refreshError = describe(cause);
     }
   }
 
@@ -206,15 +238,6 @@ export async function runSync({ silent = false } = {}): Promise<void> {
   if (!silent) toastOk('Datos actualizados', 'Ya estás viendo lo que hay en la nube.');
 }
 
-/**
- * Marca los datos locales como recién traídos de la nube. La usan los módulos
- * que ya sincronizaron por su cuenta, para que el botón no diga "desactualizado"
- * justo después de una sincronización correcta.
- */
-export function markSynced(): void {
-  setState({ lastSync: new Date().toISOString(), status: restingStatus(state.pending), lastMessage: 'Todo al día.' });
-}
-
 export const useSyncState = (): SyncState => useSyncExternalStore(subscribe, () => state);
 
 /** Avisa de un guardado que sí llegó a la nube, sin pasar por la cola. */
@@ -226,10 +249,32 @@ export function reportSaved(what: string): void {
 /** Guarda el cambio para más tarde y lo dice, cuando falló por conexión. */
 export function reportQueued(change: Omit<PendingChange, 'id' | 'createdAt'>): void {
   queueChange(change);
-  toastInfo('Sin conexión: guardado aquí', `${change.label} se enviará cuando sincronices.`);
+  toastInfo('Sin conexión: guardado aquí', `${change.label} se enviará al tocar la nube de la barra superior.`);
 }
 
 // Al recuperar la conexión, lo que estaba esperando sale solo y en silencio.
 window.addEventListener('online', () => {
   if (owner && state.pending.length) runSync({ silent: true });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * MÓDULOS DE SERIE
+ * Un módulo nuevo se añade aquí (o llama a `registerSyncModule` en su propio
+ * archivo) y queda cubierto por la nube de la barra superior. No añadas botones
+ * de sincronizar ni de actualizar en la pantalla del módulo.
+ * ───────────────────────────────────────────────────────────────────────── */
+registerSyncModule({
+  id: 'usuarios',
+  label: 'Usuarios',
+  appliesTo: ({ isAdmin }) => isAdmin,
+  refresh: async ({ dni }) => {
+    const users = await syncUsers(dni);
+    writeUsersCache(dni, { users, lastSync: new Date().toISOString() });
+  },
+});
+
+registerSyncModule({
+  id: 'configuracion',
+  label: 'Configuración',
+  refresh: async () => { writeSettingsCache(await fetchSettings()); },
 });

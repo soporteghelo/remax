@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { fetchSettings, isNetworkError, saveSettings, type User } from './api';
-import { markSynced, reportQueued, reportSaved } from './sync';
+import { isNetworkError, saveSettings, type User } from './api';
+import { reportQueued, reportSaved, useSyncState } from './sync';
 import {
   applySettings, contrastRatio, DEFAULT_SETTINGS, readSettingsCache, SETTING_DEFS, SETTING_GROUPS,
   settingText, settingsEqual, type AppSettings as Settings, type SettingDef,
@@ -19,11 +19,11 @@ import {
 export default function AppSettings({ user, settings, onSaved }: { user: User; settings: Settings; onSaved: (settings: Settings) => void }) {
   const [draft, setDraft] = useState<Settings>(settings);
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [lastSync, setLastSync] = useState(() => readSettingsCache().lastSync);
   const savedRef = useRef(settings);
+  const syncState = useSyncState();
 
   const dirty = !settingsEqual(draft, settings);
 
@@ -32,20 +32,9 @@ export default function AppSettings({ user, settings, onSaved }: { user: User; s
   // …y vuelta a lo guardado si se abandona el módulo sin confirmar.
   useEffect(() => { savedRef.current = settings; }, [settings]);
   useEffect(() => () => { applySettings(savedRef.current); }, []);
+  useEffect(() => { if (syncState.lastSync) setLastSync(syncState.lastSync); }, [syncState.lastSync]);
 
   const set = (key: string, value: string) => { setDraft((current) => ({ ...current, [key]: value })); setError(''); setMessage(''); };
-
-  const reload = async () => {
-    setSyncing(true); setError(''); setMessage('Consultando la configuración guardada…');
-    try {
-      const fresh = await fetchSettings();
-      onSaved(fresh); setDraft(fresh); setLastSync(new Date().toISOString());
-      markSynced();
-      setMessage('Configuración actualizada desde la hoja de cálculo.');
-    } catch (cause) {
-      setMessage(''); setError(cause instanceof Error ? cause.message : 'No se pudo consultar la configuración.');
-    } finally { setSyncing(false); }
-  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(''); setMessage('');
@@ -85,9 +74,6 @@ export default function AppSettings({ user, settings, onSaved }: { user: User; s
             {dirty ? 'Cambios sin guardar · los colores ya se ven en vista previa' : syncedAt}
           </p>
           <div className="cfg-bar-actions">
-            <button type="button" className="sync-button" onClick={reload} disabled={syncing || saving}>
-              {syncing ? 'Consultando…' : '↻ Recargar'}
-            </button>
             <button type="button" className="back-button" onClick={() => setDraft(settings)} disabled={!dirty || saving}>
               Descartar
             </button>

@@ -14,10 +14,12 @@ html, body, #root {
 :root { background: var(--color-bg); color: var(--color-text); }
 
 .pwa-shell {
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  width: 100vw;
-  min-width: 100%;
+  width: auto;
+  min-width: 0;
   height: 100vh;
   height: 100dvh;
   overflow: hidden; /* solo el contenedor central navega verticalmente */
@@ -75,6 +77,12 @@ html, body, #root {
   padding: 16px;
   position: relative;
 }
+.page-transition { animation: page-enter .22s var(--ds-ease, ease-out) both; }
+@keyframes page-enter {
+  from { opacity: 0; transform: translate3d(10px, 4px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .page-transition { animation: none; } }
 @media (min-width: 1024px) { .main-container { padding: 24px; } }
 
 /* ─── Navigation Drawer (menú lateral con animación slide) ─── */
@@ -110,30 +118,14 @@ html, body, #root {
 }
 .nav-overlay.overlay-visible { opacity: 1; pointer-events: auto; cursor: pointer; }
 
-/* Escritorio: la navegación pertenece al marco de la aplicación. Así el
-   contenido conserva todo su ancho útil y nunca queda oscurecido por el menú. */
+/* Escritorio: el contenido ocupa el viewport completo; la navegación se abre
+   solo bajo demanda desde el botón de menú. */
 @media (min-width: 1024px) {
-  .desktop-shell { padding-left: var(--drawer-width); }
-  .desktop-shell .nav-drawer {
-    transform: none;
-    box-shadow: none;
-    border-right-color: var(--ds-border);
-  }
-  .desktop-shell .top-bar { padding-inline: 28px; }
-  .desktop-shell .main-container {
-    width: 100%;
-    padding: 32px clamp(32px, 4vw, 64px) 48px;
-  }
-  .desktop-shell .main-footer { display: none; }
-  /* Todo módulo parte del ancho disponible; cada componente decide luego su
-     propia rejilla o el ancho cómodo de sus campos de edición. */
-  .desktop-shell .dash,
-  .desktop-shell .page-content { max-width: none; width: 100%; }
-  /* Configuración es una herramienta de trabajo: ocupa el ancho disponible y
-     reparte sus controles en tantas columnas legibles como quepan. */
-  .desktop-shell .app-settings-page,
-  .desktop-shell .app-settings-page .cfg { max-width: none; width: 100%; }
-  .desktop-shell .app-settings-page .cfg-fields {
+  .top-bar { padding-inline: 28px; }
+  .main-container { width: 100%; padding: 32px clamp(32px, 4vw, 64px) 48px; }
+  .main-footer { display: none; }
+  .dash, .page-content { max-width: none; width: 100%; }
+  .app-settings-page .cfg-fields {
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 18px 20px;
   }
@@ -234,15 +226,13 @@ html, body, #root {
 
 .drawer-divider { height: 1px; background: var(--ds-border-soft); margin: 8px 8px; }
 
-/* Pie del drawer: estado del sistema */
+/* Pie del drawer: rol de la sesión */
 .drawer-foot {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 16px; border-top: 1px solid var(--ds-border); background: var(--ds-surface-sunken);
 }
-.drawer-status { display: flex; align-items: center; gap: 6px; }
-.drawer-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34a853; box-shadow: 0 0 4px rgba(52, 168, 83, 0.6); flex-shrink: 0; }
-.drawer-status-dot.offline { background: #ea4335; box-shadow: 0 0 4px rgba(234, 67, 53, 0.6); }
-.drawer-status-text { font-size: 10px; font-weight: 600; color: var(--ds-fg); }
+.drawer-role-foot { display: inline-flex; align-items: center; gap: 5px; color: var(--color-primary); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.drawer-role-foot .material-symbols-outlined { font-size: 14px; font-variation-settings: 'FILL' 1; }
 .drawer-version { font-size: 9px; font-weight: 700; color: var(--ds-fg-muted); opacity: 0.6; }
 
 /* ─── Footer de navegación ─── */
@@ -281,7 +271,7 @@ html, body, #root {
 }
 
 /* ─── Panel principal (vista principal) ─── */
-.dash { max-width: 1400px; margin: 0 auto; }
+.dash { width: 100%; max-width: none; margin: 0; }
 
 /* 1. Contexto: una franja, no un banner */
 .dash-context { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
@@ -289,17 +279,8 @@ html, body, #root {
 @media (min-width: 640px) { .dash-greeting { font-size: 20px; } }
 .dash-meta { font-size: 11px; color: var(--ds-fg-muted); margin: 2px 0 0; }
 .dash-meta::first-letter { text-transform: uppercase; }
-.dash-context-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dash-updated { font-size: 10px; font-weight: 600; color: var(--ds-fg-muted); }
-.dash-refresh {
-  display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
-  border: 1px solid var(--ds-border); border-radius: 8px;
-  background: var(--ds-surface); color: var(--color-primary);
-  font-size: 11px; font-weight: 700; cursor: pointer;
-  transition: background-color var(--ds-dur-fast) var(--ds-ease), border-color var(--ds-dur-fast) var(--ds-ease);
-}
-.dash-refresh:hover { background: var(--ds-surface-sunken); border-color: var(--color-primary); }
-.dash-refresh .material-symbols-outlined { font-size: 15px; }
+/* Sello de frescura, no control: sincronizar es siempre la nube de la barra superior. */
+.dash-updated { flex-shrink: 0; font-size: 10px; font-weight: 600; color: var(--ds-fg-muted); }
 
 .dash-section { margin-bottom: 20px; }
 .dash-alerts { display: grid; gap: 8px; }
@@ -367,6 +348,8 @@ button.table-row:hover { background: var(--ds-surface-sunken); }
    Formulario denso agrupado por temas. Etiqueta siempre visible (nunca solo
    placeholder) y descripción de una línea bajo cada campo. */
 .cfg { display: grid; gap: 12px; max-width: 980px; }
+.app-settings-page,
+.app-settings-page .cfg { width: 100%; max-width: none; }
 
 /* Barra de acciones: sigue al desplazamiento para guardar desde cualquier grupo */
 .cfg-bar {
@@ -381,7 +364,7 @@ button.table-row:hover { background: var(--ds-surface-sunken); }
 .cfg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sev-ok-fg); flex-shrink: 0; }
 .cfg-dot.is-dirty { background: var(--sev-med-fg); }
 .cfg-bar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.cfg-bar-actions .primary-button, .cfg-bar-actions .sync-button, .cfg-bar-actions .back-button { padding: 10px 14px; font-size: 13px; }
+.cfg-bar-actions .primary-button, .cfg-bar-actions .back-button { padding: 10px 14px; font-size: 13px; }
 .cfg-bar-actions .primary-button:disabled { opacity: 0.55; cursor: default; }
 .cfg-bar-actions .back-button:disabled { opacity: 0.5; cursor: default; }
 
@@ -474,5 +457,3 @@ button.table-row:hover { background: var(--ds-surface-sunken); }
    app (superficies claras u oscuras) necesita los tokens de severidad para
    cumplir el contraste 4.5:1 en ambos temas. */
 .main-container .form-error { color: var(--sev-high-fg); background: var(--sev-high-bg); border: 1px solid var(--sev-high-bd); }
-[data-theme="dark"] .sync-button { background: var(--ds-surface-sunken); border-color: var(--ds-border); color: var(--color-primary); }
-[data-theme="dark"] .sync-button:hover:not(:disabled) { background: var(--ds-surface); }
