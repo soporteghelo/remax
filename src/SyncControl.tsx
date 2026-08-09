@@ -20,7 +20,7 @@ export default function SyncControl() {
         : { icon: 'cloud_done', tone: 'ready', label: 'Conectado. No hay cambios pendientes.' };
 
   return <div className="global-sync">
-    <button type="button" className={`global-sync-button is-${visual.tone}`} onClick={() => void runSync({ silent: true })}
+    <button type="button" className={`global-sync-button is-${visual.tone}`} onClick={() => void runSync()}
             aria-label={`${visual.label} Sincronizar ahora.`} title="Sincronizar">
       <span className={`material-symbols-outlined ${syncing ? 'is-spinning' : ''}`} aria-hidden="true">{visual.icon}</span>
       {pending > 0 && <span className="global-sync-badge" aria-hidden="true">{pending}</span>}

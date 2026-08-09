@@ -57,7 +57,7 @@ const THEME_KEY = 'pwa_theme';
  * `defaultTheme` de la configuración de la app (mismo criterio que el script de
  * index.html, que lo aplica antes del primer pintado).
  */
-export function readTheme(): Theme {
+function readTheme(): Theme {
   try {
     const saved = localStorage.getItem(THEME_KEY);
     if (saved === 'dark' || saved === 'light') return saved;

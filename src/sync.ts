@@ -4,7 +4,6 @@ import {
   updateUser, writeUsersCache, type User,
 } from './api';
 import { writeSettingsCache, type AppSettings } from './settings';
-import { toastError, toastInfo, toastOk } from './toasts';
 
 /**
  * =========================================================================
@@ -27,18 +26,16 @@ import { toastError, toastInfo, toastOk } from './toasts';
  * (`SyncControl`). Ningún módulo lleva su propio botón de sincronizar o
  * actualizar: se registra con `registerSyncModule` y entra en esa misma pulsación.
  */
-export type SyncStatus = 'sincronizado' | 'pendiente' | 'sincronizando' | 'sin-conexion';
+type SyncStatus = 'sincronizado' | 'pendiente' | 'sincronizando' | 'sin-conexion';
 
-export interface NewUserInput { dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario'] }
-export interface EditUserInput { dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string }
+interface NewUserInput { dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario'] }
+interface EditUserInput { dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string }
 
 interface ChangeBase {
   id: string;
-  /** Texto que se lee en el panel del botón: "Nuevo usuario 12345678" */
+  /** Qué cambio es, en palabras: "Nuevo usuario 12345678" */
   label: string;
   createdAt: string;
-  /** Motivo por el que el servidor lo rechazó; si está, no se reintentará solo */
-  lastError?: string;
 }
 
 export type PendingChange = ChangeBase & (
@@ -52,13 +49,11 @@ export interface SyncState {
   pending: PendingChange[];
   /** ISO de la última vez que los datos vinieron de la nube */
   lastSync: string;
-  /** Resultado de la última operación, para el panel del botón */
-  lastMessage: string;
   /** Sube cada vez que hay datos nuevos en caché */
   dataVersion: number;
 }
 
-const EMPTY: SyncState = { status: 'sincronizado', pending: [], lastSync: '', lastMessage: '', dataVersion: 0 };
+const EMPTY: SyncState = { status: 'sincronizado', pending: [], lastSync: '', dataVersion: 0 };
 
 /* ─── Registro de módulos: lo que la nube de la barra superior trae de vuelta ─── */
 export interface SyncModuleContext { dni: string; isAdmin: boolean }
@@ -139,14 +134,7 @@ export function queueChange(change: Omit<PendingChange, 'id' | 'createdAt'>): vo
   if (!owner) return;
   const pending = [...state.pending, { ...change, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, createdAt: new Date().toISOString() } as PendingChange];
   writePending(owner, pending);
-  setState({ pending, status: 'sin-conexion', lastMessage: 'Guardado en este dispositivo. Se enviará al sincronizar.' });
-}
-
-/** Descarta un cambio que el servidor rechazó y que no tiene arreglo automático. */
-export function discardChange(id: string): void {
-  const pending = state.pending.filter((change) => change.id !== id);
-  writePending(owner, pending);
-  setState({ pending, status: restingStatus(pending) });
+  setState({ pending, status: 'sin-conexion' });
 }
 
 async function apply(change: PendingChange, adminDni: string): Promise<void> {
@@ -155,30 +143,20 @@ async function apply(change: PendingChange, adminDni: string): Promise<void> {
   await saveSettings(adminDni, change.payload);
 }
 
-const describe = (cause: unknown): string => (cause instanceof Error ? cause.message : 'Error desconocido.');
-
-/**
- * Envía la cola y luego vuelve a traer los datos de la nube.
- *
- * `silent` evita los avisos cuando la sincronización no la pidió nadie (al
- * abrir un módulo o al recuperar la conexión): solo se avisa si algo va mal.
- */
-export async function runSync({ silent = false } = {}): Promise<void> {
+/** Envía la cola y luego vuelve a traer los datos de la nube. */
+export async function runSync(): Promise<void> {
   if (!owner || running) return;
   running = true;
-  setState({ status: 'sincronizando', lastMessage: 'Sincronizando…' });
+  setState({ status: 'sincronizando' });
 
   const queue = state.pending;
   const remaining: PendingChange[] = [];
-  let sent = 0;
-  let rejected = 0;
   let offline = false;
 
   for (let index = 0; index < queue.length; index++) {
     const change = queue[index];
     try {
       await apply(change, owner);
-      sent++;
     } catch (cause) {
       if (isNetworkError(cause)) {
         // Sigue sin haber conexión: se conserva el resto de la cola en orden.
@@ -186,16 +164,15 @@ export async function runSync({ silent = false } = {}): Promise<void> {
         remaining.push(...queue.slice(index));
         break;
       }
-      // El servidor lo rechazó: se queda visible con su motivo para decidir a mano.
-      rejected++;
-      remaining.push({ ...change, lastError: describe(cause) });
+      // El servidor lo rechazó. Se queda en la cola —la insignia del botón lo
+      // delata— y se reintentará en la siguiente pulsación.
+      remaining.push(change);
     }
   }
 
   // Cada módulo registrado se actualiza en la misma pulsación. Un rechazo del
   // servidor solo hunde a ese módulo: los demás siguen trayendo sus datos.
   let refreshed = false;
-  let refreshError = '';
   if (!offline) {
     const context: SyncModuleContext = { dni: owner, isAdmin: ownerIsAdmin };
     for (const module of modules.values()) {
@@ -205,7 +182,8 @@ export async function runSync({ silent = false } = {}): Promise<void> {
         refreshed = true;
       } catch (cause) {
         if (isNetworkError(cause)) { offline = true; break; }
-        refreshError = refreshError || `${module.label}: ${describe(cause)}`;
+        // Rechazo del servidor: ese módulo se queda con su caché anterior y el
+        // sello de frescura no avanza, que es la señal de que algo no llegó.
       }
     }
   }
@@ -213,48 +191,24 @@ export async function runSync({ silent = false } = {}): Promise<void> {
   writePending(owner, remaining);
   running = false;
 
-  const status: SyncStatus = offline ? 'sin-conexion' : restingStatus(remaining);
-  const lastMessage = offline
-    ? 'Sin conexión con la nube. Los cambios siguen guardados aquí.'
-    : rejected
-      ? `${rejected} cambio(s) rechazados por el servidor.`
-      : refreshError || (refreshed ? 'Todo al día.' : 'Sin cambios.');
-
   setState({
     pending: remaining,
-    status,
-    lastMessage,
+    status: offline ? 'sin-conexion' : restingStatus(remaining),
     lastSync: refreshed ? new Date().toISOString() : state.lastSync,
     dataVersion: refreshed ? state.dataVersion + 1 : state.dataVersion,
   });
-
-  if (offline) {
-    if (!silent) toastError('Sin conexión', remaining.length ? `${remaining.length} cambio(s) esperan a que vuelva la conexión.` : 'No se pudieron traer los datos de la nube.');
-    return;
-  }
-  if (rejected) { if (!silent) toastError('El servidor rechazó un cambio', remaining.find((change) => change.lastError)?.lastError); return; }
-  if (refreshError) { if (!silent) toastError('No se pudo actualizar', refreshError); return; }
-  if (sent) { if (!silent) toastOk('Cambios enviados', `${sent} cambio(s) guardados en la nube.`); return; }
-  if (!silent) toastOk('Datos actualizados', 'Ya estás viendo lo que hay en la nube.');
 }
 
 export const useSyncState = (): SyncState => useSyncExternalStore(subscribe, () => state);
 
-/** Avisa de un guardado que sí llegó a la nube, sin pasar por la cola. */
-export function reportSaved(what: string): void {
-  setState({ lastSync: new Date().toISOString(), lastMessage: `${what} · guardado en la nube` });
-  toastOk('Guardado en la nube', what);
-}
-
-/** Guarda el cambio para más tarde y lo dice, cuando falló por conexión. */
-export function reportQueued(change: Omit<PendingChange, 'id' | 'createdAt'>): void {
-  queueChange(change);
-  toastInfo('Sin conexión: guardado aquí', `${change.label} se enviará al tocar la nube de la barra superior.`);
+/** Un guardado que sí llegó a la nube: adelanta el sello de frescura. */
+export function markSaved(): void {
+  setState({ lastSync: new Date().toISOString() });
 }
 
 // Al recuperar la conexión, lo que estaba esperando sale solo y en silencio.
 window.addEventListener('online', () => {
-  if (owner && state.pending.length) runSync({ silent: true });
+  if (owner && state.pending.length) runSync();
 });
 
 /* ─────────────────────────────────────────────────────────────────────────

@@ -21,31 +21,26 @@ rutas internas de la SPA.
 Para desarrollo local, copia `.env.example` a `.env` y reemplaza el valor de
 ejemplo. `.env` no se versiona.
 
-Boilerplate autocontenido de autenticación por DNI y contraseña usando Google
-Sheets mediante una aplicación web de Apps Script. Está pensado para copiarse
-dentro de otro proyecto React; no se importa automáticamente desde `src/`.
+Autenticación por DNI y contraseña sobre una Google Sheet, mediante una
+aplicación web de Apps Script. La aplicación vive entera en `src/`.
 
 ## Cómo funciona
 
-1. El usuario ingresa su DNI y contraseña. En su primer ingreso también indica
-   apellidos y nombres, con los que se crea su cuenta.
+1. El usuario ingresa su DNI y contraseña. Las cuentas las crea un
+   administrador desde el módulo de usuarios; la contraseña inicial es el DNI.
 2. El frontend envía las credenciales por HTTPS al Web App de Apps Script.
 3. Apps Script usa `DNI` como identificador y guarda el valor protegido de la
    contraseña únicamente en la columna `Pass`, usando un `PASSWORD_PEPPER`
    secreto del servidor. Nunca devuelve la contraseña al navegador.
-4. En cada acceso válido se actualizan `UltimoAcceso` y `Dispositivo`, y el
-   frontend conserva la sesión local para mostrar `HomeScreen.tsx`.
+4. En cada acceso válido se actualizan `UltimoAcceso` y `Dispositivo`, y la
+   sesión queda guardada en el dispositivo hasta que el servidor la invalide.
 
 ## Contenido
 
 ```
-apps-script/Code.gs       # backend de autenticación y hoja USUARIOS
-frontend/config.ts        # URL y claves de almacenamiento
-frontend/types.ts         # tipos de usuario y sesión
-frontend/api.ts           # cliente authenticateUser
-frontend/LoginScreen.tsx  # pantalla DNI + contraseña
-frontend/HomeScreen.tsx   # pantalla posterior al acceso
-frontend/App.example.tsx  # ejemplo de integración
+apps-script/Code.gs       # backend de autenticación, hoja USUARIOS y CONFIGURACION
+index.html                # tema y marca antes del primer pintado
+src/                      # aplicación (ver "Interfaz" más abajo)
 ```
 
 ## Puesta en marcha
@@ -63,14 +58,13 @@ frontend/App.example.tsx  # ejemplo de integración
    `Estado` admite `ACTIVO` o `CESADO`; una celda vacía se trata como `ACTIVO`.
 4. Despliega como **Aplicación web** con acceso para los usuarios de tu app y
    copia la URL del despliegue.
-5. En el proyecto frontend define:
+5. Define la URL del despliegue en el frontend:
 
    ```env
    VITE_APPS_SCRIPT_URL=<URL del Web App>
    ```
 
-6. Copia `frontend/*` al proyecto y adapta `App.example.tsx` en tu punto de
-   entrada. Requiere `react`, `framer-motion`, `lucide-react` y Tailwind CSS.
+6. `npm install` y `npm run dev` para desarrollo; `npm run build` para publicar.
 
 ## Sesiones y caducidad
 
@@ -137,12 +131,23 @@ src/design-system.css                # tokens --ds-*/--color-*/--sev-* y compone
 src/shell.css                        # barra superior, drawer, footer y panel principal
 src/shell.ts                         # modelo de navegación + useTheme / useOnlineStatus
 src/settings.ts                      # catálogo de ajustes, caché y tokens --brand-*
+src/sync.ts                          # centro de sincronización y registro de módulos
+src/SyncControl.tsx                  # la nube de la barra superior (único control)
 src/NavDrawer.tsx                    # menú sándwich (drawer lateral)
 src/Dashboard.tsx                    # vista principal
 src/AppFooter.tsx                    # footer de navegación
+src/UserAdmin.tsx                    # administración de usuarios (listado, alta, edición)
 src/AppSettings.tsx                  # configuración general (solo administradores)
 src/Profile.tsx                      # ficha de la cuenta activa
 ```
+
+## Sincronización
+
+Un solo control en toda la aplicación: la nube de la barra superior. Envía los
+cambios que quedaron en cola por falta de conexión y vuelve a traer los datos de
+cada módulo registrado con `registerSyncModule` ([src/sync.ts](src/sync.ts)). Las
+vistas releen su caché reaccionando a `useSyncState().dataVersion`; ningún módulo
+lleva su propio botón de sincronizar o actualizar.
 
 Para añadir un módulo basta con agregar una entrada a `MODULES` en
 [shell.ts](src/shell.ts) y renderizarlo en el `switch` de vistas de

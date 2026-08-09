@@ -5,7 +5,6 @@ import App from './App';
 // estructura persistente. Lo último gana ante declaraciones en conflicto.
 import './styles.css';
 import './password.css';
-import './sync.css';
 import './design-system.css';
 import './shell.css';
 import './admin-compact.css';

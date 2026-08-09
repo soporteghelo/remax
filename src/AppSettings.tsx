@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { isNetworkError, saveSettings, type User } from './api';
-import { reportQueued, reportSaved, useSyncState } from './sync';
+import { markSaved, queueChange, useSyncState } from './sync';
 import {
   applySettings, contrastRatio, DEFAULT_SETTINGS, readSettingsCache, SETTING_DEFS, SETTING_GROUPS,
   settingText, settingsEqual, type AppSettings as Settings, type SettingDef,
@@ -42,11 +42,11 @@ export default function AppSettings({ user, settings, onSaved }: { user: User; s
     try {
       const result = await saveSettings(user.dni, draft);
       onSaved(result.settings); setDraft(result.settings); setLastSync(new Date().toISOString());
-      reportSaved('Configuración de la aplicación');
+      markSaved();
       setMessage(result.message);
     } catch (cause) {
       if (isNetworkError(cause)) {
-        reportQueued({ kind: 'guardar-config', label: 'Configuración de la aplicación', payload: draft });
+        queueChange({ kind: 'guardar-config', label: 'Configuración de la aplicación', payload: draft });
         onSaved(draft); setLastSync(new Date().toISOString());
         setMessage('Configuración guardada en este dispositivo. Se enviará al sincronizar.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo guardar la configuración.');

@@ -33,7 +33,7 @@ export interface SettingDef {
   placeholder?: string;
 }
 
-export interface SettingGroup {
+interface SettingGroup {
   id: SettingGroupId;
   title: string;
   hint: string;
@@ -115,9 +115,9 @@ export const settingsEqual = (a: AppSettings, b: AppSettings): boolean =>
 /* ─── Caché local: sirve la configuración sin conexión y antes del primer pintado ─── */
 
 /** También lo lee el script de [index.html](../index.html) para evitar el destello de marca. */
-export const SETTINGS_CACHE_KEY = 'loginapp_app_settings';
+const SETTINGS_CACHE_KEY = 'loginapp_app_settings';
 
-export interface SettingsCache { settings: AppSettings; lastSync: string }
+interface SettingsCache { settings: AppSettings; lastSync: string }
 
 export function readSettingsCache(): SettingsCache {
   try {
@@ -150,7 +150,7 @@ export function contrastRatio(a: string, b: string): number {
 }
 
 /** Texto legible sobre un fondo del color dado: blanco o casi negro, el que más contraste. */
-export const onColorFor = (hex: string): string => (contrastRatio(hex, '#ffffff') >= contrastRatio(hex, '#101014') ? '#ffffff' : '#101014');
+const onColorFor = (hex: string): string => (contrastRatio(hex, '#ffffff') >= contrastRatio(hex, '#101014') ? '#ffffff' : '#101014');
 
 /** Punto medio de dos colores: representa el degradado a la hora de elegir su texto. */
 function midColor(from: string, to: string): string {

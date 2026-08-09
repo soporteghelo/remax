@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createUser, isNetworkError, readUsersCache, updateUser, writeUsersCache, type User } from './api';
-import { reportQueued, reportSaved, useSyncState } from './sync';
+import { markSaved, queueChange, useSyncState } from './sync';
 
 /**
  * Resumen → Detalle → Edición, el mismo recorrido de los módulos de MOTOR.
@@ -150,11 +150,11 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
     setSaving(true);
     try {
       const saved = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined });
-      reportSaved(`Usuario ${saved.dni} actualizado`);
+      markSaved();
       onSaved(saved, cierraSesion ? `Usuario actualizado. ${saved.nombres} deberá iniciar sesión de nuevo.` : 'Usuario actualizado correctamente.');
     } catch (cause) {
       if (isNetworkError(cause)) {
-        reportQueued({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined } });
+        queueChange({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined } });
         setError('El cambio quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el usuario.');
     }
@@ -221,11 +221,11 @@ function UserCreate({ adminDni, onCancel, onCreated }: { adminDni: string; onCan
     setSaving(true);
     try {
       const created = await createUser({ adminDni, dni, apellidos, nombres, tipoUsuario });
-      reportSaved(`Usuario ${created.dni} creado`);
+      markSaved();
       onCreated(created);
     } catch (cause) {
       if (isNetworkError(cause)) {
-        reportQueued({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario } });
+        queueChange({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario } });
         setError('El usuario quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo crear el usuario.');
     }
