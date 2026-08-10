@@ -1,0 +1,20 @@
+{
+  "name": "Sistema RX",
+  "short_name": "RX",
+  "description": "CRM para la gestión comercial de Sistema RX.",
+  "lang": "es-PE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f6fb",
+  "theme_color": "#000666",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/rx-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

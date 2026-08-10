@@ -1,14 +1,15 @@
-import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createUser, isNetworkError, readUsersCache, syncUsers, updateUser, writeUsersCache, type User } from './api';
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createUser, isNetworkError, readUsersCache, resendInvite, syncUsers, updateUser, writeUsersCache, type CredentialDelivery, type InviteChannel, type User } from './api';
 import { formatDateTime } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
+import { WhatsAppGlyph } from './whatsapp';
 
 /**
  * Resumen → Detalle → Edición, el mismo recorrido de los módulos de MOTOR.
  * El alta es una vista más, no una ventana flotante: se escribe con el mismo
  * ancho y el mismo formulario que la edición.
  */
-type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string };
+type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string } | { name: 'invite'; dni: string };
 
 export default function UserAdmin({ user, onSessionUserChange }: { user: User; onSessionUserChange: (user: User) => void }) {
   const [view, setView] = useState<View>({ name: 'list' });
@@ -68,13 +69,15 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
 
   const list = <UserList {...{ user, users, lastSync, syncMessage, refreshing, refreshError }}
                          onNew={() => { setSyncMessage(''); setView({ name: 'create' }); }}
-                         onOpen={(dni) => setView({ name: 'detail', dni })} />;
+                         onOpen={(dni) => setView({ name: 'detail', dni })}
+                         onInvite={(dni) => { setSyncMessage(''); setView({ name: 'invite', dni }); }} />;
 
   if (view.name === 'create') {
     return <UserCreate
       adminDni={user.dni}
       onCancel={() => setView({ name: 'list' })}
-      onCreated={(created) => { upsert(created); setSyncMessage(`Usuario creado. Su contraseña inicial es su DNI: ${created.dni}.`); setView({ name: 'list' }); }}
+      onCreated={upsert}
+      onFinish={(message) => { setSyncMessage(message); setView({ name: 'list' }); }}
     />;
   }
 
@@ -83,6 +86,14 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
 
   if (view.name === 'detail' && selected) {
     return <UserDetail user={selected} isSelf={selected.dni === user.dni} onBack={() => setView({ name: 'list' })} onEdit={() => setView({ name: 'edit', dni: selected.dni })} />;
+  }
+  if (view.name === 'invite' && selected) {
+    return <UserInvite
+      target={selected}
+      adminDni={user.dni}
+      onBack={() => setView({ name: 'list' })}
+      onFinish={(message) => { setSyncMessage(message); setView({ name: 'list' }); }}
+    />;
   }
   if (view.name === 'edit' && selected) {
     return <UserEdit
@@ -98,12 +109,28 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
 /* ─── Resumen ─── */
 interface ListProps {
   user: User; users: User[]; lastSync: string; syncMessage: string; refreshing: boolean; refreshError: string;
-  onNew: () => void; onOpen: (dni: string) => void;
+  onNew: () => void; onOpen: (dni: string) => void; onInvite: (dni: string) => void;
 }
 
-function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError, onNew, onOpen }: ListProps) {
+function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError, onNew, onOpen, onInvite }: ListProps) {
+  // Los filtros solo recortan lo que se lista; el resumen de arriba sigue
+  // contando todo el equipo, que es el dato que se consulta de un vistazo.
+  const [estado, setEstado] = useState('');
+  const [tipoUsuario, setTipoUsuario] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const syncedAt = lastSync ? formatDateTime(lastSync) : 'Aún no sincronizado';
   const activos = users.filter((row) => row.estado === 'ACTIVO').length;
+  const activeFilters = [estado, tipoUsuario].filter(Boolean).length;
+  const hasFilters = activeFilters > 0;
+  const filtered = useMemo(
+    () => users.filter((row) => (!estado || row.estado === estado) && (!tipoUsuario || row.tipoUsuario === tipoUsuario)),
+    [users, estado, tipoUsuario],
+  );
+  const status = syncMessage
+    || (refreshError ? `${refreshError} Se muestra la copia guardada.`
+      : refreshing ? 'Consultando la hoja USUARIOS…'
+      : hasFilters ? `Mostrando ${filtered.length} de ${users.length} cuenta(s).`
+      : 'Listado actualizado desde la base de datos.');
   return <section className="page-content user-admin-page"><p className="eyebrow dark">ADMINISTRACIÓN</p><h1>Equipo</h1><p className="subtitle">Crea, edita, desactiva o reactiva las cuentas de agentes y administradores.</p>
     <div className="user-admin-summary" aria-label="Resumen de usuarios">
       <article><span className="material-symbols-outlined" aria-hidden="true">group</span><div><small>USUARIOS</small><b>{users.length}</b><em>{activos} activo(s)</em></div></article>
@@ -111,20 +138,58 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
     </div>
     <section className="panel">
       <div className="panel-title">
-        <div><h2>Usuarios</h2><p>{syncMessage || (refreshError ? `${refreshError} Se muestra la copia guardada.` : refreshing ? 'Consultando la hoja USUARIOS…' : 'Listado actualizado desde la base de datos.')}</p></div>
+        <div><h2>Usuarios</h2><p>{status}</p></div>
         <div className="panel-actions">
+          {/* Plegado no significa desactivado: el contador y el texto de arriba
+              recuerdan que hay un filtro puesto aunque no se vean los campos. */}
+          <button type="button" className={`user-admin-filter-toggle${filtersOpen ? ' is-open' : ''}`} aria-expanded={filtersOpen} aria-controls="user-admin-filters" onClick={() => setFiltersOpen((current) => !current)}>
+            <span className="material-symbols-outlined" aria-hidden="true">filter_list</span>
+            <span>Filtros</span>
+            {hasFilters && <small aria-label={`${activeFilters} filtro(s) activo(s)`}>{activeFilters}</small>}
+            <span className="material-symbols-outlined" aria-hidden="true">{filtersOpen ? 'expand_less' : 'expand_more'}</span>
+          </button>
           <button type="button" className="new-user-button" onClick={onNew}>+ Nuevo usuario</button>
         </div>
       </div>
-      <div className="user-table">
+      <div id="user-admin-filters" className={`crm-filters user-admin-filters${filtersOpen ? ' is-open' : ' is-collapsed'}`} aria-label="Filtros de usuarios">
+        <label><span>Estado</span><select value={estado} onChange={(event) => setEstado(event.target.value)}>
+          <option value="">Todos</option>
+          <option value="ACTIVO">ACTIVO</option>
+          <option value="CESADO">CESADO</option>
+        </select></label>
+        <label><span>Rol comercial</span><select value={tipoUsuario} onChange={(event) => setTipoUsuario(event.target.value)}>
+          <option value="">Todos</option>
+          <option value="USUARIO">AGENTE</option>
+          <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+        </select></label>
+        <button type="button" className="crm-clear-filters" onClick={() => { setEstado(''); setTipoUsuario(''); }} disabled={!hasFilters} aria-label="Eliminar todos los filtros">
+          <span className="material-symbols-outlined" aria-hidden="true">filter_alt_off</span><span>Limpiar filtros</span>
+        </button>
+      </div>
+      {/* La acción solo aparece si existe un celular al que enviar el
+          recordatorio por WhatsApp. */}
+      <div className={`user-table${filtered.some((row) => row.celular) ? ' has-row-actions' : ''}`}>
         <div className="table-head"><span>Usuario</span><span>DNI</span><span>Estado</span></div>
-        {users.map((row) => (
-          <button type="button" className="table-row" key={row.dni} onClick={() => onOpen(row.dni)} aria-label={`Ver detalle de ${row.nombres} ${row.apellidos}`}>
-            <span><b>{row.nombres} {row.apellidos}</b><small>{row.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'}{row.dni === user.dni ? ' · Tu cuenta' : ''}</small></span>
-            <span>{row.dni}</span>
-            <span><EstadoBadge estado={row.estado} /></span>
-          </button>
-        ))}
+        {filtered.length ? filtered.map((row) => (
+          // La acción de WhatsApp va FUERA del botón de la fila: anidar dos
+          // controles no es válido, así que ocupa su propia columna. Cuando la
+          // cuenta no tiene por dónde recibirla queda un hueco, y así todas las
+          // filas conservan las mismas columnas.
+          <div className="user-row" key={row.dni}>
+            <button type="button" className="table-row" onClick={() => onOpen(row.dni)} aria-label={`Ver detalle de ${row.nombres} ${row.apellidos}`}>
+              <span><b>{row.nombres} {row.apellidos}</b><small>{row.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'}{row.dni === user.dni ? ' · Tu cuenta' : ''}</small></span>
+              <span>{row.dni}</span>
+              <span><EstadoBadge estado={row.estado} /></span>
+            </button>
+            {row.celular ? (
+              <button type="button" className="row-action" onClick={() => onInvite(row.dni)}
+                      title={`Enviar recordatorio de credenciales por WhatsApp a ${row.nombres} ${row.apellidos}`}
+                      aria-label={`Enviar recordatorio de credenciales por WhatsApp a ${row.nombres} ${row.apellidos}`}>
+                <WhatsAppGlyph />
+              </button>
+            ) : <span aria-hidden="true" />}
+          </div>
+        )) : <p className="user-admin-empty">{users.length ? 'No hay cuentas que coincidan con los filtros.' : 'Todavía no hay usuarios registrados.'}</p>}
       </div>
     </section>
   </section>;
@@ -143,6 +208,8 @@ function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: bool
     ['Apellidos', user.apellidos || '—'],
     ['Nombres', user.nombres || '—'],
     ['DNI', user.dni],
+    ['Correo', user.correo || '—'],
+    ['Celular', user.celular || '—'],
     ['Estado', <EstadoBadge estado={user.estado} />],
     ['Rol comercial', user.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'],
     ['Fecha de registro', formatDateTime(user.fechaRegistro)],
@@ -173,6 +240,8 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
   const [nombres, setNombres] = useState(target.nombres);
   const [estado, setEstado] = useState<User['estado']>(target.estado);
   const [tipoUsuario, setTipoUsuario] = useState<User['tipoUsuario']>(target.tipoUsuario);
+  const [correo, setCorreo] = useState(target.correo);
+  const [celular, setCelular] = useState(target.celular);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -185,12 +254,12 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
     if (password && password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.');
     setSaving(true);
     try {
-      const saved = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined });
+      const saved = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular });
       markSaved();
       onSaved(saved, cierraSesion ? `Usuario actualizado. ${saved.nombres} deberá iniciar sesión de nuevo.` : 'Usuario actualizado correctamente.');
     } catch (cause) {
       if (isNetworkError(cause)) {
-        queueChange({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined } });
+        queueChange({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular } });
         setError('El cambio quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el usuario.');
     }
@@ -216,6 +285,8 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
         <option value="USUARIO">AGENTE</option>
         <option value="ADMINISTRADOR">ADMINISTRADOR</option>
       </select></label>
+      <label>Correo<input type="email" value={correo} onChange={(e) => setCorreo(e.target.value.trim())} inputMode="email" autoComplete="off" placeholder="correo@ejemplo.com" /></label>
+      <label>Celular<input type="tel" value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="tel" autoComplete="off" placeholder="9 dígitos o +51…" /></label>
       <label className="span-2">Nueva contraseña
         <span className="password-row">
           <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Déjalo vacío para no cambiarla" autoComplete="new-password" />
@@ -246,27 +317,42 @@ function AutoGrowTextarea({ value, onChange, required = false }: { value: string
   return <textarea ref={ref} className="edit-textarea" rows={1} value={value} required={required} onInput={resize} onChange={(event) => onChange(event.target.value)} />;
 }
 
-/** Misma página que la edición: nada flota, se llega y se vuelve con el mismo gesto. */
-function UserCreate({ adminDni, onCancel, onCreated }: { adminDni: string; onCancel: () => void; onCreated: (created: User) => void }) {
+/**
+ * Misma página que la edición: nada flota, se llega y se vuelve con el mismo
+ * gesto. Al guardar, el servidor envía por correo el acceso completo (objetivo
+ * de la app, rol asignado, enlace, usuario y contraseña) y devuelve ese mismo
+ * mensaje escrito para WhatsApp, que solo puede abrir quien administra.
+ */
+function UserCreate({ adminDni, onCancel, onCreated, onFinish }: {
+  adminDni: string; onCancel: () => void; onCreated: (created: User) => void; onFinish: (message: string) => void;
+}) {
   const [dni, setDni] = useState(''); const [apellidos, setApellidos] = useState(''); const [nombres, setNombres] = useState('');
-  const [tipoUsuario, setTipoUsuario] = useState<User['tipoUsuario']>('USUARIO'); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
+  const [tipoUsuario, setTipoUsuario] = useState<User['tipoUsuario']>('USUARIO');
+  const [correo, setCorreo] = useState(''); const [celular, setCelular] = useState('');
+  const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
+  const [created, setCreated] = useState<{ user: User; delivery: CredentialDelivery } | null>(null);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError('');
     if (!/^\d{8}$/.test(dni)) return setError('Ingresa un DNI válido de 8 dígitos.');
     if (!apellidos.trim() || !nombres.trim()) return setError('Completa nombres y apellidos.');
     setSaving(true);
     try {
-      const created = await createUser({ adminDni, dni, apellidos, nombres, tipoUsuario });
+      const result = await createUser({ adminDni, dni, apellidos, nombres, tipoUsuario, correo, celular });
       markSaved();
-      onCreated(created);
+      onCreated(result.user);
+      setCreated(result);
     } catch (cause) {
       if (isNetworkError(cause)) {
-        queueChange({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario } });
-        setError('El usuario quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
+        queueChange({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario, correo, celular } });
+        setError('El usuario quedó guardado en este dispositivo. Su acceso se enviará al crearse la cuenta: toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo crear el usuario.');
     }
     finally { setSaving(false); }
   };
+
+  if (created) return <UserCredentials user={created.user} delivery={created.delivery} mode="create" onFinish={onFinish} />;
+
   return <section className="page-content user-edit-page">
     <button type="button" className="back-button" onClick={onCancel}>
       <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
@@ -283,12 +369,142 @@ function UserCreate({ adminDni, onCancel, onCreated }: { adminDni: string; onCan
       </select></label>
       <label>Apellidos *<AutoGrowTextarea required value={apellidos} onChange={(value) => setApellidos(value.toUpperCase())} /></label>
       <label>Nombres *<AutoGrowTextarea required value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
-      <p className="form-hint span-2">La contraseña inicial es el propio DNI; puedes cambiarla luego desde la edición de la cuenta.</p>
+      <label>Correo<input type="email" value={correo} onChange={(e) => setCorreo(e.target.value.trim())} inputMode="email" autoComplete="off" placeholder="correo@ejemplo.com" /></label>
+      <label>Celular<input type="tel" value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="tel" autoComplete="off" placeholder="9 dígitos o +51…" /></label>
+      <p className="form-hint span-2">
+        La contraseña inicial es el propio DNI. Al crear la cuenta se envía el acceso al correo indicado;
+        con el celular podrás enviárselo por WhatsApp en el siguiente paso.
+      </p>
       {error && <p className="form-error span-2">{error}</p>}
       <div className="form-buttons">
         <button type="button" className="back-button" onClick={onCancel}>Cancelar</button>
         <button className="primary-button" disabled={saving}>{saving ? 'Creando…' : 'Crear usuario'}</button>
       </div>
     </form>
+  </section>;
+}
+
+/**
+ * Reenvía el acceso de una cuenta que ya existe: la pulsación en el listado es
+ * la confirmación, así que el envío sale al entrar. El resultado se muestra con
+ * el mismo panel que el alta.
+ */
+function UserInvite({ target, adminDni, onBack, onFinish }: {
+  target: User; adminDni: string; onBack: () => void; onFinish: (message: string) => void;
+}) {
+  const [delivery, setDelivery] = useState<CredentialDelivery | null>(null);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  // El envío se dispara una vez por intento, aunque el componente vuelva a pintarse.
+  const sentFor = useRef('');
+
+  useEffect(() => {
+    const key = `${target.dni}|${attempt}`;
+    if (sentFor.current === key) return;
+    sentFor.current = key;
+    let active = true;
+    setDelivery(null); setError('');
+    resendInvite(adminDni, target.dni, 'whatsapp')
+      .then((result) => { if (active) setDelivery(result.delivery); })
+      .catch((cause) => {
+        if (!active) return;
+        setError(isNetworkError(cause)
+          ? 'No hay conexión con el servicio. Vuelve a intentarlo cuando regrese: el reenvío no queda en cola para no duplicar mensajes.'
+          : cause instanceof Error ? cause.message : 'No se pudo reenviar la invitación.');
+      });
+    return () => { active = false; };
+  }, [adminDni, target.dni, attempt]);
+
+  if (delivery) return <UserCredentials user={target} delivery={delivery} mode="resend" onFinish={onFinish} />;
+
+  return <section className="page-content user-edit-page">
+    <button type="button" className="back-button" onClick={onBack}>
+      <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      Volver al listado
+    </button>
+    <p className="eyebrow dark">ENVÍO</p>
+    <h1>Preparando recordatorio</h1>
+    <p className="subtitle">{target.nombres} {target.apellidos} · DNI {target.dni}</p>
+    {error
+      ? <>
+          <p className="form-error">{error}</p>
+          <div className="profile-actions">
+            <button type="button" className="primary-button" onClick={() => setAttempt((current) => current + 1)}>Reintentar</button>
+          </div>
+        </>
+      : <p className="form-hint" role="status">Preparando el mensaje de WhatsApp…</p>}
+  </section>;
+}
+
+/**
+ * Qué se entregó y por dónde. El correo ya salió del servidor; WhatsApp y el
+ * copiado quedan a mano porque el navegador no puede enviarlos por su cuenta.
+ */
+function UserCredentials({ user, delivery, mode, onFinish }: {
+  user: User; delivery: CredentialDelivery; mode: 'create' | 'resend'; onFinish: (message: string) => void;
+}) {
+  const [copyNote, setCopyNote] = useState('');
+  const creating = mode === 'create';
+  const role = user.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR';
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(delivery.text); setCopyNote('Mensaje copiado: pégalo donde quieras enviarlo.'); }
+    catch { setCopyNote('El navegador no permitió copiar. Selecciona el mensaje de abajo y cópialo a mano.'); }
+  };
+  const fields: [string, string][] = [
+    ['Enlace de ingreso', delivery.link || 'Sin configurar'],
+    ['Usuario (DNI)', user.dni],
+    // Al reenviar, una contraseña ya cambiada no se puede recuperar: el mensaje
+    // remite a la que esa persona definió, y aquí se dice lo mismo.
+    [creating ? 'Contraseña inicial' : 'Contraseña', delivery.password || 'La que ya definió'],
+    ['Tipo de usuario', role],
+  ];
+
+  return <section className="page-content user-edit-page">
+    <p className="eyebrow dark">{creating ? 'ALTA' : 'ENVÍO'}</p>
+    <h1>{creating ? 'Cuenta creada' : 'Invitación reenviada'}</h1>
+    <p className="subtitle">{user.nombres} {user.apellidos} · DNI {user.dni} · {role}</p>
+
+    {mode === 'resend'
+      ? <p className="form-hint">El recordatorio está listo para enviarse al celular registrado por WhatsApp.</p>
+      : delivery.emailSent
+      ? <p className="form-success"><span className="material-symbols-outlined" aria-hidden="true">mark_email_read</span>Acceso enviado a {delivery.email}.</p>
+      : delivery.email
+        ? <p className="form-error">No se pudo enviar el correo a {delivery.email}. {delivery.emailError} Envíalo por WhatsApp o copia el mensaje.</p>
+        : <p className="form-hint">Esta cuenta no registró un correo: entrega el acceso por WhatsApp o copiando el mensaje.</p>}
+
+    {!delivery.link && (
+      <div className="ds-alert sev-med" role="status">
+        <span className="material-symbols-outlined" aria-hidden="true">link_off</span>
+        <span className="ds-alert-tx">El mensaje salió sin la dirección del portal. Defínela en <b>Configuración de la app → Enlace de acceso</b> para los próximos envíos.</span>
+      </div>
+    )}
+
+    <dl className="profile-grid">
+      {fields.map(([label, value]) => <div className="profile-field" key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+    </dl>
+
+    <div className="profile-actions">
+      {delivery.whatsappUrl && (
+        <a className="whatsapp-action" href={delivery.whatsappUrl} target="_blank" rel="noopener noreferrer">
+          <WhatsAppGlyph />
+          {creating ? 'Enviar por WhatsApp' : 'Enviar recordatorio por WhatsApp'}
+        </a>
+      )}
+      <button type="button" className="back-button" onClick={copy}>
+        <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
+        Copiar mensaje
+      </button>
+      <button type="button" className="primary-button" onClick={() => onFinish(
+        `${creating ? `Usuario ${user.dni} creado.` : `Invitación reenviada a ${user.nombres} ${user.apellidos}.`}`
+        + (delivery.emailSent ? ` Acceso enviado a ${delivery.email}.` : creating ? ' Su contraseña inicial es su DNI.' : ''),
+      )}>
+        Volver al listado
+      </button>
+    </div>
+    {copyNote && <p className="form-hint credentials-note">{copyNote}</p>}
+    <details className="credentials-preview">
+      <summary>Ver el mensaje que recibe</summary>
+      <p>{delivery.text}</p>
+    </details>
   </section>;
 }

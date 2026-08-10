@@ -1,0 +1,99 @@
+- generic [ref=f1e1]:
+  - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+        - generic [ref=f1e7]: close
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]: NR
+        - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+        - generic [ref=f1e11]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+          - generic [ref=f1e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=f1e14]:
+      - generic [ref=f1e15]: Módulos
+      - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: dashboard
+      - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+        - generic [ref=f1e20]: person_search
+      - button "Agenda" [ref=f1e22] [cursor=pointer]:
+        - generic [ref=f1e23]: event
+      - button "Clientes" [ref=f1e25] [cursor=pointer]:
+        - generic [ref=f1e26]: groups
+      - button "Equipo" [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: manage_accounts
+      - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+        - generic [ref=f1e32]: expand_more
+      - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+        - generic [ref=f1e36]: logout
+    - generic [ref=f1e38]:
+      - generic [ref=f1e39]:
+        - generic [ref=f1e40]: verified
+        - generic [ref=f1e41]: Administrador
+      - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=f1e43]:
+    - generic [ref=f1e44]:
+      - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+        - generic [ref=f1e46]: menu
+      - generic [ref=f1e47]: Sistema RX
+    - generic [ref=f1e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: cloud_done
+      - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+        - generic [ref=f1e53]: dark_mode
+      - status "Estado de conexión" [ref=f1e54]:
+        - generic [ref=f1e56]: Online
+  - main [ref=f1e57]:
+    - generic [ref=f1e2249]:
+      - paragraph [ref=f1e2250]: CARTERA COMERCIAL
+      - heading "Clientes" [level=1] [ref=f1e2251]
+      - paragraph [ref=f1e2252]: Información complementaria y notas de fidelización de las conversiones.
+      - generic [ref=f1e2253]:
+        - generic [ref=f1e2254]:
+          - generic [ref=f1e2255]: Buscar
+          - textbox "Buscar" [ref=f1e2256]:
+            - /placeholder: Nombre, documento o teléfono
+        - generic [ref=f1e2257]:
+          - generic [ref=f1e2258]: Agente
+          - combobox "Agente" [ref=f1e2259]:
+            - option "Todos los agentes" [selected]
+            - option "CARLA QUISPE MAMANI"
+            - option "DIEGO TORRES VEGA"
+      - table [ref=f1e2261]:
+        - rowgroup [ref=f1e2262]:
+          - row [ref=f1e2263]:
+            - columnheader "Cliente" [ref=f1e2264]
+            - columnheader "Estado" [ref=f1e2265]
+            - columnheader "Fecha de cierre" [ref=f1e2266]
+            - columnheader "Agente" [ref=f1e2267]
+        - rowgroup [ref=f1e2268]:
+          - row [ref=f1e2269] [cursor=pointer]:
+            - cell "MARIA FERNANDA SALAS ORE 48123456" [ref=f1e2270]:
+              - generic [ref=f1e2271]: MARIA FERNANDA SALAS ORE
+              - generic [ref=f1e2272]: "48123456"
+            - cell "ACTIVO" [ref=f1e2273]
+            - cell "05/08/2026" [ref=f1e2275]
+            - cell "DIEGO TORRES VEGA" [ref=f1e2276]
+          - row [ref=f1e2277] [cursor=pointer]:
+            - cell "ANA LUCIA HERRERA CAMPOS 45012398" [ref=f1e2278]:
+              - generic [ref=f1e2279]: ANA LUCIA HERRERA CAMPOS
+              - generic [ref=f1e2280]: "45012398"
+            - cell "ACTIVO" [ref=f1e2281]
+            - cell "03/08/2026" [ref=f1e2283]
+            - cell "CARLA QUISPE MAMANI" [ref=f1e2284]
+  - contentinfo "Navegación rápida" [ref=f1e674]:
+    - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+      - generic [ref=f1e676]: dashboard
+      - generic [ref=f1e677]: Inicio
+    - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+      - generic [ref=f1e679]: person_search
+      - generic [ref=f1e680]: Prospectos
+    - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+      - generic [ref=f1e682]: event
+      - generic [ref=f1e683]: Agenda
+    - button "Ir a Clientes" [active] [ref=f1e684] [cursor=pointer]:
+      - generic [ref=f1e685]: groups
+      - generic [ref=f1e686]: Clientes

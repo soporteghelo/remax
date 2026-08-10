@@ -1,0 +1,130 @@
+- generic [ref=f1e1]:
+  - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+        - generic [ref=f1e7]: close
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]: NR
+        - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+        - generic [ref=f1e11]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+          - generic [ref=f1e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=f1e14]:
+      - generic [ref=f1e15]: Módulos
+      - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: dashboard
+      - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+        - generic [ref=f1e20]: person_search
+      - button "Agenda" [ref=f1e22] [cursor=pointer]:
+        - generic [ref=f1e23]: event
+      - button "Clientes" [ref=f1e25] [cursor=pointer]:
+        - generic [ref=f1e26]: groups
+      - button "Equipo" [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: manage_accounts
+      - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+        - generic [ref=f1e32]: expand_more
+      - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+        - generic [ref=f1e36]: logout
+    - generic [ref=f1e38]:
+      - generic [ref=f1e39]:
+        - generic [ref=f1e40]: verified
+        - generic [ref=f1e41]: Administrador
+      - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=f1e43]:
+    - generic [ref=f1e44]:
+      - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+        - generic [ref=f1e46]: menu
+      - generic [ref=f1e47]: Sistema RX
+    - generic [ref=f1e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: cloud_done
+      - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+        - generic [ref=f1e53]: dark_mode
+      - status "Estado de conexión" [ref=f1e54]:
+        - generic [ref=f1e56]: Online
+  - main [ref=f1e57]:
+    - generic [ref=f1e2479]:
+      - paragraph [ref=f1e2480]: ADMINISTRACIÓN
+      - heading "Equipo" [level=1] [ref=f1e2481]
+      - paragraph [ref=f1e2482]: Crea, edita, desactiva o reactiva las cuentas de agentes y administradores.
+      - generic "Resumen de usuarios" [ref=f1e2483]:
+        - article [ref=f1e2484]:
+          - generic [ref=f1e2485]: group
+          - generic [ref=f1e2486]:
+            - generic [ref=f1e2487]: USUARIOS
+            - generic [ref=f1e2488]: "5"
+            - emphasis [ref=f1e2489]: 4 activo(s)
+        - article [ref=f1e2490]:
+          - generic [ref=f1e2491]: sync
+          - generic [ref=f1e2492]:
+            - generic [ref=f1e2493]: SINCRONIZACIÓN
+            - generic [ref=f1e2494]: Actualizada
+            - emphasis [ref=f1e2495]: 10/08/2026 15:46
+      - generic [ref=f1e2496]:
+        - generic [ref=f1e2497]:
+          - generic [ref=f1e2498]:
+            - heading "Usuarios" [level=2] [ref=f1e2499]
+            - paragraph [ref=f1e2500]: Listado actualizado desde la base de datos.
+          - button "+ Nuevo usuario" [ref=f1e2502] [cursor=pointer]
+        - generic [ref=f1e2503]:
+          - generic [ref=f1e2504]:
+            - generic [ref=f1e2505]: Usuario
+            - generic [ref=f1e2506]: DNI
+            - generic [ref=f1e2507]: Estado
+          - button "Ver detalle de ANDRES CASTILLO RUIZ" [ref=f1e2508] [cursor=pointer]:
+            - generic [ref=f1e2509]:
+              - generic [ref=f1e2510]: ANDRES CASTILLO RUIZ
+              - generic [ref=f1e2511]: AGENTE
+            - generic [ref=f1e2512]: "44098712"
+            - generic [ref=f1e2514]:
+              - generic [ref=f1e2515]: block
+              - text: CESADO
+          - button "Ver detalle de MARIELA LOPEZ HUAMAN" [ref=f1e2516] [cursor=pointer]:
+            - generic [ref=f1e2517]:
+              - generic [ref=f1e2518]: MARIELA LOPEZ HUAMAN
+              - generic [ref=f1e2519]: AGENTE
+            - generic [ref=f1e2520]: "46553201"
+            - generic [ref=f1e2522]:
+              - generic [ref=f1e2523]: check_circle
+              - text: ACTIVO
+          - button "Ver detalle de CARLA QUISPE MAMANI" [ref=f1e2524] [cursor=pointer]:
+            - generic [ref=f1e2525]:
+              - generic [ref=f1e2526]: CARLA QUISPE MAMANI
+              - generic [ref=f1e2527]: AGENTE
+            - generic [ref=f1e2528]: "45872310"
+            - generic [ref=f1e2530]:
+              - generic [ref=f1e2531]: check_circle
+              - text: ACTIVO
+          - button "Ver detalle de NOELY RAMIREZ SOTO" [ref=f1e2532] [cursor=pointer]:
+            - generic [ref=f1e2533]:
+              - generic [ref=f1e2534]: NOELY RAMIREZ SOTO
+              - generic [ref=f1e2535]: ADMINISTRADOR · Tu cuenta
+            - generic [ref=f1e2536]: "40218765"
+            - generic [ref=f1e2538]:
+              - generic [ref=f1e2539]: check_circle
+              - text: ACTIVO
+          - button "Ver detalle de DIEGO TORRES VEGA" [ref=f1e2540] [cursor=pointer]:
+            - generic [ref=f1e2541]:
+              - generic [ref=f1e2542]: DIEGO TORRES VEGA
+              - generic [ref=f1e2543]: AGENTE
+            - generic [ref=f1e2544]: "47120983"
+            - generic [ref=f1e2546]:
+              - generic [ref=f1e2547]: check_circle
+              - text: ACTIVO
+  - contentinfo "Navegación rápida" [ref=f1e674]:
+    - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+      - generic [ref=f1e676]: dashboard
+      - generic [ref=f1e677]: Inicio
+    - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+      - generic [ref=f1e679]: person_search
+      - generic [ref=f1e680]: Prospectos
+    - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+      - generic [ref=f1e682]: event
+      - generic [ref=f1e683]: Agenda
+    - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+      - generic [ref=f1e685]: groups
+      - generic [ref=f1e686]: Clientes

@@ -1,0 +1,547 @@
+- generic [ref=e1]:
+  - link "Saltar al contenido principal" [ref=e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=e3]:
+    - generic [ref=e4]:
+      - button "Cerrar menú" [ref=e6] [cursor=pointer]:
+        - generic [ref=e7]: close
+      - generic [ref=e8]:
+        - generic [ref=e9]: TU
+        - generic [ref=e10]: TEST USUARIO
+        - generic [ref=e11]: "DNI: 76018787"
+        - button "Ver mi perfil" [ref=e12] [cursor=pointer]:
+          - generic [ref=e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=e14]:
+      - generic [ref=e15]: Módulos
+      - button "Panel principal" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: dashboard
+      - button "Prospectos" [ref=e19] [cursor=pointer]:
+        - generic [ref=e20]: person_search
+      - button "Agenda" [ref=e22] [cursor=pointer]:
+        - generic [ref=e23]: event
+      - button "Clientes" [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]: groups
+      - button "Equipo" [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]: manage_accounts
+      - button "Ver más módulos" [ref=e31] [cursor=pointer]:
+        - generic [ref=e32]: expand_more
+      - button "Cerrar sesión" [ref=e35] [cursor=pointer]:
+        - generic [ref=e36]: logout
+    - generic [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]: verified
+        - generic [ref=e41]: Administrador
+      - generic [ref=e42]: RX v1.0.0
+  - banner [ref=e43]:
+    - generic [ref=e44]:
+      - button "Abrir menú de navegación" [ref=e45] [cursor=pointer]:
+        - generic [ref=e46]: menu
+      - generic [ref=e47]: Sistema RX
+    - generic [ref=e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=e50] [cursor=pointer]:
+        - generic [ref=e51]: cloud_done
+      - button "Activar modo oscuro" [ref=e52] [cursor=pointer]:
+        - generic [ref=e53]: dark_mode
+      - status "Estado de conexión" [ref=e54]
+  - main [ref=e56]:
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - paragraph [ref=e61]: SISTEMA RX
+          - heading "Hola, TEST" [level=1] [ref=e62]
+          - paragraph [ref=e63]: Indicadores y seguimiento de tu operación comercial.
+        - button "filter_list Filtros expand_more" [ref=e64] [cursor=pointer]:
+          - generic [ref=e65]: filter_list
+          - text: Filtros
+          - generic [ref=e66]: expand_more
+      - generic [ref=e67]:
+        - article [ref=e68]:
+          - generic [ref=e69]: person_search
+          - generic [ref=e70]:
+            - generic [ref=e71]: Prospectos
+            - generic [ref=e72]: "299"
+            - emphasis [ref=e73]: registrados en el rango
+          - tooltip "Prospectos creados dentro del rango del filtro superior."
+        - article [ref=e74]:
+          - generic [ref=e75]: fiber_new
+          - generic [ref=e76]:
+            - generic [ref=e77]: Nuevos
+            - generic [ref=e78]: "39"
+            - emphasis [ref=e79]: aún sin gestionar
+          - tooltip "Prospectos del rango superior que todavía no tienen ninguna interacción registrada."
+        - article [ref=e80]:
+          - generic [ref=e81]: forum
+          - generic [ref=e82]:
+            - generic [ref=e83]: Contactados
+            - generic [ref=e84]: "260"
+            - emphasis [ref=e85]: 87% de cobertura
+          - tooltip "Prospectos con al menos una interacción. El % usa el total del filtro superior."
+        - article [ref=e86]:
+          - generic [ref=e87]: person_check
+          - generic [ref=e88]:
+            - generic [ref=e89]: Captados
+            - generic [ref=e90]: "70"
+            - emphasis [ref=e91]: 23.4% del total
+          - tooltip "Prospectos captados o convertidos dentro del alcance del filtro superior."
+        - article [ref=e92]:
+          - generic [ref=e93]: verified
+          - generic [ref=e94]:
+            - generic [ref=e95]: Clientes
+            - generic [ref=e96]: "52"
+            - emphasis [ref=e97]: cierres realizados
+          - tooltip "Clientes cuya fecha de cierre pertenece al rango del filtro superior."
+        - article [ref=e98]:
+          - generic [ref=e99]: monitoring
+          - generic [ref=e100]:
+            - generic [ref=e101]: Conversión
+            - generic [ref=e102]: 17.4%
+            - emphasis [ref=e103]: prospecto a cliente
+          - tooltip "Clientes ÷ Prospectos usando exclusivamente el rango del filtro superior."
+      - generic [ref=e104]:
+        - generic [ref=e105] [cursor=pointer]:
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - paragraph [ref=e108]: CARTERA
+              - heading "Prospectos por agente" [level=2] [ref=e109]
+            - generic [ref=e110]:
+              - generic [ref=e111]: 14 agentes
+              - 'button "Ver todo: Prospectos por agente" [ref=e112]':
+                - generic [ref=e113]: open_in_full
+              - button "Mover Prospectos por agente. Usa las flechas para cambiarlo de posición." [ref=e114]:
+                - generic [ref=e115]: drag_indicator
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]: "1"
+              - generic [ref=e120]: GABRIELA PAREDES CHAVEZ
+              - 'progressbar "GABRIELA PAREDES CHAVEZ: 25 prospectos" [ref=e122]'
+              - generic [ref=e124]: "25"
+            - generic [ref=e126]:
+              - generic [ref=e127]: "2"
+              - generic [ref=e128]: DIEGO CASTILLO VARGAS
+              - 'progressbar "DIEGO CASTILLO VARGAS: 25 prospectos" [ref=e130]'
+              - generic [ref=e132]: "25"
+            - generic [ref=e134]:
+              - generic [ref=e135]: "3"
+              - generic [ref=e136]: HUGO GARCIA HUAMAN
+              - 'progressbar "HUGO GARCIA HUAMAN: 25 prospectos" [ref=e138]'
+              - generic [ref=e140]: "25"
+            - generic [ref=e142]:
+              - generic [ref=e143]: "4"
+              - generic [ref=e144]: CAMILA ROJAS FLORES
+              - 'progressbar "CAMILA ROJAS FLORES: 25 prospectos" [ref=e146]'
+              - generic [ref=e148]: "25"
+            - generic [ref=e150]:
+              - generic [ref=e151]: "5"
+              - generic [ref=e152]: BRUNO SALAZAR TORRES
+              - 'progressbar "BRUNO SALAZAR TORRES: 25 prospectos" [ref=e154]'
+              - generic [ref=e156]: "25"
+        - generic [ref=e158]:
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - paragraph [ref=e161]: COBERTURA
+              - heading "Gestión de prospectos" [level=2] [ref=e162]
+            - generic [ref=e163]:
+              - generic [ref=e164]: 299 total
+              - button "Mover Gestión de prospectos. Usa las flechas para cambiarlo de posición." [ref=e165]:
+                - generic [ref=e166]: drag_indicator
+          - generic [ref=e168]:
+            - img "87% de prospectos contactados" [ref=e169]:
+              - generic [ref=e170]:
+                - strong [ref=e171]: 87%
+                - generic [ref=e172]: gestionados
+            - generic [ref=e173]:
+              - generic [ref=e176]:
+                - generic [ref=e177]: Contactados
+                - generic [ref=e178]: 260 prospectos
+              - generic [ref=e181]:
+                - generic [ref=e182]: Sin gestionar
+                - generic [ref=e183]: 39 prospectos
+        - generic [ref=e184] [cursor=pointer]:
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - paragraph [ref=e187]: ORIGEN
+              - heading "Prospectos por canal" [level=2] [ref=e188]
+            - generic [ref=e189]:
+              - generic [ref=e190]: "299"
+              - 'button "Ver todo: Prospectos por canal" [ref=e191]':
+                - generic [ref=e192]: open_in_full
+              - button "Mover Prospectos por canal. Usa las flechas para cambiarlo de posición." [ref=e193]:
+                - generic [ref=e194]: drag_indicator
+          - generic [ref=e196]:
+            - img "299 prospectos repartidos en 14 categorías" [ref=e197]:
+              - generic [ref=e198]:
+                - strong [ref=e199]: "299"
+                - generic [ref=e200]: prospectos
+            - list [ref=e201]:
+              - listitem [ref=e202]:
+                - generic "REFERIDO" [ref=e204]
+                - generic [ref=e205]: "33"
+                - generic [ref=e206]: 11%
+              - listitem [ref=e207]:
+                - generic "Llamada" [ref=e209]
+                - generic [ref=e210]: "29"
+                - generic [ref=e211]: 9.7%
+              - listitem [ref=e212]:
+                - generic "PUERTA PUERTA" [ref=e214]
+                - generic [ref=e215]: "23"
+                - generic [ref=e216]: 7.7%
+              - listitem [ref=e217]:
+                - generic "WhatsApp" [ref=e219]
+                - generic [ref=e220]: "23"
+                - generic [ref=e221]: 7.7%
+              - listitem [ref=e222]:
+                - generic "PAVOS" [ref=e224]
+                - generic [ref=e225]: "23"
+                - generic [ref=e226]: 7.7%
+              - listitem [ref=e227]:
+                - generic "Otros (9)" [ref=e229]
+                - generic [ref=e230]: "168"
+                - generic [ref=e231]: 56.2%
+        - generic [ref=e232] [cursor=pointer]:
+          - generic [ref=e233]:
+            - generic [ref=e234]:
+              - paragraph [ref=e235]: CAPTACIÓN DEL EQUIPO
+              - heading "¿Quién captó más clientes?" [level=2] [ref=e236]
+            - generic [ref=e237]:
+              - generic [ref=e238]: "70"
+              - 'button "Ver todo: ¿Quién captó más clientes?" [ref=e239]':
+                - generic [ref=e240]: open_in_full
+              - button "Mover ¿Quién captó más clientes?. Usa las flechas para cambiarlo de posición." [ref=e241]:
+                - generic [ref=e242]: drag_indicator
+          - generic [ref=e244]:
+            - generic [ref=e245]:
+              - generic [ref=e246]: "1"
+              - generic [ref=e247]: DIEGO CASTILLO VARGAS
+              - 'progressbar "DIEGO CASTILLO VARGAS: 9 captaciones" [ref=e249]'
+              - generic [ref=e251]: "9"
+            - generic [ref=e253]:
+              - generic [ref=e254]: "2"
+              - generic [ref=e255]: GABRIELA PAREDES CHAVEZ
+              - 'progressbar "GABRIELA PAREDES CHAVEZ: 8 captaciones" [ref=e257]'
+              - generic [ref=e259]: "8"
+            - generic [ref=e261]:
+              - generic [ref=e262]: "3"
+              - generic [ref=e263]: LEONARDO RAMIREZ CASTILLO
+              - 'progressbar "LEONARDO RAMIREZ CASTILLO: 7 captaciones" [ref=e265]'
+              - generic [ref=e267]: "7"
+            - generic [ref=e269]:
+              - generic [ref=e270]: "4"
+              - generic [ref=e271]: BRUNO SALAZAR TORRES
+              - 'progressbar "BRUNO SALAZAR TORRES: 7 captaciones" [ref=e273]'
+              - generic [ref=e275]: "7"
+            - generic [ref=e277]:
+              - generic [ref=e278]: "5"
+              - generic [ref=e279]: HUGO GARCIA HUAMAN
+              - 'progressbar "HUGO GARCIA HUAMAN: 6 captaciones" [ref=e281]'
+              - generic [ref=e283]: "6"
+        - generic [ref=e285] [cursor=pointer]:
+          - generic [ref=e286]:
+            - generic [ref=e287]:
+              - paragraph [ref=e288]: ALTAS DIARIAS
+              - heading "Prospectos por fecha de creación" [level=2] [ref=e289]
+            - generic [ref=e290]:
+              - generic [ref=e291]: "51"
+              - 'button "Ver todo: Prospectos por fecha de creación" [ref=e292]':
+                - generic [ref=e293]: open_in_full
+              - button "Mover Prospectos por fecha de creación. Usa las flechas para cambiarlo de posición." [ref=e294]:
+                - generic [ref=e295]: drag_indicator
+          - img "51 altas en 30 días con registro" [ref=e297]:
+            - 'generic "27/07/2026: 1 alta" [ref=e298]':
+              - generic [ref=e299]: "1"
+              - generic [ref=e302]: "27"
+            - 'generic "28/07/2026: 1 alta" [ref=e303]':
+              - generic [ref=e304]: "1"
+              - generic [ref=e307]: "28"
+            - 'generic "30/07/2026: 1 alta" [ref=e308]':
+              - generic [ref=e309]: "1"
+              - generic [ref=e312]: "30"
+            - 'generic "01/08/2026: 2 altas" [ref=e313]':
+              - generic [ref=e314]: "2"
+              - generic [ref=e317]: 1 ago
+            - 'generic "03/08/2026: 2 altas" [ref=e318]':
+              - generic [ref=e319]: "2"
+              - generic [ref=e322]: "3"
+            - 'generic "04/08/2026: 2 altas" [ref=e323]':
+              - generic [ref=e324]: "2"
+              - generic [ref=e327]: "4"
+            - 'generic "05/08/2026: 3 altas" [ref=e328]':
+              - generic [ref=e329]: "3"
+              - generic [ref=e332]: "5"
+            - 'generic "06/08/2026: 2 altas" [ref=e333]':
+              - generic [ref=e334]: "2"
+              - generic [ref=e337]: "6"
+            - 'generic "07/08/2026: 2 altas" [ref=e338]':
+              - generic [ref=e339]: "2"
+              - generic [ref=e342]: "7"
+            - 'generic "08/08/2026: 1 alta" [ref=e343]':
+              - generic [ref=e344]: "1"
+              - generic [ref=e347]: "8"
+            - 'generic "09/08/2026: 1 alta" [ref=e348]':
+              - generic [ref=e349]: "1"
+              - generic [ref=e352]: "9"
+            - 'generic "10/08/2026: 2 altas" [ref=e353]':
+              - generic [ref=e354]: "2"
+              - generic [ref=e357]: "10"
+        - generic [ref=e358] [cursor=pointer]:
+          - generic [ref=e359]:
+            - generic [ref=e360]:
+              - paragraph [ref=e361]: INDICADOR DE CAPTACIÓN
+              - heading "% de captación por agente" [level=2] [ref=e362]
+            - generic [ref=e363]:
+              - generic [ref=e364]: 23.4% equipo
+              - 'button "Ver todo: % de captación por agente" [ref=e365]':
+                - generic [ref=e366]: open_in_full
+              - button "Mover % de captación por agente. Usa las flechas para cambiarlo de posición." [ref=e367]:
+                - generic [ref=e368]: drag_indicator
+          - generic [ref=e370]:
+            - generic [ref=e371]:
+              - generic [ref=e372]: "1"
+              - generic [ref=e373]: USER 01 PRAGMO
+              - 'progressbar "USER 01 PRAGMO: 100% de captación" [ref=e375]'
+              - generic [ref=e377]: 100%
+            - generic [ref=e379]:
+              - generic [ref=e380]: "2"
+              - generic [ref=e381]: DIEGO CASTILLO VARGAS
+              - 'progressbar "DIEGO CASTILLO VARGAS: 36% de captación" [ref=e383]'
+              - generic [ref=e385]: 36%
+            - generic [ref=e387]:
+              - generic [ref=e388]: "3"
+              - generic [ref=e389]: GABRIELA PAREDES CHAVEZ
+              - 'progressbar "GABRIELA PAREDES CHAVEZ: 32% de captación" [ref=e391]'
+              - generic [ref=e393]: 32%
+            - generic [ref=e395]:
+              - generic [ref=e396]: "4"
+              - generic [ref=e397]: LEONARDO RAMIREZ CASTILLO
+              - 'progressbar "LEONARDO RAMIREZ CASTILLO: 29.2% de captación" [ref=e399]'
+              - generic [ref=e401]: 29.2%
+            - generic [ref=e403]:
+              - generic [ref=e404]: "5"
+              - generic [ref=e405]: BRUNO SALAZAR TORRES
+              - 'progressbar "BRUNO SALAZAR TORRES: 28% de captación" [ref=e407]'
+              - generic [ref=e409]: 28%
+      - region "Filtro de fechas del resto del tablero" [ref=e411]:
+        - generic [ref=e412]:
+          - paragraph [ref=e413]: FILTRO DEL TABLERO
+          - heading "Gráficos y actividad" [level=2] [ref=e414]
+          - generic [ref=e415]: Este rango se aplica a todos los paneles ubicados debajo.
+        - button "filter_list Filtros expand_more" [ref=e416] [cursor=pointer]:
+          - generic [ref=e417]: filter_list
+          - text: Filtros
+          - generic [ref=e418]: expand_more
+      - generic [ref=e419]:
+        - generic [ref=e420] [cursor=pointer]:
+          - generic [ref=e421]:
+            - generic [ref=e422]:
+              - paragraph [ref=e423]: RESULTADOS
+              - heading "Resultados de citas" [level=2] [ref=e424]
+            - generic [ref=e425]:
+              - generic [ref=e426]: "299"
+              - 'button "Ver todo: Resultados de citas" [ref=e427]':
+                - generic [ref=e428]: open_in_full
+              - button "Mover Resultados de citas. Usa las flechas para cambiarlo de posición." [ref=e429]:
+                - generic [ref=e430]: drag_indicator
+          - generic [ref=e432]:
+            - img "299 registros repartidos en 8 categorías" [ref=e433]:
+              - generic [ref=e434]:
+                - strong [ref=e435]: "299"
+                - generic [ref=e436]: registros
+            - list [ref=e437]:
+              - listitem [ref=e438]:
+                - generic "SIN RESULTADO DE CITA" [ref=e440]
+                - generic [ref=e441]: "39"
+                - generic [ref=e442]: 13%
+              - listitem [ref=e443]:
+                - generic "HASTA 20% SOBRE PRECIO" [ref=e445]
+                - generic [ref=e446]: "12"
+                - generic [ref=e447]: 4%
+              - listitem [ref=e448]:
+                - generic "CERRADO" [ref=e450]
+                - generic [ref=e451]: "19"
+                - generic [ref=e452]: 6.4%
+              - listitem [ref=e453]:
+                - generic "EN PRECIO" [ref=e455]
+                - generic [ref=e456]: "12"
+                - generic [ref=e457]: 4%
+              - listitem [ref=e458]:
+                - generic "SOBREPRECIO" [ref=e460]
+                - generic [ref=e461]: "10"
+                - generic [ref=e462]: 3.3%
+              - listitem [ref=e463]:
+                - generic "Otros (3)" [ref=e465]
+                - generic [ref=e466]: "207"
+                - generic [ref=e467]: 69.2%
+        - generic [ref=e468] [cursor=pointer]:
+          - generic [ref=e469]:
+            - generic [ref=e470]:
+              - paragraph [ref=e471]: NEGOCIACIÓN
+              - heading "Estado de negociaciones" [level=2] [ref=e472]
+            - generic [ref=e473]:
+              - generic [ref=e474]: "82"
+              - 'button "Ver todo: Estado de negociaciones" [ref=e475]':
+                - generic [ref=e476]: open_in_full
+              - button "Mover Estado de negociaciones. Usa las flechas para cambiarlo de posición." [ref=e477]:
+                - generic [ref=e478]: drag_indicator
+          - generic [ref=e480]:
+            - img "82 negociaciones repartidos en 4 categorías" [ref=e481]:
+              - generic [ref=e482]:
+                - strong [ref=e483]: "82"
+                - generic [ref=e484]: negociaciones
+            - list [ref=e485]:
+              - listitem [ref=e486]:
+                - generic "CERRADO" [ref=e488]
+                - generic [ref=e489]: "24"
+                - generic [ref=e490]: 29.3%
+              - listitem [ref=e491]:
+                - generic "HASTA 20% SOBRE PRECIO" [ref=e493]
+                - generic [ref=e494]: "22"
+                - generic [ref=e495]: 26.8%
+              - listitem [ref=e496]:
+                - generic "SOBREPRECIO" [ref=e498]
+                - generic [ref=e499]: "19"
+                - generic [ref=e500]: 23.2%
+              - listitem [ref=e501]:
+                - generic "EN PRECIO" [ref=e503]
+                - generic [ref=e504]: "17"
+                - generic [ref=e505]: 20.7%
+        - generic [ref=e506] [cursor=pointer]:
+          - generic [ref=e507]:
+            - generic [ref=e508]:
+              - paragraph [ref=e509]: ETAPAS
+              - heading "Interacciones por etapa" [level=2] [ref=e510]
+            - generic [ref=e511]:
+              - generic [ref=e512]: "722"
+              - 'button "Ver todo: Interacciones por etapa" [ref=e513]':
+                - generic [ref=e514]: open_in_full
+              - button "Mover Interacciones por etapa. Usa las flechas para cambiarlo de posición." [ref=e515]:
+                - generic [ref=e516]: drag_indicator
+          - generic [ref=e518]:
+            - img "722 interacciones repartidos en 3 categorías" [ref=e519]:
+              - generic [ref=e520]:
+                - strong [ref=e521]: "722"
+                - generic [ref=e522]: interacciones
+            - list [ref=e523]:
+              - listitem [ref=e524]:
+                - generic "PROSPECTO" [ref=e526]
+                - generic [ref=e527]: "637"
+                - generic [ref=e528]: 88.2%
+              - listitem [ref=e529]:
+                - generic "NEGOCIACION" [ref=e531]
+                - generic [ref=e532]: "82"
+                - generic [ref=e533]: 11.4%
+              - listitem [ref=e534]:
+                - generic "NO CONTINUA" [ref=e536]
+                - generic [ref=e537]: "3"
+                - generic [ref=e538]: 0.4%
+        - generic [ref=e539] [cursor=pointer]:
+          - generic [ref=e540]:
+            - generic [ref=e541]:
+              - paragraph [ref=e542]: ACTIVIDAD DIARIA
+              - heading "Interacciones por día" [level=2] [ref=e543]
+            - generic [ref=e544]:
+              - generic [ref=e545]: "297"
+              - 'button "Ver todo: Interacciones por día" [ref=e546]':
+                - generic [ref=e547]: open_in_full
+              - button "Mover Interacciones por día. Usa las flechas para cambiarlo de posición." [ref=e548]:
+                - generic [ref=e549]: drag_indicator
+          - img "297 interacciones en 30 días con registro" [ref=e551]:
+            - 'generic "30/07/2026: 3 interacciones" [ref=e552]':
+              - generic [ref=e553]: "3"
+              - generic [ref=e556]: "30"
+            - 'generic "31/07/2026: 12 interacciones" [ref=e557]':
+              - generic [ref=e558]: "12"
+              - generic [ref=e561]: "31"
+            - 'generic "01/08/2026: 12 interacciones" [ref=e562]':
+              - generic [ref=e563]: "12"
+              - generic [ref=e566]: 1 ago
+            - 'generic "02/08/2026: 8 interacciones" [ref=e567]':
+              - generic [ref=e568]: "8"
+              - generic [ref=e571]: "2"
+            - 'generic "03/08/2026: 7 interacciones" [ref=e572]':
+              - generic [ref=e573]: "7"
+              - generic [ref=e576]: "3"
+            - 'generic "04/08/2026: 8 interacciones" [ref=e577]':
+              - generic [ref=e578]: "8"
+              - generic [ref=e581]: "4"
+            - 'generic "05/08/2026: 11 interacciones" [ref=e582]':
+              - generic [ref=e583]: "11"
+              - generic [ref=e586]: "5"
+            - 'generic "06/08/2026: 7 interacciones" [ref=e587]':
+              - generic [ref=e588]: "7"
+              - generic [ref=e591]: "6"
+            - 'generic "07/08/2026: 5 interacciones" [ref=e592]':
+              - generic [ref=e593]: "5"
+              - generic [ref=e596]: "7"
+            - 'generic "08/08/2026: 7 interacciones" [ref=e597]':
+              - generic [ref=e598]: "7"
+              - generic [ref=e601]: "8"
+            - 'generic "09/08/2026: 9 interacciones" [ref=e602]':
+              - generic [ref=e603]: "9"
+              - generic [ref=e606]: "9"
+            - 'generic "10/08/2026: 7 interacciones" [ref=e607]':
+              - generic [ref=e608]: "7"
+              - generic [ref=e611]: "10"
+        - generic [ref=e612] [cursor=pointer]:
+          - generic [ref=e613]:
+            - generic [ref=e614]:
+              - paragraph [ref=e615]: ACTIVIDAD DEL EQUIPO
+              - heading "¿Quién hizo más interacciones?" [level=2] [ref=e616]
+            - generic [ref=e617]:
+              - generic [ref=e618]: "722"
+              - 'button "Ver todo: ¿Quién hizo más interacciones?" [ref=e619]':
+                - generic [ref=e620]: open_in_full
+              - button "Mover ¿Quién hizo más interacciones?. Usa las flechas para cambiarlo de posición." [ref=e621]:
+                - generic [ref=e622]: drag_indicator
+          - generic [ref=e624]:
+            - generic [ref=e625]:
+              - generic [ref=e626]: "1"
+              - generic [ref=e627]: DIEGO CASTILLO VARGAS
+              - 'progressbar "DIEGO CASTILLO VARGAS: 69 seguimientos" [ref=e629]'
+              - generic [ref=e631]: "69"
+            - generic [ref=e633]:
+              - generic [ref=e634]: "2"
+              - generic [ref=e635]: HUGO GARCIA HUAMAN
+              - 'progressbar "HUGO GARCIA HUAMAN: 67 seguimientos" [ref=e637]'
+              - generic [ref=e639]: "67"
+            - generic [ref=e641]:
+              - generic [ref=e642]: "3"
+              - generic [ref=e643]: ALEJANDRA RIVERA MENDOZA
+              - 'progressbar "ALEJANDRA RIVERA MENDOZA: 67 seguimientos" [ref=e645]'
+              - generic [ref=e647]: "67"
+            - generic [ref=e649]:
+              - generic [ref=e650]: "4"
+              - generic [ref=e651]: FABRICIO MENDOZA CRUZ
+              - 'progressbar "FABRICIO MENDOZA CRUZ: 66 seguimientos" [ref=e653]'
+              - generic [ref=e655]: "66"
+            - generic [ref=e657]:
+              - generic [ref=e658]: "5"
+              - generic [ref=e659]: JAVIER FLORES ESPINOZA
+              - 'progressbar "JAVIER FLORES ESPINOZA: 64 seguimientos" [ref=e661]'
+              - generic [ref=e663]: "64"
+      - generic [ref=e665]:
+        - button "person_search Prospectos" [ref=e666] [cursor=pointer]:
+          - generic [ref=e667]: person_search
+          - text: Prospectos
+        - button "event Agenda" [ref=e668] [cursor=pointer]:
+          - generic [ref=e669]: event
+          - text: Agenda
+        - button "groups Clientes" [ref=e670] [cursor=pointer]:
+          - generic [ref=e671]: groups
+          - text: Clientes
+        - button "manage_accounts Equipo" [ref=e672] [cursor=pointer]:
+          - generic [ref=e673]: manage_accounts
+          - text: Equipo
+  - contentinfo "Navegación rápida" [ref=e674]:
+    - button "Ir a Panel principal" [ref=e675] [cursor=pointer]:
+      - generic [ref=e676]: dashboard
+      - generic [ref=e677]: Inicio
+    - button "Ir a Prospectos" [ref=e678] [cursor=pointer]:
+      - generic [ref=e679]: person_search
+      - generic [ref=e680]: Prospectos
+    - button "Ir a Agenda" [ref=e681] [cursor=pointer]:
+      - generic [ref=e682]: event
+      - generic [ref=e683]: Agenda
+    - button "Ir a Clientes" [ref=e684] [cursor=pointer]:
+      - generic [ref=e685]: groups
+      - generic [ref=e686]: Clientes

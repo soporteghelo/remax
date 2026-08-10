@@ -9,6 +9,35 @@ export interface User {
   fechaRegistro: string;
   ultimoAcceso: string;
   dispositivo: string;
+  /** Canales por los que se le entregan sus credenciales; ambos opcionales */
+  correo: string;
+  celular: string;
+}
+
+/**
+ * Qué pasó con el acceso de una cuenta recién creada. El correo lo envía el
+ * servidor; el mensaje de WhatsApp no puede enviarse solo, así que el servidor
+ * devuelve el enlace ya escrito y quien administra lo abre.
+ */
+export type InviteChannel = 'whatsapp' | 'correo' | 'ambos';
+
+export interface CredentialDelivery {
+  /** Correo de la cuenta; vacío si no registró ninguno */
+  email: string;
+  emailSent: boolean;
+  emailError: string;
+  /** El envío por WhatsApp no manda correo aunque la cuenta lo tenga */
+  emailSkipped: boolean;
+  whatsappUrl: string;
+  /** El mismo mensaje en texto plano, para copiarlo y compartirlo a mano */
+  text: string;
+  /** Enlace de acceso configurado; vacío si falta en CONFIGURACION */
+  link: string;
+  /**
+   * Contraseña incluida en el mensaje. Al reenviar llega vacía si esa persona
+   * ya la cambió: el servidor guarda un valor protegido y no puede recuperarla.
+   */
+  password: string;
 }
 
 /**
@@ -18,7 +47,7 @@ export interface User {
  */
 export type SessionEndReason = 'contrasena' | 'cesado' | 'inexistente' | 'desconocida';
 
-export type ApiResult = { ok?: boolean; data?: unknown; error?: string | null; status?: string; message?: string; record?: Record<string, unknown>; users?: Record<string, unknown>[]; settings?: Record<string, unknown>; stamp?: string; valid?: boolean; reason?: string };
+export type ApiResult = { ok?: boolean; data?: unknown; error?: string | null; status?: string; message?: string; record?: Record<string, unknown>; users?: Record<string, unknown>[]; settings?: Record<string, unknown>; delivery?: Record<string, unknown>; stamp?: string; valid?: boolean; reason?: string };
 const endpoint = import.meta.env.VITE_APPS_SCRIPT_URL as string | undefined;
 
 function device(): string {
@@ -31,7 +60,14 @@ function device(): string {
 }
 
 function mapUser(row: Record<string, unknown>, fallbackDni = ''): User {
-  return { dni: String(row.DNI ?? fallbackDni), apellidos: String(row.Apellidos ?? ''), nombres: String(row.Nombres ?? ''), estado: String(row.Estado ?? 'ACTIVO').toUpperCase() === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: String(row.TipoUsuario ?? 'USUARIO').toUpperCase() === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', fechaRegistro: String(row.FechaRegistro ?? ''), ultimoAcceso: String(row.UltimoAcceso ?? ''), dispositivo: String(row.Dispositivo ?? '') };
+  return { dni: String(row.DNI ?? fallbackDni), apellidos: String(row.Apellidos ?? ''), nombres: String(row.Nombres ?? ''), estado: String(row.Estado ?? 'ACTIVO').toUpperCase() === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: String(row.TipoUsuario ?? 'USUARIO').toUpperCase() === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', fechaRegistro: String(row.FechaRegistro ?? ''), ultimoAcceso: String(row.UltimoAcceso ?? ''), dispositivo: String(row.Dispositivo ?? ''), correo: String(row.Correo ?? ''), celular: String(row.Celular ?? '') };
+}
+
+function mapDelivery(raw: Record<string, unknown> | undefined): CredentialDelivery {
+  return {
+    email: String(raw?.email ?? ''), emailSent: Boolean(raw?.emailSent), emailError: String(raw?.emailError ?? ''), emailSkipped: Boolean(raw?.emailSkipped),
+    whatsappUrl: String(raw?.whatsappUrl ?? ''), text: String(raw?.text ?? ''), link: String(raw?.link ?? ''), password: String(raw?.password ?? ''),
+  };
 }
 
 /**
@@ -158,12 +194,26 @@ export async function checkSession(dni: string): Promise<{ valid: boolean; reaso
   return { valid: Boolean(result.valid), reason, user: result.record ? mapUser(result.record, dni) : null };
 }
 
-/** La contraseña inicial de toda cuenta nueva es su propio DNI. */
-export async function createUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario'] }): Promise<User> {
+/**
+ * La contraseña inicial de toda cuenta nueva es su propio DNI. El servidor
+ * envía el acceso al correo indicado y devuelve en `delivery` qué pudo entregar.
+ */
+export async function createUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario']; correo?: string; celular?: string }): Promise<{ user: User; delivery: CredentialDelivery }> {
   const { adminDni, ...usuario } = input;
   const result = await request({ action: 'createUser', adminDni, adminPassword: adminPasswordFor(adminDni), usuario: { ...usuario, password: usuario.dni } });
   if (!result.record) throw new Error('El servidor no devolvió el usuario creado.');
-  return mapUser(result.record, usuario.dni);
+  return { user: mapUser(result.record, usuario.dni), delivery: mapDelivery(result.delivery) };
+}
+
+/**
+ * Reenvía el acceso de una cuenta existente. El servidor solo incluye la
+ * contraseña si sigue siendo la inicial; si esa persona ya la cambió, el
+ * mensaje se lo recuerda sin revelarla.
+ */
+export async function resendInvite(adminDni: string, dni: string, canal: InviteChannel = 'ambos'): Promise<{ user: User; delivery: CredentialDelivery }> {
+  const result = await request({ action: 'resendInvite', adminDni, adminPassword: adminPasswordFor(adminDni), dni, canal });
+  if (!result.record) throw new Error('El servidor no devolvió los datos de la cuenta.');
+  return { user: mapUser(result.record, dni), delivery: mapDelivery(result.delivery) };
 }
 
 /**
@@ -171,7 +221,7 @@ export async function createUser(input: { adminDni: string; dni: string; apellid
  * reemplaza y esa persona quedará fuera de la app en su siguiente carga. Marcarla
  * como CESADO tiene el mismo efecto.
  */
-export async function updateUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string }): Promise<User> {
+export async function updateUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string }): Promise<User> {
   const { adminDni, ...usuario } = input;
   const result = await request({ action: 'updateUser', adminDni, adminPassword: adminPasswordFor(adminDni), usuario });
   if (!result.record) throw new Error('El servidor no devolvió el usuario actualizado.');
@@ -208,9 +258,9 @@ export async function saveSettings(adminDni: string, settings: AppSettings): Pro
   return { settings: normalizeSettings(result.settings), message: result.message || 'Configuración guardada.' };
 }
 
-/** Completa los campos que no existían en versiones anteriores (Estado). */
+/** Completa los campos que no existían en versiones anteriores (Estado, Correo, Celular). */
 export function normalizeUser(saved: User): User {
-  return { ...saved, estado: saved.estado === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: saved.tipoUsuario === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO' };
+  return { ...saved, estado: saved.estado === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: saved.tipoUsuario === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', correo: saved.correo ?? '', celular: saved.celular ?? '' };
 }
 
 /** Caché local de usuarios: la comparten el módulo de administración y el panel principal. */

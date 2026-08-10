@@ -296,7 +296,68 @@ html, body, #root {
 .danger-button:hover { background: var(--sev-high-bd); }
 .danger-button .material-symbols-outlined { font-size: 18px; }
 
-/* ─── Listado de usuarios: cada fila abre el detalle ─── */
+/* Acción que abre WhatsApp con el mensaje ya escrito (entrega de credenciales).
+   La pantalla de acceso conserva su propia variante (.whatsapp-button, en
+   styles.css) porque vive sobre la tarjeta oscura, con una paleta fija ajena a
+   los temas; sobre las superficies de la app manda el token de marca. */
+.whatsapp-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 11px 16px;
+  border: 0; border-radius: 10px;
+  background: var(--brand-whatsapp); color: var(--brand-on-whatsapp);
+  font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer;
+  transition: filter var(--ds-dur-fast) var(--ds-ease);
+}
+.whatsapp-action:hover { filter: brightness(1.12); }
+.whatsapp-action svg { flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .whatsapp-action { transition: none; } }
+
+/* ─── Entrega del acceso de una cuenta nueva ───
+   El mensaje literal que recibe la persona va plegado: sirve para comprobarlo o
+   copiarlo a mano, pero no debe competir con las acciones de envío. */
+.credentials-note { margin-top: 12px; }
+.credentials-preview { margin-top: 12px; }
+.credentials-preview summary { padding: 8px 0; color: var(--ds-fg-muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+.credentials-preview summary:hover { color: var(--color-primary); }
+.credentials-preview p {
+  margin: 0; padding: 12px 14px;
+  border: 1px solid var(--ds-border); border-radius: 12px;
+  background: var(--ds-surface-sunken); color: var(--ds-fg-muted);
+  font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ─── Listado de usuarios: cada fila abre el detalle ───
+   La acción de reenviar la invitación no puede ir dentro de ese botón, así que
+   la fila es una rejilla de dos piezas: el botón que abre el detalle y una
+   columna fija para la acción. La cabecera reserva ese mismo ancho con su
+   padding derecho para que las columnas sigan alineadas; 18px y 14px son el
+   padding lateral que fija admin-compact.css en escritorio y en móvil. */
+.user-table { --row-action: 44px; }
+.user-table .user-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) var(--row-action);
+  align-items: center; gap: 20px; padding-right: 18px;
+  border-top: 1px solid var(--ds-border-soft);
+}
+.user-table .user-row:hover { background: var(--ds-surface-sunken); }
+.user-table .user-row > button.table-row { padding-right: 0; border-top: 0; }
+.user-admin-page .user-table .table-head { padding-right: calc(18px + var(--row-action) + 20px); }
+
+.row-action {
+  display: grid; place-items: center;
+  width: var(--row-action, 44px); height: var(--row-action, 44px); padding: 0;
+  border: 1px solid var(--ds-border); border-radius: 10px;
+  background: var(--ds-surface); color: var(--color-primary); cursor: pointer;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease), background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.row-action:hover { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, var(--ds-surface)); }
+.row-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 24%, transparent); outline-offset: 2px; }
+.row-action .material-symbols-outlined { font-size: 19px; }
+
+@media (max-width: 760px) {
+  .user-table .user-row { gap: 9px; padding-right: 14px; }
+  .user-admin-page .user-table .table-head { padding-right: calc(14px + var(--row-action) + 9px); }
+}
+
 button.table-row {
   width: 100%; border: 0; background: transparent; color: inherit;
   font: inherit; text-align: left; cursor: pointer;

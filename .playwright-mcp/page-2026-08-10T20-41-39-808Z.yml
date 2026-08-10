@@ -1,0 +1,293 @@
+- generic [ref=f1e1]:
+  - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+        - generic [ref=f1e7]: close
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]: NR
+        - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+        - generic [ref=f1e11]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+          - generic [ref=f1e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=f1e14]:
+      - generic [ref=f1e15]: Módulos
+      - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: dashboard
+      - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+        - generic [ref=f1e20]: person_search
+      - button "Agenda" [ref=f1e22] [cursor=pointer]:
+        - generic [ref=f1e23]: event
+      - button "Clientes" [ref=f1e25] [cursor=pointer]:
+        - generic [ref=f1e26]: groups
+      - button "Equipo" [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: manage_accounts
+      - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+        - generic [ref=f1e32]: expand_more
+      - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+        - generic [ref=f1e36]: logout
+    - generic [ref=f1e38]:
+      - generic [ref=f1e39]:
+        - generic [ref=f1e40]: verified
+        - generic [ref=f1e41]: Administrador
+      - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=f1e43]:
+    - generic [ref=f1e44]:
+      - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+        - generic [ref=f1e46]: menu
+      - generic [ref=f1e47]: Sistema RX
+    - generic [ref=f1e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: cloud_done
+      - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+        - generic [ref=f1e53]: dark_mode
+      - status "Estado de conexión" [ref=f1e54]:
+        - generic [ref=f1e56]: Online
+  - main [ref=f1e57]:
+    - generic [ref=f1e1057]:
+      - generic [ref=f1e1058]:
+        - generic [ref=f1e1059]:
+          - paragraph [ref=f1e1060]: GESTIÓN COMERCIAL
+          - heading "Prospectos" [level=1] [ref=f1e1061]
+          - paragraph [ref=f1e1062]: Busca, filtra y continúa cada oportunidad desde su historial.
+        - generic [ref=f1e1063]:
+          - button "download Exportar CSV" [ref=f1e1064] [cursor=pointer]:
+            - generic [ref=f1e1065]: download
+            - text: Exportar CSV
+          - button "person_add Nuevo prospecto" [ref=f1e1066] [cursor=pointer]:
+            - generic [ref=f1e1067]: person_add
+            - text: Nuevo prospecto
+      - generic [ref=f1e1068]:
+        - generic [ref=f1e1069]:
+          - generic [ref=f1e1070]: Buscar
+          - textbox "Buscar" [ref=f1e1071]:
+            - /placeholder: Nombre, documento o teléfono
+        - generic [ref=f1e1072]:
+          - generic [ref=f1e1073]: Resultado de la cita
+          - combobox "Resultado de la cita" [ref=f1e1074]:
+            - option "Todos" [selected]
+            - option "CITA AGENDADA"
+            - option "CITA REPROGRAMADA"
+            - option "ASISTIO"
+            - option "NO ASISTIO"
+            - option "SIN CITA"
+        - generic [ref=f1e1075]:
+          - generic [ref=f1e1076]: Etapa
+          - combobox "Etapa" [ref=f1e1077]:
+            - option "Todos" [selected]
+            - option "PROSPECTO"
+            - option "NEGOCIACION"
+            - option "CLIENTE"
+            - option "NO CONTINUA"
+        - generic [ref=f1e1078]:
+          - generic [ref=f1e1079]: Resultado
+          - combobox "Resultado" [ref=f1e1080]:
+            - option "Todos" [selected]
+            - option "INTERESADO"
+            - option "NO RESPONDE"
+            - option "REPROGRAMADO"
+            - option "SOLICITA INFORMACION"
+            - option "DESCARTADO"
+        - generic [ref=f1e1081]:
+          - generic [ref=f1e1082]: Usuario captado
+          - group "Filtrar por usuario captado" [ref=f1e1083]:
+            - button "Ambos" [pressed] [ref=f1e1084] [cursor=pointer]
+            - button "Sí" [ref=f1e1085] [cursor=pointer]
+            - button "No" [ref=f1e1086] [cursor=pointer]
+        - generic [ref=f1e1087]:
+          - generic [ref=f1e1088]: Agente
+          - combobox "Agente" [ref=f1e1089]:
+            - option "Todos" [selected]
+            - option "NOELY RAMIREZ SOTO"
+            - option "CARLA QUISPE MAMANI"
+            - option "DIEGO TORRES VEGA"
+            - option "MARIELA LOPEZ HUAMAN"
+            - option "ANDRES CASTILLO RUIZ"
+        - button "Eliminar todos los filtros" [disabled] [ref=f1e1090]:
+          - generic [ref=f1e1091]: filter_alt_off
+          - generic [ref=f1e1092]: Limpiar filtros
+      - table [ref=f1e1094]:
+        - rowgroup [ref=f1e1095]:
+          - row [ref=f1e1096]:
+            - columnheader [ref=f1e1097]:
+              - button "Prospecto" [ref=f1e1098] [cursor=pointer]:
+                - text: Prospecto
+                - generic [ref=f1e1099]: unfold_more
+            - columnheader [ref=f1e1100]:
+              - button "Resultado de la cita" [ref=f1e1101] [cursor=pointer]:
+                - text: Resultado de la cita
+                - generic [ref=f1e1102]: unfold_more
+            - columnheader [ref=f1e1103]:
+              - button "Canal" [ref=f1e1104] [cursor=pointer]:
+                - text: Canal
+                - generic [ref=f1e1105]: unfold_more
+            - columnheader [ref=f1e1106]:
+              - button "Próximo contacto" [ref=f1e1107] [cursor=pointer]:
+                - text: Próximo contacto
+                - generic [ref=f1e1108]: unfold_more
+            - columnheader [ref=f1e1109]:
+              - button "Agente" [ref=f1e1110] [cursor=pointer]:
+                - text: Agente
+                - generic [ref=f1e1111]: unfold_more
+            - columnheader [ref=f1e1112]:
+              - button "Etapa" [ref=f1e1113] [cursor=pointer]:
+                - text: Etapa
+                - generic [ref=f1e1114]: unfold_more
+        - rowgroup [ref=f1e1115]:
+          - row [ref=f1e1116] [cursor=pointer]:
+            - cell "ELENA SOFIA GUTIERREZ RAMOS 45781203" [ref=f1e1117]:
+              - generic [ref=f1e1118]: ELENA SOFIA GUTIERREZ RAMOS
+              - generic [ref=f1e1119]: "45781203"
+            - cell "CITA AGENDADA" [ref=f1e1120]
+            - cell "WHATSAPP" [ref=f1e1122]
+            - cell "13/08/2026 16:00" [ref=f1e1123]
+            - cell "NOELY RAMIREZ SOTO" [ref=f1e1124]
+            - cell "PROSPECTO" [ref=f1e1125]
+          - row [ref=f1e1127] [cursor=pointer]:
+            - cell "ROSA ELENA VARGAS PINTO 43219876" [ref=f1e1128]:
+              - generic [ref=f1e1129]: ROSA ELENA VARGAS PINTO
+              - generic [ref=f1e1130]: "43219876"
+            - cell "CITA AGENDADA" [ref=f1e1131]
+            - cell "WHATSAPP" [ref=f1e1133]
+            - cell "11/08/2026 10:30" [ref=f1e1134]
+            - cell "CARLA QUISPE MAMANI" [ref=f1e1135]
+            - cell "PROSPECTO" [ref=f1e1136]
+          - row [ref=f1e1138] [cursor=pointer]:
+            - cell "JUAN CARLOS MENDOZA RIOS 41567890" [ref=f1e1139]:
+              - generic [ref=f1e1140]: JUAN CARLOS MENDOZA RIOS
+              - generic [ref=f1e1141]: "41567890"
+            - cell "ASISTIO" [ref=f1e1142]
+            - cell "REFERIDO" [ref=f1e1144]
+            - cell "12/08/2026 16:00" [ref=f1e1145]
+            - cell "CARLA QUISPE MAMANI" [ref=f1e1146]
+            - cell "Negociación" [ref=f1e1147]
+          - row [ref=f1e1149] [cursor=pointer]:
+            - cell "MARIA FERNANDA SALAS ORE 48123456" [ref=f1e1150]:
+              - generic [ref=f1e1151]: MARIA FERNANDA SALAS ORE
+              - generic [ref=f1e1152]: "48123456"
+            - cell "ASISTIO" [ref=f1e1153]
+            - cell "FERIA" [ref=f1e1155]
+            - cell "Sin programar" [ref=f1e1156]
+            - cell "DIEGO TORRES VEGA" [ref=f1e1157]
+            - cell [ref=f1e1158]:
+              - generic [ref=f1e1159]:
+                - generic [ref=f1e1160]: workspace_premium
+                - text: Cliente
+          - row [ref=f1e1161] [cursor=pointer]:
+            - cell "LUIS ALBERTO CHAVEZ NUÑEZ 42908765" [ref=f1e1162]:
+              - generic [ref=f1e1163]: LUIS ALBERTO CHAVEZ NUÑEZ
+              - generic [ref=f1e1164]: "42908765"
+            - cell "NO ASISTIO" [ref=f1e1165]
+            - cell "LLAMADA" [ref=f1e1167]
+            - cell "08/08/2026 09:00" [ref=f1e1168]
+            - cell "DIEGO TORRES VEGA" [ref=f1e1169]
+            - cell "PROSPECTO" [ref=f1e1170]
+          - row [ref=f1e1172] [cursor=pointer]:
+            - cell "CLAUDIA PATRICIA ROJAS DIAZ 46781234" [ref=f1e1173]:
+              - generic [ref=f1e1174]: CLAUDIA PATRICIA ROJAS DIAZ
+              - generic [ref=f1e1175]: "46781234"
+            - cell "CITA AGENDADA" [ref=f1e1176]
+            - cell "REDES SOCIALES" [ref=f1e1178]
+            - cell "10/08/2026 15:00" [ref=f1e1179]
+            - cell "MARIELA LOPEZ HUAMAN" [ref=f1e1180]
+            - cell "PROSPECTO" [ref=f1e1181]
+          - row [ref=f1e1183] [cursor=pointer]:
+            - cell "PEDRO MIGUEL AGUIRRE LEON 40567812" [ref=f1e1184]:
+              - generic [ref=f1e1185]: PEDRO MIGUEL AGUIRRE LEON
+              - generic [ref=f1e1186]: "40567812"
+            - cell "SIN CITA" [ref=f1e1187]
+            - cell "WHATSAPP" [ref=f1e1189]
+            - cell "Sin programar" [ref=f1e1190]
+            - cell "MARIELA LOPEZ HUAMAN" [ref=f1e1191]
+            - cell "NO CONTINUA" [ref=f1e1192]
+          - row [ref=f1e1194] [cursor=pointer]:
+            - cell "SANDRA ISABEL PAREDES CRUZ 47893210" [ref=f1e1195]:
+              - generic [ref=f1e1196]: SANDRA ISABEL PAREDES CRUZ
+              - generic [ref=f1e1197]: "47893210"
+            - cell "CITA REPROGRAMADA" [ref=f1e1198]
+            - cell "REFERIDO" [ref=f1e1200]
+            - cell "13/08/2026 11:00" [ref=f1e1201]
+            - cell "CARLA QUISPE MAMANI" [ref=f1e1202]
+            - cell "PROSPECTO" [ref=f1e1203]
+          - row [ref=f1e1205] [cursor=pointer]:
+            - cell "JORGE ANTONIO ESPINOZA VELA 44321098" [ref=f1e1206]:
+              - generic [ref=f1e1207]: JORGE ANTONIO ESPINOZA VELA
+              - generic [ref=f1e1208]: "44321098"
+            - cell "SIN DEFINIR" [ref=f1e1209]
+            - cell "FERIA" [ref=f1e1211]
+            - cell "Sin programar" [ref=f1e1212]
+            - cell "DIEGO TORRES VEGA" [ref=f1e1213]
+            - cell "PROSPECTO" [ref=f1e1214]
+          - row [ref=f1e1216] [cursor=pointer]:
+            - cell "GABRIELA MILAGROS FLORES ASTO 48567123" [ref=f1e1217]:
+              - generic [ref=f1e1218]: GABRIELA MILAGROS FLORES ASTO
+              - generic [ref=f1e1219]: "48567123"
+            - cell "ASISTIO" [ref=f1e1220]
+            - cell "LLAMADA" [ref=f1e1222]
+            - cell "14/08/2026 09:30" [ref=f1e1223]
+            - cell "MARIELA LOPEZ HUAMAN" [ref=f1e1224]
+            - cell "Negociación" [ref=f1e1225]
+          - row [ref=f1e1227] [cursor=pointer]:
+            - cell "RICARDO MANUEL BENITES SOLIS 43678129" [ref=f1e1228]:
+              - generic [ref=f1e1229]: RICARDO MANUEL BENITES SOLIS
+              - generic [ref=f1e1230]: "43678129"
+            - cell "CITA AGENDADA" [ref=f1e1231]
+            - cell "REDES SOCIALES" [ref=f1e1233]
+            - cell "11/08/2026 17:00" [ref=f1e1234]
+            - cell "CARLA QUISPE MAMANI" [ref=f1e1235]
+            - cell "PROSPECTO" [ref=f1e1236]
+          - row [ref=f1e1238] [cursor=pointer]:
+            - cell "ANA LUCIA HERRERA CAMPOS 45012398" [ref=f1e1239]:
+              - generic [ref=f1e1240]: ANA LUCIA HERRERA CAMPOS
+              - generic [ref=f1e1241]: "45012398"
+            - cell "ASISTIO" [ref=f1e1242]
+            - cell "WHATSAPP" [ref=f1e1244]
+            - cell "Sin programar" [ref=f1e1245]
+            - cell "CARLA QUISPE MAMANI" [ref=f1e1246]
+            - cell [ref=f1e1247]:
+              - generic [ref=f1e1248]:
+                - generic [ref=f1e1249]: workspace_premium
+                - text: Cliente
+          - row [ref=f1e1250] [cursor=pointer]:
+            - cell "MARTIN EDUARDO CORDOVA PEÑA 41230987" [ref=f1e1251]:
+              - generic [ref=f1e1252]: MARTIN EDUARDO CORDOVA PEÑA
+              - generic [ref=f1e1253]: "41230987"
+            - cell "NO ASISTIO" [ref=f1e1254]
+            - cell "LLAMADA" [ref=f1e1256]
+            - cell "09/08/2026 12:00" [ref=f1e1257]
+            - cell "DIEGO TORRES VEGA" [ref=f1e1258]
+            - cell "PROSPECTO" [ref=f1e1259]
+          - row [ref=f1e1261] [cursor=pointer]:
+            - cell "YESSICA PAOLA MORALES TUEROS 46789012" [ref=f1e1262]:
+              - generic [ref=f1e1263]: YESSICA PAOLA MORALES TUEROS
+              - generic [ref=f1e1264]: "46789012"
+            - cell "CITA AGENDADA" [ref=f1e1265]
+            - cell "REFERIDO" [ref=f1e1267]
+            - cell "10/08/2026 18:00" [ref=f1e1268]
+            - cell "MARIELA LOPEZ HUAMAN" [ref=f1e1269]
+            - cell "PROSPECTO" [ref=f1e1270]
+          - row [ref=f1e1272] [cursor=pointer]:
+            - cell "CESAR AUGUSTO LINARES POMA 42345678" [ref=f1e1273]:
+              - generic [ref=f1e1274]: CESAR AUGUSTO LINARES POMA
+              - generic [ref=f1e1275]: "42345678"
+            - cell "SIN CITA" [ref=f1e1276]
+            - cell "FERIA" [ref=f1e1278]
+            - cell "06/08/2026 10:00" [ref=f1e1279]
+            - cell "DIEGO TORRES VEGA" [ref=f1e1280]
+            - cell "PROSPECTO" [ref=f1e1281]
+  - contentinfo "Navegación rápida" [ref=f1e674]:
+    - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+      - generic [ref=f1e676]: dashboard
+      - generic [ref=f1e677]: Inicio
+    - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+      - generic [ref=f1e679]: person_search
+      - generic [ref=f1e680]: Prospectos
+    - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+      - generic [ref=f1e682]: event
+      - generic [ref=f1e683]: Agenda
+    - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+      - generic [ref=f1e685]: groups
+      - generic [ref=f1e686]: Clientes

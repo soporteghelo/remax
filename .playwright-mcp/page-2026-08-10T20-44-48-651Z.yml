@@ -1,0 +1,231 @@
+- generic [ref=f1e1]:
+  - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+        - generic [ref=f1e7]: close
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]: NR
+        - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+        - generic [ref=f1e11]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+          - generic [ref=f1e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=f1e14]:
+      - generic [ref=f1e15]: Módulos
+      - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: dashboard
+      - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+        - generic [ref=f1e20]: person_search
+      - button "Agenda" [ref=f1e22] [cursor=pointer]:
+        - generic [ref=f1e23]: event
+      - button "Clientes" [ref=f1e25] [cursor=pointer]:
+        - generic [ref=f1e26]: groups
+      - button "Equipo" [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: manage_accounts
+      - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+        - generic [ref=f1e32]: expand_more
+      - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+        - generic [ref=f1e36]: logout
+    - generic [ref=f1e38]:
+      - generic [ref=f1e39]:
+        - generic [ref=f1e40]: verified
+        - generic [ref=f1e41]: Administrador
+      - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=f1e43]:
+    - generic [ref=f1e44]:
+      - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+        - generic [ref=f1e46]: menu
+      - generic [ref=f1e47]: Sistema RX
+    - generic [ref=f1e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: cloud_done
+      - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+        - generic [ref=f1e53]: dark_mode
+      - status "Estado de conexión" [ref=f1e54]:
+        - generic [ref=f1e56]: Online
+  - main [ref=f1e57]:
+    - generic [ref=f1e1999]:
+      - paragraph [ref=f1e2000]: SEGUIMIENTOS
+      - heading "Agenda" [level=1] [ref=f1e2001]
+      - paragraph [ref=f1e2002]: Seguimientos y negociaciones programadas según el campo Próximo contacto de Interacciones.
+      - region "Calendario de Agosto de 2026" [ref=f1e2003]:
+        - generic [ref=f1e2004]:
+          - generic [ref=f1e2005]:
+            - heading "Agosto 2026" [level=2] [ref=f1e2006]
+            - generic [ref=f1e2007]: 11 contactos
+          - generic [ref=f1e2008]:
+            - button "Hoy" [ref=f1e2009] [cursor=pointer]
+            - button "Mes anterior" [ref=f1e2010] [cursor=pointer]:
+              - generic [ref=f1e2011]: chevron_left
+            - button "Mes siguiente" [ref=f1e2012] [cursor=pointer]:
+              - generic [ref=f1e2013]: chevron_right
+        - generic [ref=f1e2014]:
+          - generic [ref=f1e2015]:
+            - generic [ref=f1e2016]: Lun
+            - generic [ref=f1e2017]: Mar
+            - generic [ref=f1e2018]: Mié
+            - generic [ref=f1e2019]: Jue
+            - generic [ref=f1e2020]: Vie
+            - generic [ref=f1e2021]: Sáb
+            - generic [ref=f1e2022]: Dom
+          - grid [ref=f1e2023]:
+            - gridcell "27/07/2026, 0 contactos" [ref=f1e2024]:
+              - time [ref=f1e2026]: "27"
+            - gridcell "28/07/2026, 0 contactos" [ref=f1e2027]:
+              - time [ref=f1e2029]: "28"
+            - gridcell "29/07/2026, 0 contactos" [ref=f1e2030]:
+              - time [ref=f1e2032]: "29"
+            - gridcell "30/07/2026, 0 contactos" [ref=f1e2033]:
+              - time [ref=f1e2035]: "30"
+            - gridcell "31/07/2026, 0 contactos" [ref=f1e2036]:
+              - time [ref=f1e2038]: "31"
+            - gridcell "01/08/2026, 0 contactos" [ref=f1e2039]:
+              - time [ref=f1e2041]: "1"
+            - gridcell "02/08/2026, 0 contactos" [ref=f1e2042]:
+              - time [ref=f1e2044]: "2"
+            - gridcell "03/08/2026, 0 contactos" [ref=f1e2045]:
+              - time [ref=f1e2047]: "3"
+            - gridcell "04/08/2026, 0 contactos" [ref=f1e2048]:
+              - time [ref=f1e2050]: "4"
+            - gridcell "05/08/2026, 0 contactos" [ref=f1e2051]:
+              - time [ref=f1e2053]: "5"
+            - gridcell "06/08/2026, 1 contacto" [ref=f1e2054] [cursor=pointer]:
+              - time [ref=f1e2056]: "6"
+              - button "Abrir CESAR AUGUSTO LINARES POMA, seguimiento a las 10:00" [ref=f1e2058]:
+                - generic [ref=f1e2059]: 10:00
+                - generic [ref=f1e2060]: CESAR AUGUSTO LINARES POMA
+                - generic [ref=f1e2061]: "911223344"
+                - emphasis [ref=f1e2062]: DIEGO TORRES VEGA
+            - gridcell "07/08/2026, 0 contactos" [ref=f1e2063]:
+              - time [ref=f1e2065]: "7"
+            - gridcell "08/08/2026, 1 contacto" [ref=f1e2066] [cursor=pointer]:
+              - time [ref=f1e2068]: "8"
+              - button "Abrir LUIS ALBERTO CHAVEZ NUÑEZ, seguimiento a las 09:00" [ref=f1e2070]:
+                - generic [ref=f1e2071]: 09:00
+                - generic [ref=f1e2072]: LUIS ALBERTO CHAVEZ NUÑEZ
+                - generic [ref=f1e2073]: "941236587"
+                - emphasis [ref=f1e2074]: DIEGO TORRES VEGA
+            - gridcell "09/08/2026, 1 contacto" [ref=f1e2075] [cursor=pointer]:
+              - time [ref=f1e2077]: "9"
+              - button "Abrir MARTIN EDUARDO CORDOVA PEÑA, seguimiento a las 12:00" [ref=f1e2079]:
+                - generic [ref=f1e2080]: 12:00
+                - generic [ref=f1e2081]: MARTIN EDUARDO CORDOVA PEÑA
+                - generic [ref=f1e2082]: "933221144"
+                - emphasis [ref=f1e2083]: DIEGO TORRES VEGA
+            - gridcell "10/08/2026, 2 contactos" [ref=f1e2084] [cursor=pointer]:
+              - generic [ref=f1e2085]:
+                - time [ref=f1e2086]: "10"
+                - generic [ref=f1e2087]: Hoy
+              - generic [ref=f1e2088]:
+                - button "Abrir CLAUDIA PATRICIA ROJAS DIAZ, seguimiento a las 15:00" [ref=f1e2089]:
+                  - generic [ref=f1e2090]: 15:00
+                  - generic [ref=f1e2091]: CLAUDIA PATRICIA ROJAS DIAZ
+                  - generic [ref=f1e2092]: "972584631"
+                  - emphasis [ref=f1e2093]: MARIELA LOPEZ HUAMAN
+                - button "Abrir YESSICA PAOLA MORALES TUEROS, seguimiento a las 18:00" [ref=f1e2094]:
+                  - generic [ref=f1e2095]: 18:00
+                  - generic [ref=f1e2096]: YESSICA PAOLA MORALES TUEROS
+                  - generic [ref=f1e2097]: "956473829"
+                  - emphasis [ref=f1e2098]: MARIELA LOPEZ HUAMAN
+            - gridcell "11/08/2026, 2 contactos" [ref=f1e2099] [cursor=pointer]:
+              - time [ref=f1e2101]: "11"
+              - generic [ref=f1e2102]:
+                - button "Abrir ROSA ELENA VARGAS PINTO, seguimiento a las 10:30" [ref=f1e2103]:
+                  - generic [ref=f1e2104]: 10:30
+                  - generic [ref=f1e2105]: ROSA ELENA VARGAS PINTO
+                  - generic [ref=f1e2106]: "987654321"
+                  - emphasis [ref=f1e2107]: CARLA QUISPE MAMANI
+                - button "Abrir RICARDO MANUEL BENITES SOLIS, seguimiento a las 17:00" [ref=f1e2108]:
+                  - generic [ref=f1e2109]: 17:00
+                  - generic [ref=f1e2110]: RICARDO MANUEL BENITES SOLIS
+                  - generic [ref=f1e2111]: "981234765"
+                  - emphasis [ref=f1e2112]: CARLA QUISPE MAMANI
+            - gridcell "12/08/2026, 1 contacto" [ref=f1e2113] [cursor=pointer]:
+              - time [ref=f1e2115]: "12"
+              - button "Abrir JUAN CARLOS MENDOZA RIOS, negociación a las 16:00" [ref=f1e2117]:
+                - generic [ref=f1e2118]: 16:00
+                - generic [ref=f1e2119]: JUAN CARLOS MENDOZA RIOS
+                - generic [ref=f1e2120]: Negociación · 954321678
+                - emphasis [ref=f1e2121]: CARLA QUISPE MAMANI
+            - gridcell "13/08/2026, 2 contactos" [ref=f1e2122] [cursor=pointer]:
+              - time [ref=f1e2124]: "13"
+              - generic [ref=f1e2125]:
+                - button "Abrir SANDRA ISABEL PAREDES CRUZ, seguimiento a las 11:00" [ref=f1e2126]:
+                  - generic [ref=f1e2127]: 11:00
+                  - generic [ref=f1e2128]: SANDRA ISABEL PAREDES CRUZ
+                  - generic [ref=f1e2129]: "936741852"
+                  - emphasis [ref=f1e2130]: CARLA QUISPE MAMANI
+                - button "Abrir ELENA SOFIA GUTIERREZ RAMOS, seguimiento a las 16:00" [ref=f1e2131]:
+                  - generic [ref=f1e2132]: 16:00
+                  - generic [ref=f1e2133]: ELENA SOFIA GUTIERREZ RAMOS
+                  - generic [ref=f1e2134]: "987456123"
+                  - emphasis [ref=f1e2135]: NOELY RAMIREZ SOTO
+            - gridcell "14/08/2026, 1 contacto" [ref=f1e2136] [cursor=pointer]:
+              - time [ref=f1e2138]: "14"
+              - button "Abrir GABRIELA MILAGROS FLORES ASTO, negociación a las 09:30" [ref=f1e2140]:
+                - generic [ref=f1e2141]: 09:30
+                - generic [ref=f1e2142]: GABRIELA MILAGROS FLORES ASTO
+                - generic [ref=f1e2143]: Negociación · 967123458
+                - emphasis [ref=f1e2144]: MARIELA LOPEZ HUAMAN
+            - gridcell "15/08/2026, 0 contactos" [ref=f1e2145]:
+              - time [ref=f1e2147]: "15"
+            - gridcell "16/08/2026, 0 contactos" [ref=f1e2148]:
+              - time [ref=f1e2150]: "16"
+            - gridcell "17/08/2026, 0 contactos" [ref=f1e2151]:
+              - time [ref=f1e2153]: "17"
+            - gridcell "18/08/2026, 0 contactos" [ref=f1e2154]:
+              - time [ref=f1e2156]: "18"
+            - gridcell "19/08/2026, 0 contactos" [ref=f1e2157]:
+              - time [ref=f1e2159]: "19"
+            - gridcell "20/08/2026, 0 contactos" [ref=f1e2160]:
+              - time [ref=f1e2162]: "20"
+            - gridcell "21/08/2026, 0 contactos" [ref=f1e2163]:
+              - time [ref=f1e2165]: "21"
+            - gridcell "22/08/2026, 0 contactos" [ref=f1e2166]:
+              - time [ref=f1e2168]: "22"
+            - gridcell "23/08/2026, 0 contactos" [ref=f1e2169]:
+              - time [ref=f1e2171]: "23"
+            - gridcell "24/08/2026, 0 contactos" [ref=f1e2172]:
+              - time [ref=f1e2174]: "24"
+            - gridcell "25/08/2026, 0 contactos" [ref=f1e2175]:
+              - time [ref=f1e2177]: "25"
+            - gridcell "26/08/2026, 0 contactos" [ref=f1e2178]:
+              - time [ref=f1e2180]: "26"
+            - gridcell "27/08/2026, 0 contactos" [ref=f1e2181]:
+              - time [ref=f1e2183]: "27"
+            - gridcell "28/08/2026, 0 contactos" [ref=f1e2184]:
+              - time [ref=f1e2186]: "28"
+            - gridcell "29/08/2026, 0 contactos" [ref=f1e2187]:
+              - time [ref=f1e2189]: "29"
+            - gridcell "30/08/2026, 0 contactos" [ref=f1e2190]:
+              - time [ref=f1e2192]: "30"
+            - gridcell "31/08/2026, 0 contactos" [ref=f1e2193]:
+              - time [ref=f1e2195]: "31"
+            - gridcell "01/09/2026, 0 contactos" [ref=f1e2196]:
+              - time [ref=f1e2198]: "1"
+            - gridcell "02/09/2026, 0 contactos" [ref=f1e2199]:
+              - time [ref=f1e2201]: "2"
+            - gridcell "03/09/2026, 0 contactos" [ref=f1e2202]:
+              - time [ref=f1e2204]: "3"
+            - gridcell "04/09/2026, 0 contactos" [ref=f1e2205]:
+              - time [ref=f1e2207]: "4"
+            - gridcell "05/09/2026, 0 contactos" [ref=f1e2208]:
+              - time [ref=f1e2210]: "5"
+            - gridcell "06/09/2026, 0 contactos" [ref=f1e2211]:
+              - time [ref=f1e2213]: "6"
+  - contentinfo "Navegación rápida" [ref=f1e674]:
+    - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+      - generic [ref=f1e676]: dashboard
+      - generic [ref=f1e677]: Inicio
+    - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+      - generic [ref=f1e679]: person_search
+      - generic [ref=f1e680]: Prospectos
+    - button "Ir a Agenda" [active] [ref=f1e681] [cursor=pointer]:
+      - generic [ref=f1e682]: event
+      - generic [ref=f1e683]: Agenda
+    - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+      - generic [ref=f1e685]: groups
+      - generic [ref=f1e686]: Clientes

@@ -1,0 +1,199 @@
+- generic [ref=f1e1]:
+  - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+        - generic [ref=f1e7]: close
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]: NR
+        - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+        - generic [ref=f1e11]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+          - generic [ref=f1e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=f1e14]:
+      - generic [ref=f1e15]: Módulos
+      - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: dashboard
+      - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+        - generic [ref=f1e20]: person_search
+      - button "Agenda" [ref=f1e22] [cursor=pointer]:
+        - generic [ref=f1e23]: event
+      - button "Clientes" [ref=f1e25] [cursor=pointer]:
+        - generic [ref=f1e26]: groups
+      - button "Equipo" [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: manage_accounts
+      - button "Ver más módulos" [ref=f1e2719] [cursor=pointer]:
+        - generic [ref=f1e32]: expand_more
+      - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+        - generic [ref=f1e36]: logout
+    - generic [ref=f1e38]:
+      - generic [ref=f1e39]:
+        - generic [ref=f1e40]: verified
+        - generic [ref=f1e41]: Administrador
+      - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=f1e43]:
+    - generic [ref=f1e44]:
+      - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+        - generic [ref=f1e46]: menu
+      - generic [ref=f1e47]: Sistema RX
+    - generic [ref=f1e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: cloud_done
+      - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+        - generic [ref=f1e53]: dark_mode
+      - status "Estado de conexión" [ref=f1e54]:
+        - generic [ref=f1e56]: Online
+  - main [ref=f1e57]:
+    - generic [ref=f1e2721]:
+      - paragraph [ref=f1e2722]: ADMINISTRACIÓN
+      - heading "Configuración de la app" [level=1] [ref=f1e2723]
+      - paragraph [ref=f1e2724]: Título, colores y comportamiento general. Cada ajuste es una fila de la pestaña CONFIGURACION de la hoja de cálculo y aplica a todas las personas que usan el portal.
+      - generic [ref=f1e2725]:
+        - generic [ref=f1e2726]:
+          - paragraph [ref=f1e2727]: "Sincronizado: 10/08/2026 15:40"
+          - generic [ref=f1e2729]:
+            - button "Descartar" [disabled] [ref=f1e2730]
+            - button "Guardar cambios" [disabled] [ref=f1e2731]
+        - region [ref=f1e2732]:
+          - generic [ref=f1e2733]:
+            - heading [level=2] [ref=f1e2734]:
+              - generic [ref=f1e2735]: badge
+              - text: Identidad
+            - generic [ref=f1e2737]: Cómo se llama y se identifica la aplicación
+          - generic [ref=f1e2738]:
+            - generic [ref=f1e2739]:
+              - generic [ref=f1e2740]: Nombre de la aplicación *
+              - textbox "Nombre de la aplicación *" [ref=f1e2741]:
+                - /placeholder: Sistema RX
+                - text: Sistema RX
+              - generic [ref=f1e2742]: Barra superior y pestaña del navegador.
+            - generic [ref=f1e2743]:
+              - generic [ref=f1e2744]: Sigla de marca *
+              - textbox "Sigla de marca *" [ref=f1e2745]:
+                - /placeholder: RX
+                - text: RX
+              - generic [ref=f1e2746]: De 1 a 4 letras para el distintivo del acceso.
+            - generic [ref=f1e2747]:
+              - generic [ref=f1e2748]: Versión *
+              - textbox "Versión *" [ref=f1e2749]:
+                - /placeholder: RX v1.0.0
+                - text: RX v1.0.0
+              - generic [ref=f1e2750]: Se muestra en el pie del menú lateral.
+            - generic [ref=f1e2751]:
+              - generic [ref=f1e2752]: Organización
+              - textbox "Organización" [ref=f1e2753]:
+                - /placeholder: Nombre de tu organización
+                - text: Grupo Comercial RX
+              - generic [ref=f1e2754]: Opcional. Acompaña a la versión y a la pantalla de acceso.
+            - generic [ref=f1e2755]:
+              - generic [ref=f1e2756]: Contacto de soporte
+              - textbox "Contacto de soporte" [ref=f1e2757]:
+                - /placeholder: correo o teléfono
+                - text: "987654321"
+              - generic [ref=f1e2758]: Opcional. Se ofrece a quien no puede ingresar.
+            - generic [ref=f1e2759]:
+              - generic [ref=f1e2760]: Enlace de acceso
+              - textbox "Enlace de acceso" [ref=f1e2761]:
+                - /placeholder: https://tu-portal.vercel.app
+              - generic [ref=f1e2762]: Dirección del portal. Se envía a cada cuenta nueva junto con sus credenciales.
+            - generic [ref=f1e2763]:
+              - generic [ref=f1e2764]: Objetivo de la aplicación *
+              - textbox "Objetivo de la aplicación *" [ref=f1e2765]:
+                - /placeholder: Registrar prospectos, dejar constancia de cada contacto y convertirlos en clientes.
+                - text: Registrar prospectos, dejar constancia de cada contacto y convertirlos en clientes.
+              - generic [ref=f1e2766]: Explica para qué sirve el portal en el mensaje de bienvenida de cada cuenta nueva.
+        - region [ref=f1e2767]:
+          - generic [ref=f1e2768]:
+            - heading [level=2] [ref=f1e2769]:
+              - generic [ref=f1e2770]: login
+              - text: Pantalla de acceso
+            - generic [ref=f1e2772]: Textos que ve quien todavía no inicia sesión
+          - generic [ref=f1e2773]:
+            - generic [ref=f1e2774]:
+              - generic [ref=f1e2775]: Etiqueta superior *
+              - textbox "Etiqueta superior *" [ref=f1e2776]:
+                - /placeholder: PORTAL SEGURO
+                - text: PORTAL SEGURO
+              - generic [ref=f1e2777]: Texto corto sobre el título del acceso.
+            - generic [ref=f1e2778]:
+              - generic [ref=f1e2779]: Título *
+              - textbox "Título *" [ref=f1e2780]:
+                - /placeholder: Bienvenido
+                - text: Bienvenido
+              - generic [ref=f1e2781]: Encabezado de la tarjeta de acceso.
+            - generic [ref=f1e2782]:
+              - generic [ref=f1e2783]: Mensaje *
+              - textbox "Mensaje *" [ref=f1e2784]:
+                - /placeholder: Ingresa con tus credenciales para continuar.
+                - text: Ingresa con tus credenciales para continuar.
+              - generic [ref=f1e2785]: Una línea bajo el título.
+        - region [ref=f1e2786]:
+          - generic [ref=f1e2787]:
+            - heading [level=2] [ref=f1e2788]:
+              - generic [ref=f1e2789]: palette
+              - text: Colores
+            - generic [ref=f1e2791]: Se aplican al instante en toda la interfaz
+          - generic [ref=f1e2792]:
+            - generic [ref=f1e2793]:
+              - generic [ref=f1e2794]: Primario (tema claro) *
+              - generic [ref=f1e2795]:
+                - 'textbox "Primario (tema claro): selector de color" [ref=f1e2796] [cursor=pointer]': "#000666"
+                - textbox "Primario (tema claro) *" [ref=f1e2797]: "#000666"
+              - generic [ref=f1e2798]: Botones, enlaces activos y anillo de foco.
+            - generic [ref=f1e2799]:
+              - generic [ref=f1e2800]: Primario (tema oscuro) *
+              - generic [ref=f1e2801]:
+                - 'textbox "Primario (tema oscuro): selector de color" [ref=f1e2802] [cursor=pointer]': "#bdc2ff"
+                - textbox "Primario (tema oscuro) *" [ref=f1e2803]: "#bdc2ff"
+              - generic [ref=f1e2804]: En oscuro el primario se aclara, no se invierte.
+            - generic [ref=f1e2805]:
+              - generic [ref=f1e2806]: "Degradado: inicio *"
+              - generic [ref=f1e2807]:
+                - 'textbox "Degradado: inicio: selector de color" [ref=f1e2808] [cursor=pointer]': "#000666"
+                - 'textbox "Degradado: inicio *" [ref=f1e2809]': "#000666"
+              - generic [ref=f1e2810]: Cabecera del menú lateral y botón principal.
+            - generic [ref=f1e2811]:
+              - generic [ref=f1e2812]: "Degradado: fin *"
+              - generic [ref=f1e2813]:
+                - 'textbox "Degradado: fin: selector de color" [ref=f1e2814] [cursor=pointer]': "#283593"
+                - 'textbox "Degradado: fin *" [ref=f1e2815]': "#283593"
+              - generic [ref=f1e2816]: Extremo del mismo degradado de marca.
+        - region [ref=f1e2817]:
+          - generic [ref=f1e2818]:
+            - heading [level=2] [ref=f1e2819]:
+              - generic [ref=f1e2820]: tune
+              - text: Comportamiento
+            - generic [ref=f1e2822]: Valores con los que arranca cada dispositivo
+          - generic [ref=f1e2823]:
+            - generic [ref=f1e2824]:
+              - generic [ref=f1e2825]: Tema inicial *
+              - combobox "Tema inicial *" [ref=f1e2826]:
+                - option "Claro" [selected]
+                - option "Oscuro"
+              - generic [ref=f1e2827]: Solo afecta a dispositivos que aún no eligieron uno.
+            - generic [ref=f1e2828]:
+              - generic [ref=f1e2829] [cursor=pointer]:
+                - switch "Indicador de conexión" [checked] [ref=f1e2830]
+                - generic [ref=f1e2833]: Indicador de conexión
+              - generic [ref=f1e2834]: "Muestra Online/Offline en la barra superior. Ahora: activado."
+        - generic [ref=f1e2835]:
+          - button "Restablecer valores por defecto" [ref=f1e2836] [cursor=pointer]:
+            - generic [ref=f1e2837]: restart_alt
+            - text: Restablecer valores por defecto
+          - paragraph [ref=f1e2838]: Los cambios se guardan en la hoja; el resto de dispositivos los recibe en su siguiente carga.
+  - contentinfo "Navegación rápida" [ref=f1e674]:
+    - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+      - generic [ref=f1e676]: dashboard
+      - generic [ref=f1e677]: Inicio
+    - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+      - generic [ref=f1e679]: person_search
+      - generic [ref=f1e680]: Prospectos
+    - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+      - generic [ref=f1e682]: event
+      - generic [ref=f1e683]: Agenda
+    - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+      - generic [ref=f1e685]: groups
+      - generic [ref=f1e686]: Clientes

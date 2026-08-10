@@ -1,6 +1,6 @@
-# Sistema FORT
+# Sistema RX
 
-> El login existente es ahora la puerta de entrada de **Sistema FORT**, un CRM
+> El login existente es ahora la puerta de entrada de **Sistema RX**, un CRM
 > comercial para prospectos, agenda, clientes, equipo, catálogos y configuración.
 > La autenticación por DNI, el cierre por cambio de contraseña y las cuentas
 > cesadas se conservan sin cambios de uso.
@@ -73,6 +73,29 @@ src/                      # aplicación (ver "Interfaz" más abajo)
    ```
 
 6. `npm install` y `npm run dev` para desarrollo; `npm run build` para publicar.
+
+## Entrega del acceso a una cuenta nueva
+
+Al crear un usuario desde **Equipo**, el servidor arma un único mensaje de
+bienvenida (`welcomeMessage_` en [apps-script/Code.gs](apps-script/Code.gs)) con
+el objetivo de la aplicación, el **tipo de usuario** creado y lo que podrá
+hacer, el enlace de ingreso (`Link`), su usuario (DNI) y su contraseña inicial:
+
+- **Correo**: lo envía el propio script con `MailApp`. El alta nunca falla por un
+  problema de envío; la respuesta indica si salió y, si no, por qué.
+- **Celular**: Apps Script no puede enviar WhatsApp ni SMS por su cuenta, así que
+  el servidor devuelve el mismo mensaje ya escrito en un enlace `wa.me` y quien
+  administra lo abre desde la pantalla de confirmación. Un número de 9 dígitos
+  sin prefijo se entiende peruano (+51).
+
+Ambos datos son opcionales y viven en las columnas `Correo` y `Celular` de
+`USUARIOS`; se pueden corregir después desde la edición de la cuenta.
+
+> **Al actualizar desde una versión anterior**: ejecuta `Actualizar` (añade las
+> dos columnas nuevas), **vuelve a autorizar el script** desde el editor —
+> `MailApp` pide un permiso que antes no se pedía — y **publica una versión
+> nueva** del despliegue web. Sin la autorización la cuenta se crea igual, pero
+> el correo no sale.
 
 ## Sesiones y caducidad
 
@@ -154,7 +177,7 @@ src/Catalogs.tsx                     # catálogos administrativos
 src/crm-api.ts                       # contrato de datos del CRM
 ```
 
-## Módulos CRM de Sistema FORT
+## Módulos CRM de Sistema RX
 
 Después de actualizar `apps-script/Code.gs`, ejecuta **Actualizar** una vez desde
 la hoja de cálculo y vuelve a desplegar la aplicación web. El proceso conserva
@@ -167,31 +190,50 @@ las pestañas existentes y crea, si faltan:
 
 No se insertan prospectos ni clientes simulados.
 
+### Alta del equipo comercial
+
+`apps-script/DatosPrueba.gs` lleva el padrón del equipo en la constante
+`EQUIPO_COMERCIAL` (nombres, apellidos y DNI). El menú **⚙️ Login → Agregar
+usuarios del equipo (sin correo)** da de alta a quien falte:
+
+- crea la cuenta como `ACTIVO` y `USUARIO`, con la contraseña inicial igual a su
+  propio DNI (guardada con el mismo hash que el alta normal);
+- **no envía el correo de invitación**: deja `Correo` y `Celular` vacíos, así que
+  no hay canal de entrega que disparar. Cuando toque avisar a cada persona, se
+  completa su contacto y se usa el alta de usuarios de la app;
+- es idempotente: si el DNI ya existe, respeta su nombre, su estado y su
+  contraseña actuales;
+- escribe la columna `DNI` como texto para conservar los ceros iniciales
+  (`07736160` no se convierte en `7736160`).
+
+Para añadir o quitar personas, edita `EQUIPO_COMERCIAL` y vuelve a ejecutar la
+opción del menú.
+
 ### Datos masivos de demostración
 
 Para probar la app con volumen, copia también `apps-script/DatosPrueba.gs` al
 mismo proyecto de Apps Script que `Code.gs`, recarga la hoja y usa el menú
-**⚙️ Login → Generar demo completa (300 + 12 agentes)**. El proceso:
+**⚙️ Login → Generar demo completa (300 prospectos)**. El proceso:
 
 - completa de forma no destructiva las columnas que falten (`Captado` y
   `Etapa` incluidas);
-- crea o reutiliza 12 agentes demo activos; su DNI empieza por `99` y su
-  contraseña inicial es ese mismo DNI;
+- da de alta al equipo de `EQUIPO_COMERCIAL` que aún no exista, igual que la
+  opción anterior y sin enviar correos;
 - reutiliza exclusivamente etiquetas activas de `CATALOGOS`;
-- crea en bloque 300 prospectos repartidos entre esos agentes, con estados
-  nuevos, seguimientos, interacciones, captaciones, negociaciones, próximas
-  citas, clientes y trazabilidad en `AUDITORIA`;
+- crea en bloque 300 prospectos repartidos entre las cuentas activas del equipo,
+  con estados nuevos, seguimientos, interacciones, captaciones, negociaciones,
+  próximas citas, clientes y trazabilidad en `AUDITORIA`;
 - garantiza al menos un flujo completo por agente para que todos aparezcan en
   Prospectos, Agenda, Clientes, Dashboard e interacciones;
-- identifica los datos operativos con IDs `DEMO-` y los usuarios con la marca
-  `[DATOS_DEMO]` en `Dispositivo`.
+- identifica los datos operativos con IDs `DEMO-`.
 
-Para probar otra cantidad, cambia `DEMO_DEFAULT_PROSPECTS` (máximo 1000). El
-equipo se controla con `DEMO_DEFAULT_USERS` (12 por defecto, máximo 40). El menú
-**Eliminar datos de prueba** retira únicamente filas `DEMO-` y usuarios
-`[DATOS_DEMO]`; conserva catálogos, configuración y registros reales. Si ya
-ejecutaste una versión anterior del generador, elimina primero sus datos y
-vuelve a generarlos para obtener la distribución completa entre agentes.
+Para probar otra cantidad, cambia `DEMO_DEFAULT_PROSPECTS` (máximo 1000). El menú
+**Eliminar datos de prueba** retira las filas `DEMO-` y los agentes ficticios
+`99xxxxxx` de versiones anteriores del generador; **las cuentas del equipo
+comercial son personas reales y nunca se borran**, igual que catálogos,
+configuración y registros reales. Si ya ejecutaste una versión anterior del
+generador, elimina primero sus datos y vuelve a generarlos para obtener la
+distribución completa entre agentes.
 
 ### CATALOGOS la mantiene la administración
 

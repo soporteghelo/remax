@@ -1,0 +1,395 @@
+- generic:
+  - generic [ref=f1e1]:
+    - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+      - /url: "#main-container"
+    - button
+    - dialog "Menú de navegación" [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+          - generic [ref=f1e7]: close
+        - generic [ref=f1e8]:
+          - generic [ref=f1e9]: NR
+          - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+          - generic [ref=f1e11]: "DNI: 40218765"
+          - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+            - generic [ref=f1e13]: account_circle
+            - text: Ver mi perfil
+      - navigation "Navegación principal" [ref=f1e14]:
+        - generic [ref=f1e15]: Módulos
+        - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+          - generic [ref=f1e17]: dashboard
+        - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+          - generic [ref=f1e20]: person_search
+        - button "Agenda" [ref=f1e22] [cursor=pointer]:
+          - generic [ref=f1e23]: event
+        - button "Clientes" [ref=f1e25] [cursor=pointer]:
+          - generic [ref=f1e26]: groups
+        - button "Equipo" [ref=f1e28] [cursor=pointer]:
+          - generic [ref=f1e29]: manage_accounts
+        - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+          - generic [ref=f1e32]: expand_more
+        - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+          - generic [ref=f1e36]: logout
+      - generic [ref=f1e38]:
+        - generic [ref=f1e39]:
+          - generic [ref=f1e40]: verified
+          - generic [ref=f1e41]: Administrador
+        - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+    - banner [ref=f1e43]:
+      - generic [ref=f1e44]:
+        - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+          - generic [ref=f1e46]: menu
+        - generic [ref=f1e47]: Sistema RX
+      - generic [ref=f1e48]:
+        - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+          - generic [ref=f1e51]: cloud_done
+        - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+          - generic [ref=f1e53]: dark_mode
+        - status "Estado de conexión" [ref=f1e54]:
+          - generic [ref=f1e56]: Online
+    - main [ref=f1e57]:
+      - generic [ref=f1e1284]:
+        - button "arrow_back Volver al listado" [ref=f1e1285] [cursor=pointer]:
+          - generic [ref=f1e1286]: arrow_back
+          - text: Volver al listado
+        - generic [ref=f1e1287]:
+          - generic [ref=f1e1288]:
+            - paragraph [ref=f1e1289]: DETALLE DEL PROSPECTO
+            - heading "JUAN CARLOS MENDOZA RIOS" [level=1] [ref=f1e1290]
+            - paragraph [ref=f1e1291]: Creado 19/07/2026 10:00
+          - generic [ref=f1e1292]:
+            - button "edit Editar" [ref=f1e1293] [cursor=pointer]:
+              - generic [ref=f1e1294]: edit
+              - text: Editar
+            - button "add_call Registrar negociación" [ref=f1e1295] [cursor=pointer]:
+              - generic [ref=f1e1296]: add_call
+              - text: Registrar negociación
+        - generic [ref=f1e1297]:
+          - generic [ref=f1e1298]:
+            - generic [ref=f1e1299]:
+              - heading "Información principal" [level=2] [ref=f1e1300]
+              - button "visibility Ver detalles completos" [ref=f1e1301] [cursor=pointer]:
+                - generic [ref=f1e1302]: visibility
+                - text: Ver detalles completos
+            - generic [ref=f1e1303]:
+              - generic [ref=f1e1304]:
+                - term [ref=f1e1305]: Documento
+                - definition [ref=f1e1306]: "41567890"
+              - generic [ref=f1e1307]:
+                - term [ref=f1e1308]: Teléfono
+                - definition [ref=f1e1309]: "954321678"
+              - generic [ref=f1e1310]:
+                - term [ref=f1e1311]: Correo
+                - definition [ref=f1e1312]: jcmendoza@correo.com
+              - generic [ref=f1e1313]:
+                - term [ref=f1e1314]: Canal
+                - definition [ref=f1e1315]: REFERIDO
+              - generic [ref=f1e1316]:
+                - term [ref=f1e1317]: Resultado de la cita
+                - definition [ref=f1e1318]:
+                  - generic [ref=f1e1319]: FIRMA PENDIENTE
+              - generic [ref=f1e1320]:
+                - term [ref=f1e1321]: Resultado
+                - definition [ref=f1e1322]: ACEPTA PROPUESTA
+              - generic [ref=f1e1323]:
+                - term [ref=f1e1324]: Agente
+                - definition [ref=f1e1325]: CARLA QUISPE MAMANI
+              - generic [ref=f1e1326]:
+                - term [ref=f1e1327]: Próximo contacto
+                - definition [ref=f1e1328]: 12/08/2026 16:00
+            - generic [ref=f1e1329]:
+              - text: Observaciones
+              - paragraph [ref=f1e1330]: Referido por Rosa Vargas. Evalúa el plan corporativo.
+            - generic [ref=f1e1331]:
+              - text: Reasignar a
+              - combobox "Reasignar a" [ref=f1e1332]:
+                - option "NOELY RAMIREZ SOTO"
+                - option "CARLA QUISPE MAMANI" [selected]
+                - option "DIEGO TORRES VEGA"
+                - option "MARIELA LOPEZ HUAMAN"
+            - generic [ref=f1e1333]:
+              - button "person_check Convertir a cliente" [ref=f1e1334] [cursor=pointer]:
+                - generic [ref=f1e1335]: person_check
+                - text: Convertir a cliente
+              - button "person_cancel No continúa" [ref=f1e1336] [cursor=pointer]:
+                - generic [ref=f1e1337]: person_cancel
+                - text: No continúa
+          - generic [ref=f1e1338]:
+            - generic [ref=f1e1339]:
+              - heading "Historial" [level=2] [ref=f1e1340]
+              - list [ref=f1e1341]:
+                - listitem [ref=f1e1342]:
+                  - generic [ref=f1e1344]:
+                    - generic [ref=f1e1345]: CORREO · INTERESADO
+                    - time [ref=f1e1346]: "Contacto: 29/07/2026 10:00"
+                    - paragraph [ref=f1e1347]: "Captación confirmada: completó sus datos personales."
+                - listitem [ref=f1e1348]:
+                  - generic [ref=f1e1350]:
+                    - generic [ref=f1e1351]: VISITA PRESENCIAL · INTERESADO
+                    - time [ref=f1e1352]: "Contacto: 23/07/2026 16:00"
+                    - paragraph [ref=f1e1353]: Reunión en su oficina. Solicitó propuesta escrita.
+                    - generic [ref=f1e1354]: "Próximo: 29/07/2026 10:00"
+                - listitem [ref=f1e1355]:
+                  - generic [ref=f1e1357]:
+                    - generic [ref=f1e1358]: LLAMADA · INTERESADO
+                    - time [ref=f1e1359]: "Contacto: 19/07/2026 09:00"
+                    - paragraph [ref=f1e1360]: Primer contacto tras el referido. Muy receptivo.
+                    - generic [ref=f1e1361]: "Próximo: 23/07/2026 16:00"
+            - generic [ref=f1e1362]:
+              - heading "NEGOCIACION" [level=2] [ref=f1e1363]
+              - list [ref=f1e1364]:
+                - listitem [ref=f1e1365]:
+                  - generic [ref=f1e1367]:
+                    - generic [ref=f1e1368]: LLAMADA · ACEPTA PROPUESTA
+                    - time [ref=f1e1369]: "Contacto: 08/08/2026 16:00"
+                    - paragraph [ref=f1e1370]: Acepta la propuesta. Coordina la firma con su gerencia.
+                    - generic [ref=f1e1371]: "Próximo: 12/08/2026 16:00"
+                - listitem [ref=f1e1372]:
+                  - generic [ref=f1e1374]:
+                    - generic [ref=f1e1375]: VIDEOLLAMADA · PROPUESTA ENVIADA
+                    - time [ref=f1e1376]: "Contacto: 04/08/2026 15:00"
+                    - paragraph [ref=f1e1377]: Se presentó la propuesta del plan corporativo para 12 personas.
+                    - generic [ref=f1e1378]: "Próximo: 08/08/2026 16:00"
+    - contentinfo "Navegación rápida" [ref=f1e674]:
+      - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+        - generic [ref=f1e676]: dashboard
+        - generic [ref=f1e677]: Inicio
+      - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+        - generic [ref=f1e679]: person_search
+        - generic [ref=f1e680]: Prospectos
+      - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+        - generic [ref=f1e682]: event
+        - generic [ref=f1e683]: Agenda
+      - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+        - generic [ref=f1e685]: groups
+        - generic [ref=f1e686]: Clientes
+  - dialog [ref=f1e1463]:
+    - banner [ref=f1e1464]:
+      - generic [ref=f1e1465]:
+        - paragraph [ref=f1e1466]: CONVERTIR A CLIENTE
+        - heading "Revisar datos del cliente" [level=2] [ref=f1e1467]
+        - paragraph [ref=f1e1468]: Completa y verifica la información antes de continuar.
+      - button "Cerrar detalles" [ref=f1e1470] [cursor=pointer]:
+        - generic [ref=f1e1471]: close
+    - generic [ref=f1e1472]:
+      - generic [ref=f1e1473]:
+        - generic [ref=f1e1474]:
+          - term [ref=f1e1475]: Nombre completo *
+          - definition [ref=f1e1476]:
+            - textbox [active] [ref=f1e1477]: JUAN CARLOS MENDOZA RIOS
+        - generic [ref=f1e1478]:
+          - term [ref=f1e1479]: Documento
+          - definition [ref=f1e1480]:
+            - textbox [ref=f1e1481]: "41567890"
+        - generic [ref=f1e1482]:
+          - term [ref=f1e1483]: Teléfono *
+          - definition [ref=f1e1484]:
+            - generic [ref=f1e1485]:
+              - textbox "Teléfono *" [ref=f1e1486]: "954321678"
+              - link "Abrir chat de WhatsApp" [ref=f1e1487] [cursor=pointer]:
+                - /url: https://wa.me/51954321678
+        - generic [ref=f1e1490]:
+          - term [ref=f1e1491]: Correo
+          - definition [ref=f1e1492]:
+            - generic [ref=f1e1493]:
+              - textbox "Correo" [ref=f1e1494]: jcmendoza@correo.com
+              - link "Enviar correo" [ref=f1e1495] [cursor=pointer]:
+                - /url: mailto:jcmendoza@correo.com
+                - generic [ref=f1e1496]: mail
+        - generic [ref=f1e1497]:
+          - term [ref=f1e1498]: Canal *
+          - definition [ref=f1e1499]:
+            - combobox [ref=f1e1500]:
+              - option "Selecciona"
+              - option "WHATSAPP"
+              - option "LLAMADA"
+              - option "REFERIDO" [selected]
+              - option "FERIA"
+              - option "REDES SOCIALES"
+        - generic [ref=f1e1501]:
+          - term [ref=f1e1502]: Fecha de nacimiento *
+          - definition [ref=f1e1503]:
+            - textbox [ref=f1e1504]: 1985-04-17
+        - generic [ref=f1e1505]:
+          - term [ref=f1e1506]: Profesión *
+          - definition [ref=f1e1507]:
+            - textbox [ref=f1e1508]: CONTADOR
+        - generic [ref=f1e1509]:
+          - generic [ref=f1e1510]:
+            - text: País *
+            - combobox "País *" [ref=f1e1511]:
+              - option "Perú" [selected]
+              - option "Argentina"
+              - option "Bolivia"
+              - option "Brasil"
+              - option "Chile"
+              - option "Colombia"
+              - option "Costa Rica"
+              - option "Cuba"
+              - option "Ecuador"
+              - option "El Salvador"
+              - option "Guatemala"
+              - option "Honduras"
+              - option "Haití"
+              - option "México"
+              - option "Nicaragua"
+              - option "Panamá"
+              - option "Paraguay"
+              - option "República Dominicana"
+              - option "Uruguay"
+              - option "Venezuela"
+          - generic [ref=f1e1512]:
+            - text: Departamento *
+            - combobox "Departamento *" [ref=f1e1513]:
+              - option "Selecciona departamento"
+              - option "AMAZONAS"
+              - option "ANCASH"
+              - option "APURIMAC"
+              - option "AREQUIPA"
+              - option "AYACUCHO"
+              - option "CAJAMARCA"
+              - option "CALLAO"
+              - option "CUSCO"
+              - option "HUANCAVELICA"
+              - option "HUANUCO"
+              - option "ICA"
+              - option "JUNIN"
+              - option "LA LIBERTAD"
+              - option "LAMBAYEQUE"
+              - option "LIMA" [selected]
+              - option "LORETO"
+              - option "MADRE DE DIOS"
+              - option "MOQUEGUA"
+              - option "PASCO"
+              - option "PIURA"
+              - option "PUNO"
+              - option "SAN MARTIN"
+              - option "TACNA"
+              - option "TUMBES"
+              - option "UCAYALI"
+          - generic [ref=f1e1514]:
+            - text: Provincia *
+            - combobox "Provincia *" [ref=f1e1515]:
+              - option "Selecciona provincia"
+              - option "BARRANCA"
+              - option "CAJATAMBO"
+              - option "CANTA"
+              - option "CAÑETE"
+              - option "HUARAL"
+              - option "HUAROCHIRI"
+              - option "HUAURA"
+              - option "LIMA" [selected]
+              - option "OYON"
+              - option "YAUYOS"
+          - generic [ref=f1e1516]:
+            - text: Distrito *
+            - combobox "Distrito *" [ref=f1e1517]:
+              - option "Selecciona distrito"
+              - option "ANCON"
+              - option "ATE"
+              - option "BARRANCO"
+              - option "BREÑA"
+              - option "CARABAYLLO"
+              - option "CHACLACAYO"
+              - option "CHORRILLOS"
+              - option "CIENEGUILLA"
+              - option "COMAS"
+              - option "EL AGUSTINO"
+              - option "INDEPENDENCIA"
+              - option "JESUS MARIA"
+              - option "LA MOLINA"
+              - option "LA VICTORIA"
+              - option "LIMA"
+              - option "LINCE"
+              - option "LOS OLIVOS"
+              - option "LURIGANCHO"
+              - option "LURIN"
+              - option "MAGDALENA DEL MAR"
+              - option "MIRAFLORES" [selected]
+              - option "PACHACAMAC"
+              - option "PUCUSANA"
+              - option "PUEBLO LIBRE"
+              - option "PUENTE PIEDRA"
+              - option "PUNTA HERMOSA"
+              - option "PUNTA NEGRA"
+              - option "RIMAC"
+              - option "SAN BARTOLO"
+              - option "SAN BORJA"
+              - option "SAN ISIDRO"
+              - option "SAN JUAN DE LURIGANCHO"
+              - option "SAN JUAN DE MIRAFLORES"
+              - option "SAN LUIS"
+              - option "SAN MARTIN DE PORRES"
+              - option "SAN MIGUEL"
+              - option "SANTA ANITA"
+              - option "SANTA MARIA DE HUACHIPA"
+              - option "SANTA MARIA DEL MAR"
+              - option "SANTA ROSA"
+              - option "SANTIAGO DE SURCO"
+              - option "SURQUILLO"
+              - option "VILLA EL SALVADOR"
+              - option "VILLA MARIA DEL TRIUNFO"
+        - generic [ref=f1e1518]:
+          - term [ref=f1e1519]: Dirección *
+          - definition [ref=f1e1520]:
+            - textbox [ref=f1e1521]: Av. Larco 1234, dpto. 502
+        - generic [ref=f1e1522]:
+          - term [ref=f1e1523]: Agente
+          - definition [ref=f1e1524]:
+            - combobox [ref=f1e1525]:
+              - option "NOELY RAMIREZ SOTO"
+              - option "CARLA QUISPE MAMANI" [selected]
+              - option "DIEGO TORRES VEGA"
+              - option "MARIELA LOPEZ HUAMAN"
+        - generic [ref=f1e1526]:
+          - term [ref=f1e1527]: Etapa
+          - definition [ref=f1e1528]:
+            - generic [ref=f1e1529]: NEGOCIACION
+        - generic [ref=f1e1530]:
+          - term [ref=f1e1531]: Fecha de registro
+          - definition [ref=f1e1532]: 19/07/2026 10:00
+      - region [ref=f1e1533]:
+        - generic [ref=f1e1534]:
+          - generic [ref=f1e1535]:
+            - heading "Campos adicionales" [level=3] [ref=f1e1536]
+            - paragraph [ref=f1e1537]: Agrega información libre mediante una etiqueta y su valor.
+          - button "Agregar campo" [ref=f1e1538] [cursor=pointer]:
+            - generic [ref=f1e1539]: add
+            - text: Agregar campo
+        - generic [ref=f1e1540]:
+          - generic [ref=f1e1541]:
+            - generic [ref=f1e1542]:
+              - generic [ref=f1e1543]: Etiqueta
+              - textbox "Etiqueta" [ref=f1e1544]:
+                - /placeholder: Ej. Empresa
+                - text: Empresa
+            - generic [ref=f1e1545]:
+              - generic [ref=f1e1546]: Valor
+              - textbox "Valor" [ref=f1e1547]:
+                - /placeholder: Ej. Grupo RX
+                - text: CONSTRUCTORA ANDINA SAC
+            - button "Eliminar campo Empresa" [ref=f1e1548] [cursor=pointer]:
+              - generic [ref=f1e1549]: delete
+          - generic [ref=f1e1550]:
+            - generic [ref=f1e1551]:
+              - generic [ref=f1e1552]: Etiqueta
+              - textbox "Etiqueta" [ref=f1e1553]:
+                - /placeholder: Ej. Empresa
+                - text: Presupuesto
+            - generic [ref=f1e1554]:
+              - generic [ref=f1e1555]: Valor
+              - textbox "Valor" [ref=f1e1556]:
+                - /placeholder: Ej. Grupo RX
+                - text: S/ 12,000
+            - button "Eliminar campo Presupuesto" [ref=f1e1557] [cursor=pointer]:
+              - generic [ref=f1e1558]: delete
+      - generic [ref=f1e1559]:
+        - generic [ref=f1e1560]:
+          - text: Observaciones
+          - textbox "Observaciones" [ref=f1e1561]: Referido por Rosa Vargas. Evalúa el plan corporativo.
+        - generic [ref=f1e1562]:
+          - text: Notas de captación
+          - textbox "Notas de captación" [ref=f1e1563]: Solicita factura a nombre de su empresa.
+      - contentinfo [ref=f1e1564]:
+        - button "Cancelar" [ref=f1e1565] [cursor=pointer]
+        - button "Guardar y continuar" [ref=f1e1566] [cursor=pointer]

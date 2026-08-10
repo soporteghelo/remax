@@ -1,0 +1,231 @@
+- generic:
+  - generic [ref=f1e1]:
+    - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+      - /url: "#main-container"
+    - button
+    - dialog "Menú de navegación" [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+          - generic [ref=f1e7]: close
+        - generic [ref=f1e8]:
+          - generic [ref=f1e9]: NR
+          - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+          - generic [ref=f1e11]: "DNI: 40218765"
+          - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+            - generic [ref=f1e13]: account_circle
+            - text: Ver mi perfil
+      - navigation "Navegación principal" [ref=f1e14]:
+        - generic [ref=f1e15]: Módulos
+        - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+          - generic [ref=f1e17]: dashboard
+        - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+          - generic [ref=f1e20]: person_search
+        - button "Agenda" [ref=f1e22] [cursor=pointer]:
+          - generic [ref=f1e23]: event
+        - button "Clientes" [ref=f1e25] [cursor=pointer]:
+          - generic [ref=f1e26]: groups
+        - button "Equipo" [ref=f1e28] [cursor=pointer]:
+          - generic [ref=f1e29]: manage_accounts
+        - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+          - generic [ref=f1e32]: expand_more
+        - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+          - generic [ref=f1e36]: logout
+      - generic [ref=f1e38]:
+        - generic [ref=f1e39]:
+          - generic [ref=f1e40]: verified
+          - generic [ref=f1e41]: Administrador
+        - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+    - banner [ref=f1e43]:
+      - generic [ref=f1e44]:
+        - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+          - generic [ref=f1e46]: menu
+        - generic [ref=f1e47]: Sistema RX
+      - generic [ref=f1e48]:
+        - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+          - generic [ref=f1e51]: cloud_done
+        - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+          - generic [ref=f1e53]: dark_mode
+        - status "Estado de conexión" [ref=f1e54]:
+          - generic [ref=f1e56]: Online
+    - main [ref=f1e57]:
+      - generic [ref=f1e930]:
+        - button "arrow_back Volver al listado" [ref=f1e931] [cursor=pointer]:
+          - generic [ref=f1e932]: arrow_back
+          - text: Volver al listado
+        - generic [ref=f1e933]:
+          - generic [ref=f1e934]:
+            - paragraph [ref=f1e935]: DETALLE DEL PROSPECTO
+            - heading "ELENA SOFIA GUTIERREZ RAMOS" [level=1] [ref=f1e936]
+            - paragraph [ref=f1e937]: Creado 10/08/2026 15:39
+          - generic [ref=f1e938]:
+            - button "edit Editar" [ref=f1e939] [cursor=pointer]:
+              - generic [ref=f1e940]: edit
+              - text: Editar
+            - button "add_call Registrar interacción" [ref=f1e941] [cursor=pointer]:
+              - generic [ref=f1e942]: add_call
+              - text: Registrar interacción
+        - status [ref=f1e943]:
+          - generic [ref=f1e944]: check_circle
+          - text: Interacción registrada correctamente.
+        - generic [ref=f1e945]:
+          - generic [ref=f1e946]:
+            - heading "Información principal" [level=2] [ref=f1e948]
+            - generic [ref=f1e949]:
+              - generic [ref=f1e950]:
+                - term [ref=f1e951]: Documento
+                - definition [ref=f1e952]: "45781203"
+              - generic [ref=f1e953]:
+                - term [ref=f1e954]: Teléfono
+                - definition [ref=f1e955]: "987456123"
+              - generic [ref=f1e956]:
+                - term [ref=f1e957]: Correo
+                - definition [ref=f1e958]: elena.gutierrez@correo.com
+              - generic [ref=f1e959]:
+                - term [ref=f1e960]: Canal
+                - definition [ref=f1e961]: WHATSAPP
+              - generic [ref=f1e962]:
+                - term [ref=f1e963]: Resultado de la cita
+                - definition [ref=f1e964]:
+                  - generic [ref=f1e1010]: CITA AGENDADA
+              - generic [ref=f1e965]:
+                - term [ref=f1e966]: Resultado
+                - definition [ref=f1e967]: INTERESADO
+              - generic [ref=f1e968]:
+                - term [ref=f1e969]: Agente
+                - definition [ref=f1e970]: NOELY RAMIREZ SOTO
+              - generic [ref=f1e971]:
+                - term [ref=f1e972]: Próximo contacto
+                - definition [ref=f1e973]: 13/08/2026 16:00
+            - generic [ref=f1e974]:
+              - text: Observaciones
+              - paragraph [ref=f1e975]: Escribió por WhatsApp preguntando por el plan familiar. Disponible después de las 6 p. m.
+            - generic [ref=f1e976]:
+              - text: Reasignar a
+              - combobox "Reasignar a" [ref=f1e977]:
+                - option "NOELY RAMIREZ SOTO" [selected]
+                - option "CARLA QUISPE MAMANI"
+                - option "DIEGO TORRES VEGA"
+                - option "MARIELA LOPEZ HUAMAN"
+            - button "verified Convertir en usuario captado" [ref=f1e979] [cursor=pointer]:
+              - generic [ref=f1e980]: verified
+              - text: Convertir en usuario captado
+            - button "person_cancel No continúa" [ref=f1e982] [cursor=pointer]:
+              - generic [ref=f1e983]: person_cancel
+              - text: No continúa
+          - generic [ref=f1e985]:
+            - heading "Historial" [level=2] [ref=f1e986]
+            - list [ref=f1e1011]:
+              - listitem [ref=f1e1012]:
+                - generic [ref=f1e1014]:
+                  - generic [ref=f1e1015]: LLAMADA · INTERESADO
+                  - time [ref=f1e1016]: "Contacto: 10/08/2026 11:30"
+                  - paragraph [ref=f1e1017]: Se explicó el plan familiar y las formas de pago. Solicita una reunión presencial el jueves.
+                  - generic [ref=f1e1018]: "Próximo: 13/08/2026 16:00"
+    - contentinfo "Navegación rápida" [ref=f1e674]:
+      - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+        - generic [ref=f1e676]: dashboard
+        - generic [ref=f1e677]: Inicio
+      - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+        - generic [ref=f1e679]: person_search
+        - generic [ref=f1e680]: Prospectos
+      - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+        - generic [ref=f1e682]: event
+        - generic [ref=f1e683]: Agenda
+      - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+        - generic [ref=f1e685]: groups
+        - generic [ref=f1e686]: Clientes
+  - dialog [ref=f1e1019]:
+    - banner [ref=f1e1020]:
+      - generic [ref=f1e1021]:
+        - paragraph [ref=f1e1022]: USUARIO CAPTADO
+        - heading "Captar a ELENA SOFIA GUTIERREZ RAMOS" [level=2] [ref=f1e1023]
+        - paragraph [ref=f1e1024]: Completa la información adicional de la captación.
+      - button "Cerrar" [ref=f1e1025] [cursor=pointer]:
+        - generic [ref=f1e1026]: close
+    - generic [ref=f1e1027]:
+      - generic [ref=f1e1028]:
+        - generic [ref=f1e1029]:
+          - text: Fecha de nacimiento *
+          - textbox "Fecha de nacimiento *" [active] [ref=f1e1030]
+        - generic [ref=f1e1031]:
+          - text: Profesión *
+          - textbox "Profesión *" [ref=f1e1032]
+        - generic [ref=f1e1033]:
+          - text: País *
+          - combobox "País *" [ref=f1e1034]:
+            - option "Perú" [selected]
+            - option "Argentina"
+            - option "Bolivia"
+            - option "Brasil"
+            - option "Chile"
+            - option "Colombia"
+            - option "Costa Rica"
+            - option "Cuba"
+            - option "Ecuador"
+            - option "El Salvador"
+            - option "Guatemala"
+            - option "Honduras"
+            - option "Haití"
+            - option "México"
+            - option "Nicaragua"
+            - option "Panamá"
+            - option "Paraguay"
+            - option "República Dominicana"
+            - option "Uruguay"
+            - option "Venezuela"
+        - generic [ref=f1e1035]:
+          - text: Departamento *
+          - combobox "Departamento *" [ref=f1e1036]:
+            - option "Selecciona departamento" [selected]
+            - option "AMAZONAS"
+            - option "ANCASH"
+            - option "APURIMAC"
+            - option "AREQUIPA"
+            - option "AYACUCHO"
+            - option "CAJAMARCA"
+            - option "CALLAO"
+            - option "CUSCO"
+            - option "HUANCAVELICA"
+            - option "HUANUCO"
+            - option "ICA"
+            - option "JUNIN"
+            - option "LA LIBERTAD"
+            - option "LAMBAYEQUE"
+            - option "LIMA"
+            - option "LORETO"
+            - option "MADRE DE DIOS"
+            - option "MOQUEGUA"
+            - option "PASCO"
+            - option "PIURA"
+            - option "PUNO"
+            - option "SAN MARTIN"
+            - option "TACNA"
+            - option "TUMBES"
+            - option "UCAYALI"
+        - generic [ref=f1e1037]:
+          - text: Provincia *
+          - combobox "Provincia *" [disabled] [ref=f1e1038]:
+            - option "Selecciona provincia" [selected]
+        - generic [ref=f1e1039]:
+          - text: Distrito *
+          - combobox "Distrito *" [disabled] [ref=f1e1040]:
+            - option "Selecciona distrito" [selected]
+        - generic [ref=f1e1041]:
+          - text: Dirección *
+          - textbox "Dirección *" [ref=f1e1042]:
+            - /placeholder: Calle, avenida, número y referencia
+        - generic [ref=f1e1043]:
+          - text: Notas
+          - textbox "Notas" [ref=f1e1044]
+        - region [ref=f1e1045]:
+          - generic [ref=f1e1046]:
+            - generic [ref=f1e1047]:
+              - heading "Campos adicionales" [level=3] [ref=f1e1048]
+              - paragraph [ref=f1e1049]: Agrega información libre mediante una etiqueta y su valor.
+            - button "Agregar campo" [ref=f1e1050] [cursor=pointer]:
+              - generic [ref=f1e1051]: add
+              - text: Agregar campo
+          - paragraph [ref=f1e1052]: Aún no hay campos adicionales.
+      - contentinfo [ref=f1e1053]:
+        - button "Cancelar" [ref=f1e1054] [cursor=pointer]
+        - button "Confirmar captación" [ref=f1e1055] [cursor=pointer]

@@ -1,19 +1,108 @@
 /**
- * Generador masivo de datos de demostracion para Sistema FORT.
+ * Generador masivo de datos de demostracion para Sistema RX.
  *
  * Este archivo debe vivir en el mismo proyecto de Apps Script que Code.gs.
- * Usa las cabeceras y catalogos reales, escribe por lotes y crea agentes de
- * demostracion con relaciones completas. Todos los registros quedan marcados,
- * por lo que EliminarDatosPrueba() puede retirarlos sin tocar datos reales.
+ * Usa las cabeceras y catalogos reales, escribe por lotes y reparte los
+ * prospectos entre las cuentas del equipo comercial. Los prospectos, las
+ * interacciones, los clientes y las auditorias quedan marcados, por lo que
+ * EliminarDatosPrueba() puede retirarlos sin tocar datos reales. Las cuentas
+ * del equipo NO se marcan y por eso nunca se borran con esa limpieza.
  */
 var DEMO_DEFAULT_PROSPECTS = 300;
-var DEMO_DEFAULT_USERS = 12;
 var DEMO_MAX_PROSPECTS = 1000;
-var DEMO_MAX_USERS = 40;
 var DEMO_ID_PREFIX = 'DEMO-';
 var DEMO_NOTE_TAG = '[DATOS_DEMO]';
 
-/** Crea 12 agentes y 300 prospectos con todo su flujo relacionado. */
+/**
+ * Equipo comercial real. La clave inicial de cada cuenta es su propio DNI,
+ * guardada con el mismo hash que usa el alta normal de usuarios.
+ *
+ * Correo y Celular quedan vacios a proposito: mientras no haya canal de
+ * entrega, ninguna de estas altas dispara el correo de invitacion. Cuando toque
+ * enviarlo, se completa el contacto y se usa el alta de usuarios de la app.
+ *
+ * El corte entre nombres y apellidos sigue la convencion peruana (los ultimos
+ * dos terminos son los apellidos, respetando particulas como DE LA CRUZ,
+ * SAL Y ROSAS o SANTA CRUZ). Conviene revisarlo con la persona interesada
+ * antes de entregar los accesos.
+ */
+var EQUIPO_COMERCIAL = [
+  { dni: '47720070', nombres: 'ALEXANDER', apellidos: 'DE LA CRUZ AYALA' },
+  { dni: '73150289', nombres: 'ALEXANDER', apellidos: 'REYES' },
+  { dni: '44544360', nombres: 'ALLAN JAVIER', apellidos: 'SUAREZ BARRIOS' },
+  { dni: '43993306', nombres: 'CINTHYA', apellidos: 'ORDOÑEZ BUSTINZA' },
+  { dni: '44048405', nombres: 'CINTIA', apellidos: 'BLAS RIOS' },
+  { dni: '07736160', nombres: 'CLAUDIO', apellidos: 'GARCES CALDERON' },
+  { dni: '42077508', nombres: 'DALIA', apellidos: 'CARRANZA HUARI' },
+  { dni: '61007868', nombres: 'DANILHO', apellidos: 'CAMPOS' },
+  { dni: '43766951', nombres: 'ERIKA', apellidos: 'CHIPANA CARPIO' },
+  { dni: '10231919', nombres: 'FLORA SANDRA', apellidos: 'YARASCA EVANAN' },
+  { dni: '08141536', nombres: 'GLORIA', apellidos: 'PRADO ANYOZA' },
+  { dni: '72561524', nombres: 'JAIR', apellidos: 'RIVERA YNGUNZA' },
+  { dni: '09969114', nombres: 'JESSICA', apellidos: 'SAL Y ROSAS TORRES' },
+  { dni: '17433635', nombres: 'JOSE', apellidos: 'NIÑO RIOJAS' },
+  { dni: '25704902', nombres: 'KARIM CLAUDIA', apellidos: 'MARRUFFO SAENZ' },
+  { dni: '10290112', nombres: 'KARINA', apellidos: 'RIVERA AGUILAR' },
+  { dni: '42195085', nombres: 'LISETH', apellidos: 'YUPANQUI NAVARRO' },
+  { dni: '40399225', nombres: 'LIZ', apellidos: 'CERNA COLLANTES' },
+  { dni: '10620377', nombres: 'LIZBETH', apellidos: 'PASTOR AGUILERA' },
+  { dni: '09328187', nombres: 'LUIS ALBERTO', apellidos: 'HUAMAN VEGA' },
+  { dni: '42523483', nombres: 'MARYURI', apellidos: 'BASURCO BOCANEGRA' },
+  { dni: '40699456', nombres: 'MARIELLA', apellidos: 'ALARCON SOLDEVILLA' },
+  { dni: '16783121', nombres: 'NANDRA', apellidos: 'PRECIADO MERINO' },
+  { dni: '40011855', nombres: 'OMAR', apellidos: 'VALDIZAN' },
+  { dni: '31653786', nombres: 'RAFAEL', apellidos: 'CASTILLO PALACIOS' },
+  { dni: '10194640', nombres: 'ROXANA', apellidos: 'JIMENEZ CASTELO' },
+  { dni: '09622534', nombres: 'SIMONA', apellidos: 'QUICAÑA CORDOVA' },
+  { dni: '07129580', nombres: 'SONIA', apellidos: 'RIOS' },
+  { dni: '42034489', nombres: 'VIVIANA LUJAN', apellidos: 'RIPOLL CORNEJO' },
+  { dni: '01162499', nombres: 'YSABEL BERTHA', apellidos: 'NUÑEZ YSHUIZA' },
+  { dni: '47678979', nombres: 'MIRIAN', apellidos: 'GARCIA ALBERCA' },
+  { dni: '41273432', nombres: 'YSABEL MAGALI', apellidos: 'ROMERO CASQUINO' },
+  { dni: '07194777', nombres: 'ANTONIO JOSE', apellidos: 'GOMEZ SANCHEZ HONORIO' },
+  { dni: '09706339', nombres: 'PATRICIA FLOR', apellidos: 'COLLAZOS HUARICAPCHA' },
+  { dni: '43810061', nombres: 'JANETTE MILAGROS', apellidos: 'DUEÑAS MENDOZA' },
+  { dni: '77535045', nombres: 'RONALDO VLADIMIR', apellidos: 'MENDOZA NESTARES' },
+  { dni: '10149750', nombres: 'MARICELLA ZOILA', apellidos: 'CARBAJAL RUIZ' },
+  { dni: '06944830', nombres: 'CONSUELO IRIS', apellidos: 'MARRUJO ASTETE' },
+  { dni: '44180378', nombres: 'HORTENCIA MILAGROS', apellidos: 'HUIZA AGUILAR' },
+  { dni: '73684564', nombres: 'LUIS MARCELO LORENZO', apellidos: 'VARILLAS MARRUJO' },
+  { dni: '75729547', nombres: 'BRITNEY GIANELLA', apellidos: 'LLAJA CHAVEZ' },
+  { dni: '74090024', nombres: 'WILLIAM ROBERTO', apellidos: 'SANTA CRUZ SALDAÑA' },
+  { dni: '09909085', nombres: 'LISSETTE EMILAR', apellidos: 'LOYOLA ESPINOZA' }
+];
+
+/**
+ * Da de alta al equipo comercial sin generar prospectos y sin enviar ningun
+ * correo de invitacion. Es idempotente: los DNI que ya existen se respetan tal
+ * como estan, no se sobrescriben nombres, estado ni contraseña.
+ */
+function AgregarUsuariosEquipo() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ensureSheetAndHeaders_(ss, USERS_SHEET_NAME, USERS_HEADERS, []);
+    var team = equipoEnsureUsers_(sheet, new Date());
+    SpreadsheetApp.flush();
+    var detail = 'Equipo comercial: ' + team.created.length + ' cuentas creadas y ' + team.existing.length + ' ya existentes de ' + EQUIPO_COMERCIAL.length + '. Clave inicial igual al DNI; no se envio correo de invitacion.';
+    demoWriteLog_(ss, 'AgregarUsuariosEquipo', 'Completado', detail);
+    ss.toast(detail, 'Usuarios del equipo', 8);
+    Logger.log('[AgregarUsuariosEquipo] ' + detail);
+    return {
+      status: 'ok',
+      total: EQUIPO_COMERCIAL.length,
+      creados: team.created.length,
+      existentes: team.existing.length,
+      correoEnviado: false,
+      nuevos: team.created.map(function (record) { return record.DNI; })
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Crea el equipo comercial y 300 prospectos con todo su flujo relacionado. */
 function GenerarDatosPrueba() {
   return generarDatosPrueba_(DEMO_DEFAULT_PROSPECTS);
 }
@@ -37,7 +126,7 @@ function generarDatosPrueba_(cantidad) {
     var catalogs = demoRequiredCatalogs_(catalogRows);
     var now = new Date();
     var batch = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyyMMddHHmmss') + '-' + Utilities.getUuid().split('-')[0].toUpperCase();
-    var demoTeam = demoEnsureUsers_(prepared.users, Math.min(DEMO_DEFAULT_USERS, cantidad), now);
+    var demoTeam = demoEnsureUsers_(prepared.users, Math.min(EQUIPO_COMERCIAL.length, cantidad), now);
     var agents = demoTeam.agents;
     var random = demoRandom_(now.getTime() + cantidad);
     var usedDocuments = demoUsedValues_(prepared.prospects, 'Documento');
@@ -51,14 +140,14 @@ function generarDatosPrueba_(cantidad) {
     SpreadsheetApp.flush();
     crmInvalidateDashboardCache_();
 
-    var detail = 'Lote ' + batch + ': ' + agents.length + ' agentes demo (' + demoTeam.created + ' nuevos), ' + data.prospects.length + ' prospectos (' + data.newProspects + ' nuevos y ' + data.contacted + ' contactados), ' + data.interactions.length + ' interacciones, ' + data.negotiations + ' negociaciones, ' + data.scheduled + ' proximas citas, ' + data.captured + ' captados y ' + data.clients.length + ' clientes.';
+    var detail = 'Lote ' + batch + ': ' + agents.length + ' agentes del equipo (' + demoTeam.created + ' nuevos), ' + data.prospects.length + ' prospectos (' + data.newProspects + ' nuevos y ' + data.contacted + ' contactados), ' + data.interactions.length + ' interacciones, ' + data.negotiations + ' negociaciones, ' + data.scheduled + ' proximas citas, ' + data.captured + ' captados y ' + data.clients.length + ' clientes.';
     demoWriteLog_(ss, 'GenerarDatosPrueba', 'Completado', detail);
     ss.toast(detail, 'Datos de prueba listos', 8);
     Logger.log('[GenerarDatosPrueba] ' + detail);
     return {
       status: 'ok',
       lote: batch,
-      usuariosDemo: agents.length,
+      usuariosEquipo: agents.length,
       usuariosCreados: demoTeam.created,
       prospectos: data.prospects.length,
       nuevos: data.newProspects,
@@ -158,52 +247,71 @@ function demoActiveAgents_(sheet) {
 }
 
 /**
- * Crea o reutiliza agentes demo. Su clave inicial es su propio DNI, almacenada
- * con el mismo hash que usa el alta normal de usuarios.
+ * Da de alta a quien falte de EQUIPO_COMERCIAL y devuelve las cuentas activas
+ * del equipo. Nunca modifica una fila existente: si el DNI ya esta en la hoja
+ * se respeta su nombre, su estado y su contraseña actuales.
+ *
+ * No envia correos. `deliverCredentials_()` solo se dispara desde el alta de
+ * usuarios de la app, y aqui no se invoca ni se guarda un correo de contacto.
  */
-function demoEnsureUsers_(sheet, count, now) {
-  count = Math.max(1, Math.min(DEMO_MAX_USERS, Math.floor(Number(count || DEMO_DEFAULT_USERS))));
-  var templates = [
-    ['ALEJANDRA', 'RIVERA MENDOZA'], ['BRUNO', 'SALAZAR TORRES'],
-    ['CAMILA', 'ROJAS FLORES'], ['DIEGO', 'CASTILLO VARGAS'],
-    ['ELENA', 'QUISPE RAMIREZ'], ['FABRICIO', 'MENDOZA CRUZ'],
-    ['GABRIELA', 'PAREDES CHAVEZ'], ['HUGO', 'GARCIA HUAMAN'],
-    ['INES', 'TORRES REYES'], ['JAVIER', 'FLORES ESPINOZA'],
-    ['KARLA', 'VARGAS SALAZAR'], ['LEONARDO', 'RAMIREZ CASTILLO'],
-    ['MARIANA', 'CHAVEZ PAREDES'], ['NICOLAS', 'HUAMAN GARCIA'],
-    ['OLIVIA', 'REYES QUISPE'], ['PABLO', 'ESPINOZA ROJAS']
-  ];
-  var rows = crmObjects_(sheet);
-  var used = {};
-  rows.forEach(function (row) { used[String(row.DNI || '')] = true; });
-  var agents = rows.filter(function (row) { return demoUser_(row) && getValidEstado_(row.Estado) === 'ACTIVO'; });
+function equipoEnsureUsers_(sheet, now) {
+  var byDni = {};
+  crmObjects_(sheet).forEach(function (row) { byDni[equipoDni_(row.DNI)] = row; });
   var created = [];
-  var candidate = 99000001;
+  var existing = [];
+  var agents = [];
 
-  while (agents.length + created.length < count && candidate <= 99999999) {
-    var dni = String(candidate++);
-    if (used[dni]) continue;
-    var position = agents.length + created.length;
-    var template = templates[position % templates.length];
-    var record = {
-      DNI: dni,
-      Apellidos: template[1],
-      Nombres: template[0],
+  EQUIPO_COMERCIAL.forEach(function (member) {
+    var current = byDni[member.dni];
+    if (current) {
+      existing.push(current);
+      if (getValidEstado_(current.Estado) === 'ACTIVO') agents.push({ DNI: member.dni, Nombres: String(current.Nombres || member.nombres), Apellidos: String(current.Apellidos || member.apellidos) });
+      return;
+    }
+    created.push({
+      DNI: member.dni,
+      Apellidos: member.apellidos,
+      Nombres: member.nombres,
       Estado: 'ACTIVO',
       TipoUsuario: 'USUARIO',
-      FechaRegistro: new Date(now.getTime() - (position + 20) * 86400000),
-      UltimoAcceso: new Date(now.getTime() - (position + 1) * 3600000),
-      Dispositivo: DEMO_NOTE_TAG + ' Agente comercial ' + demoPad_(position + 1, 2),
-      Pass: hashPassword_(dni)
-    };
-    created.push(record);
-    used[dni] = true;
-  }
-  if (agents.length + created.length < count) throw new Error('No se pudieron reservar suficientes DNI para los usuarios demo.');
-  demoAppendRecords_(sheet, created);
-  return { agents: agents.concat(created).slice(0, count), created: created.length };
+      FechaRegistro: now,
+      UltimoAcceso: '',
+      Dispositivo: '',
+      Correo: '',
+      Celular: '',
+      Pass: hashPassword_(member.dni)
+    });
+    agents.push({ DNI: member.dni, Nombres: member.nombres, Apellidos: member.apellidos });
+  });
+
+  demoAppendRecords_(sheet, created, ['DNI']);
+  return { agents: agents, created: created, existing: existing };
 }
 
+/**
+ * Los DNI que empiezan por cero se guardaron alguna vez como numero y perdieron
+ * el cero inicial. Se recupera al comparar para no duplicar esas cuentas.
+ */
+function equipoDni_(value) {
+  var text = String(value === null || value === undefined ? '' : value).trim();
+  if (!/^\d{1,8}$/.test(text)) return text;
+  while (text.length < 8) text = '0' + text;
+  return text;
+}
+
+/** Los prospectos del lote se reparten entre las cuentas reales del equipo. */
+function demoEnsureUsers_(sheet, count, now) {
+  var team = equipoEnsureUsers_(sheet, now);
+  if (!team.agents.length) throw new Error('No hay cuentas activas del equipo comercial para asignar los prospectos.');
+  count = Math.max(1, Math.min(team.agents.length, Math.floor(Number(count || team.agents.length))));
+  return { agents: team.agents.slice(0, count), created: team.created.length };
+}
+
+/**
+ * Identifica a los agentes ficticios de versiones anteriores del generador, los
+ * unicos usuarios que EliminarDatosPrueba() puede retirar. Las cuentas de
+ * EQUIPO_COMERCIAL son personas reales: no llevan marca y nunca se borran.
+ */
 function demoUser_(row) {
   return /^99\d{6}$/.test(String(row.DNI || ''))
     && String(row.Dispositivo || '').indexOf(DEMO_NOTE_TAG) === 0
@@ -388,12 +496,24 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
   };
 }
 
-function demoAppendRecords_(sheet, records) {
+/**
+ * `textHeaders` fuerza el formato texto antes de escribir. Sin el, Sheets
+ * interpreta '07736160' como el numero 7736160 y esa cuenta ya no supera la
+ * validacion de ocho digitos al iniciar sesion.
+ */
+function demoAppendRecords_(sheet, records, textHeaders) {
   if (!records.length) return;
   var headers = getHeaders_(sheet);
   var startRow = sheet.getLastRow() + 1;
   var requiredLastRow = startRow + records.length - 1;
   if (requiredLastRow > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), requiredLastRow - sheet.getMaxRows());
+  if (textHeaders && textHeaders.length) {
+    textHeaders.forEach(function (header) {
+      var column = headers.indexOf(header);
+      if (column !== -1) sheet.getRange(startRow, column + 1, records.length, 1).setNumberFormat('@');
+    });
+    SpreadsheetApp.flush();
+  }
   var values = records.map(function (record) {
     return headers.map(function (header) {
       return sheetDateValue_(header, record[header] === undefined ? '' : record[header]);

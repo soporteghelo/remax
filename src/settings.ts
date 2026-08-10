@@ -51,13 +51,14 @@ export const SETTING_GROUPS: SettingGroup[] = [
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
-  { key: 'appName', group: 'identidad', type: 'text', def: 'Sistema FORT', maxLength: 40, label: 'Nombre de la aplicación', hint: 'Barra superior y pestaña del navegador.' },
-  { key: 'appShortName', group: 'identidad', type: 'text', def: 'FORT', maxLength: 4, label: 'Sigla de marca', hint: 'De 1 a 4 letras para el distintivo del acceso.' },
-  { key: 'appVersion', group: 'identidad', type: 'text', def: 'FORT v1.0.0', maxLength: 24, label: 'Versión', hint: 'Se muestra en el pie del menú lateral.' },
+  { key: 'appName', group: 'identidad', type: 'text', def: 'Sistema RX', maxLength: 40, label: 'Nombre de la aplicación', hint: 'Barra superior y pestaña del navegador.' },
+  { key: 'appShortName', group: 'identidad', type: 'text', def: 'RX', maxLength: 4, label: 'Sigla de marca', hint: 'De 1 a 4 letras para el distintivo del acceso.' },
+  { key: 'appVersion', group: 'identidad', type: 'text', def: 'RX v1.0.0', maxLength: 24, label: 'Versión', hint: 'Se muestra en el pie del menú lateral.' },
   { key: 'organization', group: 'identidad', type: 'text', def: '', maxLength: 60, label: 'Organización', hint: 'Opcional. Acompaña a la versión y a la pantalla de acceso.', placeholder: 'Nombre de tu organización' },
   { key: 'supportContact', group: 'identidad', type: 'text', def: '', maxLength: 80, label: 'Contacto de soporte', hint: 'Opcional. Se ofrece a quien no puede ingresar.', placeholder: 'correo o teléfono' },
   // Clave con mayúscula a propósito: es la de la fila que ya existe en la hoja.
-  { key: 'Link', group: 'identidad', type: 'url', def: '', maxLength: 300, label: 'Enlace de acceso', hint: 'Opcional. Dirección donde se publica el portal; queda registrada en la hoja.', placeholder: 'https://tu-portal.vercel.app' },
+  { key: 'Link', group: 'identidad', type: 'url', def: '', maxLength: 300, label: 'Enlace de acceso', hint: 'Dirección del portal. Se envía a cada cuenta nueva junto con sus credenciales.', placeholder: 'https://tu-portal.vercel.app' },
+  { key: 'appPurpose', group: 'identidad', type: 'text', def: 'Registrar prospectos, dejar constancia de cada contacto y convertirlos en clientes.', maxLength: 200, label: 'Objetivo de la aplicación', hint: 'Explica para qué sirve el portal en el mensaje de bienvenida de cada cuenta nueva.' },
 
   { key: 'loginEyebrow', group: 'acceso', type: 'text', def: 'PORTAL SEGURO', maxLength: 30, label: 'Etiqueta superior', hint: 'Texto corto sobre el título del acceso.' },
   { key: 'loginTitle', group: 'acceso', type: 'text', def: 'Bienvenido', maxLength: 40, label: 'Título', hint: 'Encabezado de la tarjeta de acceso.' },

@@ -13,6 +13,14 @@ import './sync-control.css';
 import './desktop-layout.css';
 import './crm.css';
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.warn('No se pudo registrar el service worker de la PWA.', error);
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <App />,
 );

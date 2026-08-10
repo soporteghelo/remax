@@ -1,0 +1,566 @@
+- generic [ref=f1e1]:
+  - link "Saltar al contenido principal" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Cerrar menú" [ref=f1e6] [cursor=pointer]:
+        - generic [ref=f1e7]: close
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]: NR
+        - generic [ref=f1e10]: NOELY RAMIREZ SOTO
+        - generic [ref=f1e11]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=f1e12] [cursor=pointer]:
+          - generic [ref=f1e13]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=f1e14]:
+      - generic [ref=f1e15]: Módulos
+      - button "Panel principal" [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: dashboard
+      - button "Prospectos" [ref=f1e19] [cursor=pointer]:
+        - generic [ref=f1e20]: person_search
+      - button "Agenda" [ref=f1e22] [cursor=pointer]:
+        - generic [ref=f1e23]: event
+      - button "Clientes" [ref=f1e25] [cursor=pointer]:
+        - generic [ref=f1e26]: groups
+      - button "Equipo" [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: manage_accounts
+      - button "Ver más módulos" [ref=f1e31] [cursor=pointer]:
+        - generic [ref=f1e32]: expand_more
+      - button "Cerrar sesión" [ref=f1e35] [cursor=pointer]:
+        - generic [ref=f1e36]: logout
+    - generic [ref=f1e38]:
+      - generic [ref=f1e39]:
+        - generic [ref=f1e40]: verified
+        - generic [ref=f1e41]: Administrador
+      - generic [ref=f1e42]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=f1e43]:
+    - generic [ref=f1e44]:
+      - button "Abrir menú de navegación" [ref=f1e45] [cursor=pointer]:
+        - generic [ref=f1e46]: menu
+      - generic [ref=f1e47]: Sistema RX
+    - generic [ref=f1e48]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: cloud_done
+      - button "Activar modo oscuro" [ref=f1e52] [cursor=pointer]:
+        - generic [ref=f1e53]: dark_mode
+      - status "Estado de conexión" [ref=f1e54]:
+        - generic [ref=f1e56]: Online
+  - main [ref=f1e57]:
+    - generic [ref=f1e59]:
+      - generic [ref=f1e60]:
+        - generic [ref=f1e61]:
+          - paragraph [ref=f1e62]: SISTEMA RX
+          - heading "Hola, NOELY" [level=1] [ref=f1e63]
+          - paragraph [ref=f1e64]: Indicadores y seguimiento de tu operación comercial.
+        - generic "Filtro de fechas de indicadores y paneles superiores" [ref=f1e65]:
+          - button "filter_alt_off Limpiar filtro" [ref=f1e66] [cursor=pointer]:
+            - generic [ref=f1e67]: filter_alt_off
+            - text: Limpiar filtro
+          - button "restart_alt Diseño original" [disabled] [ref=f1e68]:
+            - generic [ref=f1e69]: restart_alt
+            - text: Diseño original
+          - generic [ref=f1e70]:
+            - text: Desde
+            - textbox "Desde" [ref=f1e71]
+          - generic [ref=f1e72]:
+            - text: Hasta
+            - textbox "Hasta" [ref=f1e73]: 2026-08-10
+          - button "Aplicar" [ref=f1e74] [cursor=pointer]
+      - generic [ref=f1e75]:
+        - article [ref=f1e76]:
+          - generic [ref=f1e77]: person_search
+          - generic [ref=f1e78]:
+            - generic [ref=f1e79]: Prospectos
+            - generic [ref=f1e80]: "14"
+            - emphasis [ref=f1e81]: registrados en el rango
+          - tooltip "Prospectos creados dentro del rango del filtro superior."
+        - article [ref=f1e82]:
+          - generic [ref=f1e83]: fiber_new
+          - generic [ref=f1e84]:
+            - generic [ref=f1e85]: Nuevos
+            - generic [ref=f1e86]: "1"
+            - emphasis [ref=f1e87]: aún sin gestionar
+          - tooltip "Prospectos del rango superior que todavía no tienen ninguna interacción registrada."
+        - article [ref=f1e88]:
+          - generic [ref=f1e89]: forum
+          - generic [ref=f1e90]:
+            - generic [ref=f1e91]: Contactados
+            - generic [ref=f1e92]: "13"
+            - emphasis [ref=f1e93]: 92.9% de cobertura
+          - tooltip "Prospectos con al menos una interacción. El % usa el total del filtro superior."
+        - article [ref=f1e94]:
+          - generic [ref=f1e95]: person_check
+          - generic [ref=f1e96]:
+            - generic [ref=f1e97]: Captados
+            - generic [ref=f1e98]: "4"
+            - emphasis [ref=f1e99]: 28.6% del total
+          - tooltip "Prospectos captados o convertidos dentro del alcance del filtro superior."
+        - article [ref=f1e100]:
+          - generic [ref=f1e101]: verified
+          - generic [ref=f1e102]:
+            - generic [ref=f1e103]: Clientes
+            - generic [ref=f1e104]: "2"
+            - emphasis [ref=f1e105]: cierres realizados
+          - tooltip "Clientes cuya fecha de cierre pertenece al rango del filtro superior."
+        - article [ref=f1e106]:
+          - generic [ref=f1e107]: monitoring
+          - generic [ref=f1e108]:
+            - generic [ref=f1e109]: Conversión
+            - generic [ref=f1e110]: 14.3%
+            - emphasis [ref=f1e111]: prospecto a cliente
+          - tooltip "Clientes ÷ Prospectos usando exclusivamente el rango del filtro superior."
+      - generic [ref=f1e112]:
+        - generic [ref=f1e113] [cursor=pointer]:
+          - generic [ref=f1e114]:
+            - generic [ref=f1e115]:
+              - paragraph [ref=f1e116]: CARTERA
+              - heading "Prospectos por agente" [level=2] [ref=f1e117]
+            - generic [ref=f1e118]:
+              - generic [ref=f1e119]: 4 agentes
+              - 'button "Ver todo: Prospectos por agente" [ref=f1e120]':
+                - generic [ref=f1e121]: open_in_full
+              - button "Mover Prospectos por agente. Usa las flechas para cambiarlo de posición." [ref=f1e122]:
+                - generic [ref=f1e123]: drag_indicator
+          - generic [ref=f1e125]:
+            - generic [ref=f1e126]:
+              - generic [ref=f1e127]: "1"
+              - generic [ref=f1e128]: CARLA QUISPE MAMANI
+              - 'progressbar "CARLA QUISPE MAMANI: 5 prospectos" [ref=f1e130]'
+              - generic [ref=f1e132]: "5"
+            - generic [ref=f1e134]:
+              - generic [ref=f1e135]: "2"
+              - generic [ref=f1e136]: DIEGO TORRES VEGA
+              - 'progressbar "DIEGO TORRES VEGA: 5 prospectos" [ref=f1e138]'
+              - generic [ref=f1e140]: "5"
+            - generic [ref=f1e142]:
+              - generic [ref=f1e143]: "3"
+              - generic [ref=f1e144]: MARIELA LOPEZ HUAMAN
+              - 'progressbar "MARIELA LOPEZ HUAMAN: 4 prospectos" [ref=f1e146]'
+              - generic [ref=f1e148]: "4"
+            - generic [ref=f1e150]:
+              - generic [ref=f1e151]: "4"
+              - generic [ref=f1e152]: NOELY RAMIREZ SOTO
+              - 'progressbar "NOELY RAMIREZ SOTO: 0 prospectos" [ref=f1e154]'
+              - generic [ref=f1e156]: "0"
+          - 'button "Redimensionar Prospectos por agente: 3 de 12 de ancho y 2 de alto. Usa las flechas para ajustarlo." [ref=f1e158]':
+            - generic [ref=f1e159]: south_east
+        - generic [ref=f1e160]:
+          - generic [ref=f1e161]:
+            - generic [ref=f1e162]:
+              - paragraph [ref=f1e163]: COBERTURA
+              - heading "Gestión de prospectos" [level=2] [ref=f1e164]
+            - generic [ref=f1e165]:
+              - generic [ref=f1e166]: 14 total
+              - button "Mover Gestión de prospectos. Usa las flechas para cambiarlo de posición." [ref=f1e167]:
+                - generic [ref=f1e168]: drag_indicator
+          - generic [ref=f1e170]:
+            - img "92.9% de prospectos contactados" [ref=f1e171]:
+              - generic [ref=f1e172]:
+                - strong [ref=f1e173]: 92.9%
+                - generic [ref=f1e174]: gestionados
+            - generic [ref=f1e175]:
+              - generic [ref=f1e178]:
+                - generic [ref=f1e179]: Contactados
+                - generic [ref=f1e180]: 13 prospectos
+              - generic [ref=f1e183]:
+                - generic [ref=f1e184]: Sin gestionar
+                - generic [ref=f1e185]: 1 prospectos
+          - 'button "Redimensionar Gestión de prospectos: 3 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e186]':
+            - generic [ref=f1e187]: south_east
+        - generic [ref=f1e188] [cursor=pointer]:
+          - generic [ref=f1e189]:
+            - generic [ref=f1e190]:
+              - paragraph [ref=f1e191]: ORIGEN
+              - heading "Prospectos por canal" [level=2] [ref=f1e192]
+            - generic [ref=f1e193]:
+              - generic [ref=f1e194]: "14"
+              - 'button "Ver todo: Prospectos por canal" [ref=f1e195]':
+                - generic [ref=f1e196]: open_in_full
+              - button "Mover Prospectos por canal. Usa las flechas para cambiarlo de posición." [ref=f1e197]:
+                - generic [ref=f1e198]: drag_indicator
+          - generic [ref=f1e200]:
+            - img "14 prospectos repartidos en 5 categorías" [ref=f1e201]:
+              - generic [ref=f1e202]:
+                - strong [ref=f1e203]: "14"
+                - generic [ref=f1e204]: prospectos
+            - list [ref=f1e205]:
+              - listitem [ref=f1e206]:
+                - generic "WHATSAPP" [ref=f1e208]
+                - generic [ref=f1e209]: "3"
+                - generic [ref=f1e210]: 21.4%
+              - listitem [ref=f1e211]:
+                - generic "REFERIDO" [ref=f1e213]
+                - generic [ref=f1e214]: "3"
+                - generic [ref=f1e215]: 21.4%
+              - listitem [ref=f1e216]:
+                - generic "FERIA" [ref=f1e218]
+                - generic [ref=f1e219]: "3"
+                - generic [ref=f1e220]: 21.4%
+              - listitem [ref=f1e221]:
+                - generic "LLAMADA" [ref=f1e223]
+                - generic [ref=f1e224]: "3"
+                - generic [ref=f1e225]: 21.4%
+              - listitem [ref=f1e226]:
+                - generic "REDES SOCIALES" [ref=f1e228]
+                - generic [ref=f1e229]: "2"
+                - generic [ref=f1e230]: 14.3%
+          - 'button "Redimensionar Prospectos por canal: 3 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e231]':
+            - generic [ref=f1e232]: south_east
+        - generic [ref=f1e233] [cursor=pointer]:
+          - generic [ref=f1e234]:
+            - generic [ref=f1e235]:
+              - paragraph [ref=f1e236]: CAPTACIÓN DEL EQUIPO
+              - heading "¿Quién captó más clientes?" [level=2] [ref=f1e237]
+            - generic [ref=f1e238]:
+              - generic [ref=f1e239]: "4"
+              - 'button "Ver todo: ¿Quién captó más clientes?" [ref=f1e240]':
+                - generic [ref=f1e241]: open_in_full
+              - button "Mover ¿Quién captó más clientes?. Usa las flechas para cambiarlo de posición." [ref=f1e242]:
+                - generic [ref=f1e243]: drag_indicator
+          - generic [ref=f1e245]:
+            - generic [ref=f1e246]:
+              - generic [ref=f1e247]: "1"
+              - generic [ref=f1e248]: CARLA QUISPE MAMANI
+              - 'progressbar "CARLA QUISPE MAMANI: 2 captaciones" [ref=f1e250]'
+              - generic [ref=f1e252]: "2"
+            - generic [ref=f1e254]:
+              - generic [ref=f1e255]: "2"
+              - generic [ref=f1e256]: DIEGO TORRES VEGA
+              - 'progressbar "DIEGO TORRES VEGA: 1 captaciones" [ref=f1e258]'
+              - generic [ref=f1e260]: "1"
+            - generic [ref=f1e262]:
+              - generic [ref=f1e263]: "3"
+              - generic [ref=f1e264]: MARIELA LOPEZ HUAMAN
+              - 'progressbar "MARIELA LOPEZ HUAMAN: 1 captaciones" [ref=f1e266]'
+              - generic [ref=f1e268]: "1"
+            - generic [ref=f1e270]:
+              - generic [ref=f1e271]: "4"
+              - generic [ref=f1e272]: NOELY RAMIREZ SOTO
+              - 'progressbar "NOELY RAMIREZ SOTO: 0 captaciones" [ref=f1e274]'
+              - generic [ref=f1e276]: "0"
+          - 'button "Redimensionar ¿Quién captó más clientes?: 3 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e278]':
+            - generic [ref=f1e279]: south_east
+        - generic [ref=f1e280] [cursor=pointer]:
+          - generic [ref=f1e281]:
+            - generic [ref=f1e282]:
+              - paragraph [ref=f1e283]: ALTAS DIARIAS
+              - heading "Prospectos por fecha de creación" [level=2] [ref=f1e284]
+            - generic [ref=f1e285]:
+              - generic [ref=f1e286]: "14"
+              - 'button "Ver todo: Prospectos por fecha de creación" [ref=f1e287]':
+                - generic [ref=f1e288]: open_in_full
+              - button "Mover Prospectos por fecha de creación. Usa las flechas para cambiarlo de posición." [ref=f1e289]:
+                - generic [ref=f1e290]: drag_indicator
+          - img "14 altas en 14 días con registro" [ref=f1e292]:
+            - 'generic "13/07/2026: 1 alta" [ref=f1e293]':
+              - generic [ref=f1e294]: "1"
+              - generic [ref=f1e297]: "13"
+            - 'generic "19/07/2026: 1 alta" [ref=f1e298]':
+              - generic [ref=f1e299]: "1"
+              - generic [ref=f1e302]: "19"
+            - 'generic "23/07/2026: 1 alta" [ref=f1e303]':
+              - generic [ref=f1e304]: "1"
+              - generic [ref=f1e307]: "23"
+            - 'generic "25/07/2026: 1 alta" [ref=f1e308]':
+              - generic [ref=f1e309]: "1"
+              - generic [ref=f1e312]: "25"
+            - 'generic "27/07/2026: 1 alta" [ref=f1e313]':
+              - generic [ref=f1e314]: "1"
+              - generic [ref=f1e317]: "27"
+            - 'generic "30/07/2026: 1 alta" [ref=f1e318]':
+              - generic [ref=f1e319]: "1"
+              - generic [ref=f1e322]: "30"
+            - 'generic "01/08/2026: 1 alta" [ref=f1e323]':
+              - generic [ref=f1e324]: "1"
+              - generic [ref=f1e327]: 1 ago
+            - 'generic "02/08/2026: 1 alta" [ref=f1e328]':
+              - generic [ref=f1e329]: "1"
+              - generic [ref=f1e332]: "2"
+            - 'generic "04/08/2026: 1 alta" [ref=f1e333]':
+              - generic [ref=f1e334]: "1"
+              - generic [ref=f1e337]: "4"
+            - 'generic "06/08/2026: 1 alta" [ref=f1e338]':
+              - generic [ref=f1e339]: "1"
+              - generic [ref=f1e342]: "6"
+            - 'generic "07/08/2026: 1 alta" [ref=f1e343]':
+              - generic [ref=f1e344]: "1"
+              - generic [ref=f1e347]: "7"
+            - 'generic "09/08/2026: 1 alta" [ref=f1e348]':
+              - generic [ref=f1e349]: "1"
+              - generic [ref=f1e352]: "9"
+          - 'button "Redimensionar Prospectos por fecha de creación: 6 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e353]':
+            - generic [ref=f1e354]: south_east
+        - generic [ref=f1e355] [cursor=pointer]:
+          - generic [ref=f1e356]:
+            - generic [ref=f1e357]:
+              - paragraph [ref=f1e358]: INDICADOR DE CAPTACIÓN
+              - heading "% de captación por agente" [level=2] [ref=f1e359]
+            - generic [ref=f1e360]:
+              - generic [ref=f1e361]: 28.6% equipo
+              - 'button "Ver todo: % de captación por agente" [ref=f1e362]':
+                - generic [ref=f1e363]: open_in_full
+              - button "Mover % de captación por agente. Usa las flechas para cambiarlo de posición." [ref=f1e364]:
+                - generic [ref=f1e365]: drag_indicator
+          - generic [ref=f1e367]:
+            - generic [ref=f1e368]:
+              - generic [ref=f1e369]: "1"
+              - generic [ref=f1e370]: CARLA QUISPE MAMANI
+              - 'progressbar "CARLA QUISPE MAMANI: 40% de captación" [ref=f1e372]'
+              - generic [ref=f1e374]: 40%
+            - generic [ref=f1e376]:
+              - generic [ref=f1e377]: "2"
+              - generic [ref=f1e378]: MARIELA LOPEZ HUAMAN
+              - 'progressbar "MARIELA LOPEZ HUAMAN: 25% de captación" [ref=f1e380]'
+              - generic [ref=f1e382]: 25%
+            - generic [ref=f1e384]:
+              - generic [ref=f1e385]: "3"
+              - generic [ref=f1e386]: DIEGO TORRES VEGA
+              - 'progressbar "DIEGO TORRES VEGA: 20% de captación" [ref=f1e388]'
+              - generic [ref=f1e390]: 20%
+            - generic [ref=f1e392]:
+              - generic [ref=f1e393]: "4"
+              - generic [ref=f1e394]: NOELY RAMIREZ SOTO
+              - 'progressbar "NOELY RAMIREZ SOTO: 0% de captación" [ref=f1e396]'
+              - generic [ref=f1e398]: 0%
+          - 'button "Redimensionar % de captación por agente: 3 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e400]':
+            - generic [ref=f1e401]: south_east
+      - region "Filtro de fechas del resto del tablero" [ref=f1e402]:
+        - generic [ref=f1e403]:
+          - paragraph [ref=f1e404]: FILTRO DEL TABLERO
+          - heading "Gráficos y actividad" [level=2] [ref=f1e405]
+          - generic [ref=f1e406]: Este rango se aplica a todos los paneles ubicados debajo.
+        - generic "Filtro de fechas del tablero" [ref=f1e407]:
+          - button "filter_alt_off Limpiar filtro" [ref=f1e408] [cursor=pointer]:
+            - generic [ref=f1e409]: filter_alt_off
+            - text: Limpiar filtro
+          - button "restart_alt Diseño original" [disabled] [ref=f1e410]:
+            - generic [ref=f1e411]: restart_alt
+            - text: Diseño original
+          - generic [ref=f1e412]:
+            - text: Desde
+            - textbox "Desde" [ref=f1e413]
+          - generic [ref=f1e414]:
+            - text: Hasta
+            - textbox "Hasta" [ref=f1e415]: 2026-08-10
+          - button "Aplicar" [ref=f1e416] [cursor=pointer]
+      - generic [ref=f1e417]:
+        - generic [ref=f1e418] [cursor=pointer]:
+          - generic [ref=f1e419]:
+            - generic [ref=f1e420]:
+              - paragraph [ref=f1e421]: RESULTADOS
+              - heading "Resultados de citas" [level=2] [ref=f1e422]
+            - generic [ref=f1e423]:
+              - generic [ref=f1e424]: "35"
+              - 'button "Ver todo: Resultados de citas" [ref=f1e425]':
+                - generic [ref=f1e426]: open_in_full
+              - button "Mover Resultados de citas. Usa las flechas para cambiarlo de posición." [ref=f1e427]:
+                - generic [ref=f1e428]: drag_indicator
+          - generic [ref=f1e430]:
+            - img "35 registros repartidos en 8 categorías" [ref=f1e431]:
+              - generic [ref=f1e432]:
+                - strong [ref=f1e433]: "35"
+                - generic [ref=f1e434]: registros
+            - list [ref=f1e435]:
+              - listitem [ref=f1e436]:
+                - generic "CITA AGENDADA" [ref=f1e438]
+                - generic [ref=f1e439]: "11"
+                - generic [ref=f1e440]: 31.4%
+              - listitem [ref=f1e441]:
+                - generic "SIN CITA" [ref=f1e443]
+                - generic [ref=f1e444]: "7"
+                - generic [ref=f1e445]: 20%
+              - listitem [ref=f1e446]:
+                - generic "ASISTIO" [ref=f1e448]
+                - generic [ref=f1e449]: "6"
+                - generic [ref=f1e450]: 17.1%
+              - listitem [ref=f1e451]:
+                - generic "CONTRATO FIRMADO" [ref=f1e453]
+                - generic [ref=f1e454]: "4"
+                - generic [ref=f1e455]: 11.4%
+              - listitem [ref=f1e456]:
+                - generic "REUNION CONFIRMADA" [ref=f1e458]
+                - generic [ref=f1e459]: "3"
+                - generic [ref=f1e460]: 8.6%
+              - listitem [ref=f1e461]:
+                - generic "Otros (3)" [ref=f1e463]
+                - generic [ref=f1e464]: "4"
+                - generic [ref=f1e465]: 11.4%
+          - 'button "Redimensionar Resultados de citas: 4 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e466]':
+            - generic [ref=f1e467]: south_east
+        - generic [ref=f1e468] [cursor=pointer]:
+          - generic [ref=f1e469]:
+            - generic [ref=f1e470]:
+              - paragraph [ref=f1e471]: NEGOCIACIÓN
+              - heading "Estado de negociaciones" [level=2] [ref=f1e472]
+            - generic [ref=f1e473]:
+              - generic [ref=f1e474]: "6"
+              - 'button "Ver todo: Estado de negociaciones" [ref=f1e475]':
+                - generic [ref=f1e476]: open_in_full
+              - button "Mover Estado de negociaciones. Usa las flechas para cambiarlo de posición." [ref=f1e477]:
+                - generic [ref=f1e478]: drag_indicator
+          - generic [ref=f1e480]:
+            - img "6 negociaciones repartidos en 3 categorías" [ref=f1e481]:
+              - generic [ref=f1e482]:
+                - strong [ref=f1e483]: "6"
+                - generic [ref=f1e484]: negociaciones
+            - list [ref=f1e485]:
+              - listitem [ref=f1e486]:
+                - generic "REUNION CONFIRMADA" [ref=f1e488]
+                - generic [ref=f1e489]: "3"
+                - generic [ref=f1e490]: 50%
+              - listitem [ref=f1e491]:
+                - generic "CONTRATO FIRMADO" [ref=f1e493]
+                - generic [ref=f1e494]: "2"
+                - generic [ref=f1e495]: 33.3%
+              - listitem [ref=f1e496]:
+                - generic "FIRMA PENDIENTE" [ref=f1e498]
+                - generic [ref=f1e499]: "1"
+                - generic [ref=f1e500]: 16.7%
+          - 'button "Redimensionar Estado de negociaciones: 4 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e501]':
+            - generic [ref=f1e502]: south_east
+        - generic [ref=f1e503] [cursor=pointer]:
+          - generic [ref=f1e504]:
+            - generic [ref=f1e505]:
+              - paragraph [ref=f1e506]: ETAPAS
+              - heading "Interacciones por etapa" [level=2] [ref=f1e507]
+            - generic [ref=f1e508]:
+              - generic [ref=f1e509]: "35"
+              - 'button "Ver todo: Interacciones por etapa" [ref=f1e510]':
+                - generic [ref=f1e511]: open_in_full
+              - button "Mover Interacciones por etapa. Usa las flechas para cambiarlo de posición." [ref=f1e512]:
+                - generic [ref=f1e513]: drag_indicator
+          - generic [ref=f1e515]:
+            - img "35 interacciones repartidos en 4 categorías" [ref=f1e516]:
+              - generic [ref=f1e517]:
+                - strong [ref=f1e518]: "35"
+                - generic [ref=f1e519]: interacciones
+            - list [ref=f1e520]:
+              - listitem [ref=f1e521]:
+                - generic "PROSPECTO" [ref=f1e523]
+                - generic [ref=f1e524]: "26"
+                - generic [ref=f1e525]: 74.3%
+              - listitem [ref=f1e526]:
+                - generic "NEGOCIACION" [ref=f1e528]
+                - generic [ref=f1e529]: "6"
+                - generic [ref=f1e530]: 17.1%
+              - listitem [ref=f1e531]:
+                - generic "CLIENTE" [ref=f1e533]
+                - generic [ref=f1e534]: "2"
+                - generic [ref=f1e535]: 5.7%
+              - listitem [ref=f1e536]:
+                - generic "NO CONTINUA" [ref=f1e538]
+                - generic [ref=f1e539]: "1"
+                - generic [ref=f1e540]: 2.9%
+          - 'button "Redimensionar Interacciones por etapa: 4 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e541]':
+            - generic [ref=f1e542]: south_east
+        - generic [ref=f1e543] [cursor=pointer]:
+          - generic [ref=f1e544]:
+            - generic [ref=f1e545]:
+              - paragraph [ref=f1e546]: ACTIVIDAD DIARIA
+              - heading "Interacciones por día" [level=2] [ref=f1e547]
+            - generic [ref=f1e548]:
+              - generic [ref=f1e549]: "35"
+              - 'button "Ver todo: Interacciones por día" [ref=f1e550]':
+                - generic [ref=f1e551]: open_in_full
+              - button "Mover Interacciones por día. Usa las flechas para cambiarlo de posición." [ref=f1e552]:
+                - generic [ref=f1e553]: drag_indicator
+          - img "35 interacciones en 25 días con registro" [ref=f1e555]:
+            - 'generic "29/07/2026: 1 interacción" [ref=f1e556]':
+              - generic [ref=f1e557]: "1"
+              - generic [ref=f1e560]: "29"
+            - 'generic "30/07/2026: 1 interacción" [ref=f1e561]':
+              - generic [ref=f1e562]: "1"
+              - generic [ref=f1e565]: "30"
+            - 'generic "31/07/2026: 1 interacción" [ref=f1e566]':
+              - generic [ref=f1e567]: "1"
+              - generic [ref=f1e570]: "31"
+            - 'generic "01/08/2026: 2 interacciones" [ref=f1e571]':
+              - generic [ref=f1e572]: "2"
+              - generic [ref=f1e575]: 1 ago
+            - 'generic "02/08/2026: 3 interacciones" [ref=f1e576]':
+              - generic [ref=f1e577]: "3"
+              - generic [ref=f1e580]: "2"
+            - 'generic "03/08/2026: 1 interacción" [ref=f1e581]':
+              - generic [ref=f1e582]: "1"
+              - generic [ref=f1e585]: "3"
+            - 'generic "04/08/2026: 2 interacciones" [ref=f1e586]':
+              - generic [ref=f1e587]: "2"
+              - generic [ref=f1e590]: "4"
+            - 'generic "05/08/2026: 2 interacciones" [ref=f1e591]':
+              - generic [ref=f1e592]: "2"
+              - generic [ref=f1e595]: "5"
+            - 'generic "06/08/2026: 2 interacciones" [ref=f1e596]':
+              - generic [ref=f1e597]: "2"
+              - generic [ref=f1e600]: "6"
+            - 'generic "07/08/2026: 1 interacción" [ref=f1e601]':
+              - generic [ref=f1e602]: "1"
+              - generic [ref=f1e605]: "7"
+            - 'generic "08/08/2026: 3 interacciones" [ref=f1e606]':
+              - generic [ref=f1e607]: "3"
+              - generic [ref=f1e610]: "8"
+            - 'generic "09/08/2026: 1 interacción" [ref=f1e611]':
+              - generic [ref=f1e612]: "1"
+              - generic [ref=f1e615]: "9"
+          - 'button "Redimensionar Interacciones por día: 4 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e616]':
+            - generic [ref=f1e617]: south_east
+        - generic [ref=f1e618] [cursor=pointer]:
+          - generic [ref=f1e619]:
+            - generic [ref=f1e620]:
+              - paragraph [ref=f1e621]: ACTIVIDAD DEL EQUIPO
+              - heading "¿Quién hizo más interacciones?" [level=2] [ref=f1e622]
+            - generic [ref=f1e623]:
+              - generic [ref=f1e624]: "35"
+              - 'button "Ver todo: ¿Quién hizo más interacciones?" [ref=f1e625]':
+                - generic [ref=f1e626]: open_in_full
+              - button "Mover ¿Quién hizo más interacciones?. Usa las flechas para cambiarlo de posición." [ref=f1e627]:
+                - generic [ref=f1e628]: drag_indicator
+          - generic [ref=f1e630]:
+            - generic [ref=f1e631]:
+              - generic [ref=f1e632]: "1"
+              - generic [ref=f1e633]: CARLA QUISPE MAMANI
+              - 'progressbar "CARLA QUISPE MAMANI: 14 seguimientos" [ref=f1e635]'
+              - generic [ref=f1e637]: "14"
+            - generic [ref=f1e639]:
+              - generic [ref=f1e640]: "2"
+              - generic [ref=f1e641]: DIEGO TORRES VEGA
+              - 'progressbar "DIEGO TORRES VEGA: 12 seguimientos" [ref=f1e643]'
+              - generic [ref=f1e645]: "12"
+            - generic [ref=f1e647]:
+              - generic [ref=f1e648]: "3"
+              - generic [ref=f1e649]: MARIELA LOPEZ HUAMAN
+              - 'progressbar "MARIELA LOPEZ HUAMAN: 9 seguimientos" [ref=f1e651]'
+              - generic [ref=f1e653]: "9"
+            - generic [ref=f1e655]:
+              - generic [ref=f1e656]: "4"
+              - generic [ref=f1e657]: NOELY RAMIREZ SOTO
+              - 'progressbar "NOELY RAMIREZ SOTO: 0 seguimientos" [ref=f1e659]'
+              - generic [ref=f1e661]: "0"
+          - 'button "Redimensionar ¿Quién hizo más interacciones?: 4 de 12 de ancho y 1 de alto. Usa las flechas para ajustarlo." [ref=f1e663]':
+            - generic [ref=f1e664]: south_east
+      - generic [ref=f1e665]:
+        - button "person_search Prospectos" [ref=f1e666] [cursor=pointer]:
+          - generic [ref=f1e667]: person_search
+          - text: Prospectos
+        - button "event Agenda" [ref=f1e668] [cursor=pointer]:
+          - generic [ref=f1e669]: event
+          - text: Agenda
+        - button "groups Clientes" [ref=f1e670] [cursor=pointer]:
+          - generic [ref=f1e671]: groups
+          - text: Clientes
+        - button "manage_accounts Equipo" [ref=f1e672] [cursor=pointer]:
+          - generic [ref=f1e673]: manage_accounts
+          - text: Equipo
+  - contentinfo "Navegación rápida" [ref=f1e674]:
+    - button "Ir a Panel principal" [ref=f1e675] [cursor=pointer]:
+      - generic [ref=f1e676]: dashboard
+      - generic [ref=f1e677]: Inicio
+    - button "Ir a Prospectos" [ref=f1e678] [cursor=pointer]:
+      - generic [ref=f1e679]: person_search
+      - generic [ref=f1e680]: Prospectos
+    - button "Ir a Agenda" [ref=f1e681] [cursor=pointer]:
+      - generic [ref=f1e682]: event
+      - generic [ref=f1e683]: Agenda
+    - button "Ir a Clientes" [ref=f1e684] [cursor=pointer]:
+      - generic [ref=f1e685]: groups
+      - generic [ref=f1e686]: Clientes

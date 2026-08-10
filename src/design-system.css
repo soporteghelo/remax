@@ -87,6 +87,12 @@
   --sev-med-fg: #b45309;  --sev-med-bg: rgba(217, 119, 6, 0.09);   --sev-med-bd: rgba(217, 119, 6, 0.25);
   --sev-ok-fg: #047857;   --sev-ok-bg: rgba(16, 185, 129, 0.10);   --sev-ok-bd: rgba(16, 185, 129, 0.25);
 
+  /* Marca de WhatsApp: no es un color del sistema y solo lo usan las acciones
+     que abren WhatsApp. En claro se oscurece hasta 5.9:1 con su texto blanco;
+     en oscuro ACLARA al verde de la marca, como el resto de la paleta. */
+  --brand-whatsapp: #0b6a5f;
+  --brand-on-whatsapp: #ffffff;
+
   /* Paleta categórica para gráficos (donas, series apiladas). Ocho matices
      distinguibles entre sí, anclados en el índigo de marca; --chart-other es el
      gris del agregado "Otros". El color nunca va solo: la leyenda lleva cifra. */
@@ -128,6 +134,9 @@
   --sev-high-fg: #fca5a5; --sev-high-bg: rgba(248, 113, 113, 0.13); --sev-high-bd: rgba(248, 113, 113, 0.30);
   --sev-med-fg: #fcd34d;  --sev-med-bg: rgba(252, 211, 77, 0.13);   --sev-med-bd: rgba(252, 211, 77, 0.30);
   --sev-ok-fg: #6ee7b7;   --sev-ok-bg: rgba(110, 231, 183, 0.12);   --sev-ok-bd: rgba(110, 231, 183, 0.28);
+
+  --brand-whatsapp: #25d366;
+  --brand-on-whatsapp: #101014;
 
   /* Los mismos ocho matices aclarados para el fondo oscuro: aclaran, no invierten. */
   --chart-1: #a5abff; --chart-2: #5eead4; --chart-3: #fcd34d; --chart-4: #d8b4fe;

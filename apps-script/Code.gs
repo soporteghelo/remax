@@ -10,7 +10,9 @@ const MIN_PASSWORD_LENGTH = 6;
 // Cuenta temporal para pruebas. Se registra al ejecutar Actualizar() si no existe.
 const TEST_USER = { DNI: '76018787', Pass: 'kirito', Apellidos: 'USUARIO', Nombres: 'TEST' };
 const USERS_SHEET_NAME = 'USUARIOS';
-const USERS_HEADERS = ['DNI', 'Apellidos', 'Nombres', 'Estado', 'TipoUsuario', 'FechaRegistro', 'UltimoAcceso', 'Dispositivo', 'Pass'];
+// Correo y Celular son los canales por los que se entregan las credenciales al
+// crear la cuenta; ambos son opcionales y Actualizar() los añade a hojas antiguas.
+const USERS_HEADERS = ['DNI', 'Apellidos', 'Nombres', 'Estado', 'TipoUsuario', 'FechaRegistro', 'UltimoAcceso', 'Dispositivo', 'Correo', 'Celular', 'Pass'];
 const UPDATE_LOG_SHEET_NAME = 'LOG_ACTUALIZACIONES';
 const UPDATE_LOG_HEADERS = ['Fecha', 'Función', 'Resultado', 'Detalle'];
 const SETTINGS_SHEET_NAME = 'CONFIGURACION';
@@ -54,14 +56,15 @@ const DATE_COLUMN_FORMATS = {
  * español); al añadir un ajuste hay que declararlo en ambos lados.
  */
 const APP_SETTINGS = [
-  { key: 'appName', type: 'text', def: 'Sistema FORT', max: 40, desc: 'Nombre visible en la barra superior y en la pestaña del navegador.' },
-  { key: 'appShortName', type: 'text', def: 'FORT', max: 4, desc: 'Sigla de 1 a 4 letras del distintivo de marca.' },
-  { key: 'appVersion', type: 'text', def: 'FORT v1.0.0', max: 24, desc: 'Versión mostrada en el pie del menú lateral.' },
+  { key: 'appName', type: 'text', def: 'Sistema RX', max: 40, desc: 'Nombre visible en la barra superior y en la pestaña del navegador.' },
+  { key: 'appShortName', type: 'text', def: 'RX', max: 4, desc: 'Sigla de 1 a 4 letras del distintivo de marca.' },
+  { key: 'appVersion', type: 'text', def: 'RX v1.0.0', max: 24, desc: 'Versión mostrada en el pie del menú lateral.' },
   { key: 'organization', type: 'text', def: '', max: 60, desc: 'Organización mostrada en el pie del menú lateral y en el acceso.' },
   { key: 'supportContact', type: 'text', def: '', max: 80, desc: 'Contacto de soporte mostrado a quien no puede ingresar.' },
   // La clave conserva la mayúscula con la que se creó la fila en la hoja: readSettings_
   // busca coincidencia exacta y renombrarla dejaría el valor guardado sin dueño.
-  { key: 'Link', type: 'url', def: '', max: 300, desc: 'Acceso a la plataforma: dirección completa del portal (http:// o https://).' },
+  { key: 'Link', type: 'url', def: '', max: 300, desc: 'Acceso a la plataforma: dirección completa del portal (http:// o https://). Se envía a cada cuenta nueva.' },
+  { key: 'appPurpose', type: 'text', def: 'Registrar prospectos, dejar constancia de cada contacto y convertirlos en clientes.', max: 200, desc: 'Para qué sirve la app. Se explica en el mensaje de bienvenida de cada cuenta nueva.' },
   { key: 'loginEyebrow', type: 'text', def: 'PORTAL SEGURO', max: 30, desc: 'Etiqueta superior de la pantalla de acceso.' },
   { key: 'loginTitle', type: 'text', def: 'Bienvenido', max: 40, desc: 'Título de la pantalla de acceso.' },
   { key: 'loginSubtitle', type: 'text', def: 'Ingresa con tus credenciales para continuar.', max: 120, desc: 'Mensaje bajo el título de la pantalla de acceso.' },
@@ -82,6 +85,7 @@ function doPost(e) {
     if (data.action === 'checkSession') return checkSession_(ss, data);
     if (data.action === 'createUser') return createUser_(ss, data);
     if (data.action === 'updateUser') return updateUser_(ss, data);
+    if (data.action === 'resendInvite') return resendInvite_(ss, data);
     if (data.action === 'listUsers') return listUsers_(ss, data);
     if (data.action === 'getSettings') return getSettings_(ss);
     if (data.action === 'saveSettings') return saveSettings_(ss, data);
@@ -458,6 +462,127 @@ function checkSession_(ss, data) {
   return createResponse({ status: 'ok', valid: true, record: publicRecord_(headers, values) });
 }
 
+/* ════════════ ENTREGA DEL ACCESO A UNA CUENTA NUEVA (correo y WhatsApp) ════════════ */
+
+function isEmail_(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '')); }
+
+/** Un celular se acepta con o sin prefijo internacional; se guarda tal como se escribió. */
+function isPhone_(value) { return /^\+?[\d][\d\s\-()]{5,19}$/.test(String(value || '')); }
+
+/**
+ * Mismo criterio que la pantalla de acceso: un número de 9 dígitos sin prefijo
+ * se entiende peruano (+51); con `+` delante manda lo que se escribió.
+ */
+function whatsappDigits_(phone) {
+  var text = String(phone || '').trim();
+  var digits = text.replace(/\D/g, '');
+  if (text.charAt(0) === '+') return digits.length >= 8 ? digits : '';
+  if (digits.length === 9) return '51' + digits;
+  return digits.length >= 10 && digits.length <= 15 ? digits : '';
+}
+
+function userRoleName_(tipoUsuario) { return tipoUsuario === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'AGENTE COMERCIAL'; }
+
+/** Qué podrá hacer la persona con el rol que se le acaba de asignar. */
+function userRoleDuties_(tipoUsuario) {
+  return tipoUsuario === 'ADMINISTRADOR'
+    ? 'Además de la gestión comercial, administras el equipo, los catálogos y la configuración de la aplicación.'
+    : 'Registras prospectos, dejas constancia de cada contacto, agendas el siguiente y conviertes en clientes a quienes cierran.';
+}
+
+function htmlEscape_(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * Texto único de bienvenida: qué es la aplicación, con qué rol se creó la cuenta
+ * y cómo entrar. Se usa igual en el correo y en el mensaje de WhatsApp, para que
+ * quien recibe uno u otro lea exactamente lo mismo.
+ */
+function welcomeMessage_(settings, user, password, isResend) {
+  var appName = String(settings.appName || '').trim() || 'la aplicación';
+  var organization = String(settings.organization || '').trim();
+  var link = String(settings.Link || '').trim();
+  var support = String(settings.supportContact || '').trim();
+  var purpose = String(settings.appPurpose || '').trim();
+  var role = userRoleName_(user.tipoUsuario);
+  var fullName = [user.nombres, user.apellidos].join(' ').replace(/\s+/g, ' ').trim();
+
+  // Al reenviar, la contraseña guardada solo se conoce si sigue siendo la
+  // inicial; en cualquier otro caso el mensaje remite a la que ya definió.
+  var passwordText = password || 'la que ya definiste. Si la olvidaste, pide a un administrador que la restablezca.';
+  var opening = isResend
+    ? 'Te recordamos cómo entrar a ' + appName + (organization ? ' (' + organization + ')' : '') + '.'
+    : 'Ya tienes tu cuenta en ' + appName + (organization ? ' (' + organization + ')' : '') + '.';
+
+  var lines = ['Hola ' + (fullName || 'y bienvenido/a') + ':', ''];
+  lines.push(opening);
+  if (purpose) lines.push('Para qué sirve: ' + purpose);
+  lines.push('');
+  lines.push('TU TIPO DE USUARIO: ' + role);
+  lines.push(userRoleDuties_(user.tipoUsuario));
+  lines.push('');
+  lines.push('CÓMO INGRESAR');
+  if (link) lines.push('Enlace: ' + link);
+  lines.push('Usuario (DNI): ' + user.dni);
+  lines.push('Contraseña: ' + passwordText);
+  lines.push('');
+  if (password) lines.push('Guarda esta contraseña; solo un administrador puede cambiarla.');
+  if (support) lines.push('¿Problemas para ingresar? Escribe a ' + support + '.');
+
+  var html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1b1b21">'
+    + '<p>Hola <b>' + htmlEscape_(fullName || 'y bienvenido/a') + '</b>:</p>'
+    + '<p>' + htmlEscape_(opening)
+    + (purpose ? '<br><span style="color:#4a4a55">' + htmlEscape_(purpose) + '</span>' : '') + '</p>'
+    + '<p><b>Tu tipo de usuario: ' + htmlEscape_(role) + '</b><br>' + htmlEscape_(userRoleDuties_(user.tipoUsuario)) + '</p>'
+    + '<table style="border-collapse:collapse;margin:18px 0"><tbody>'
+    + (link ? '<tr><td style="padding:4px 12px 4px 0;color:#4a4a55">Enlace</td><td style="padding:4px 0"><a href="' + htmlEscape_(link) + '">' + htmlEscape_(link) + '</a></td></tr>' : '')
+    + '<tr><td style="padding:4px 12px 4px 0;color:#4a4a55">Usuario (DNI)</td><td style="padding:4px 0"><b>' + htmlEscape_(user.dni) + '</b></td></tr>'
+    + '<tr><td style="padding:4px 12px 4px 0;color:#4a4a55">Contraseña</td><td style="padding:4px 0">' + (password ? '<b>' + htmlEscape_(password) + '</b>' : htmlEscape_(passwordText)) + '</td></tr>'
+    + '</tbody></table>'
+    + '<p style="color:#4a4a55;font-size:13px">'
+    + (password ? 'Guarda esta contraseña; solo un administrador puede cambiarla.' : '')
+    + (support ? (password ? '<br>' : '') + '¿Problemas para ingresar? Escribe a ' + htmlEscape_(support) + '.' : '') + '</p>'
+    + '</div>';
+
+  return { subject: (isResend ? 'Recordatorio de tu acceso a ' : 'Tu acceso a ') + appName, text: lines.join('\n'), html: html, sender: appName };
+}
+
+/** El envío nunca debe tumbar el alta: la cuenta ya existe cuando se llega aquí. */
+function sendCredentialsEmail_(message, email) {
+  try {
+    if (MailApp.getRemainingDailyQuota() <= 0) return { sent: false, error: 'Se agotó la cuota diaria de correos del script; comparte el acceso por WhatsApp.' };
+    MailApp.sendEmail({ to: email, subject: message.subject, body: message.text, htmlBody: message.html, name: message.sender });
+    return { sent: true, error: '' };
+  } catch (err) {
+    return { sent: false, error: String(err && err.message ? err.message : err) };
+  }
+}
+
+/**
+ * Entrega las credenciales por los canales registrados. El correo lo envía el
+ * propio script; para el celular se devuelve un enlace de WhatsApp con el
+ * mensaje ya escrito, porque Apps Script no puede enviarlo por su cuenta y debe
+ * pulsarlo quien administra.
+ */
+function deliverCredentials_(ss, user, password, options) {
+  options = options || {};
+  var settings = readSettings_(ensureSettingsSheet_(ss, []));
+  var message = welcomeMessage_(settings, user, password, options.resend === true);
+  // Reenviar por WhatsApp no debe disparar además un correo que nadie pidió.
+  var sendEmail = options.sendEmail !== false;
+  var delivery = { email: String(user.correo || ''), emailSent: false, emailError: '', emailSkipped: !sendEmail, whatsappUrl: '', text: message.text, link: String(settings.Link || ''), password: String(password || '') };
+  if (sendEmail && delivery.email) {
+    var result = sendCredentialsEmail_(message, delivery.email);
+    delivery.emailSent = result.sent;
+    delivery.emailError = result.error;
+  }
+  var digits = whatsappDigits_(user.celular);
+  if (digits) delivery.whatsappUrl = 'https://wa.me/' + digits + '?text=' + encodeURIComponent(message.text);
+  return delivery;
+}
+
 /** Crea cuentas solo después de validar las credenciales de un administrador. */
 function createUser_(ss, data) {
   var adminDni = String(data.adminDni || '').trim();
@@ -468,14 +593,19 @@ function createUser_(ss, data) {
   var apellidos = String(usuario.apellidos || '').trim().toUpperCase();
   var nombres = String(usuario.nombres || '').trim().toUpperCase();
   var tipoUsuario = String(usuario.tipoUsuario || 'USUARIO').trim().toUpperCase();
+  var correo = String(usuario.correo || '').trim();
+  var celular = String(usuario.celular || '').trim();
   if (!/^\d{8}$/.test(adminDni) || !adminPassword) return createResponse({ status: 'error', message: 'Confirma tus credenciales de administrador.' });
   if (!/^\d{8}$/.test(dni)) return createResponse({ status: 'error', message: 'El DNI del nuevo usuario no es válido.' });
   if (password.length < MIN_PASSWORD_LENGTH || password.length > 128) return createResponse({ status: 'error', message: 'La contraseña debe tener entre ' + MIN_PASSWORD_LENGTH + ' y 128 caracteres.' });
   if (!apellidos || !nombres) return createResponse({ status: 'error', message: 'Ingresa apellidos y nombres del nuevo usuario.' });
   if (tipoUsuario !== 'ADMINISTRADOR' && tipoUsuario !== 'USUARIO') return createResponse({ status: 'error', message: 'Tipo de usuario no válido.' });
+  if (correo && !isEmail_(correo)) return createResponse({ status: 'error', message: 'El correo del nuevo usuario no es válido.' });
+  if (celular && !isPhone_(celular)) return createResponse({ status: 'error', message: 'El celular del nuevo usuario no es válido.' });
 
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
+  var created = null;
   try {
     var admin = verifyAdmin_(ss, adminDni, adminPassword);
     if (!admin.ok) return createResponse({ status: 'error', message: admin.message });
@@ -484,13 +614,49 @@ function createUser_(ss, data) {
     if (findRowByDni_(sheet, dni, headers)) return createResponse({ status: 'error', message: 'Ya existe un usuario con ese DNI.' });
 
     var now = new Date();
-    var newRecord = { DNI: dni, Apellidos: apellidos, Nombres: nombres, Estado: 'ACTIVO', TipoUsuario: tipoUsuario, FechaRegistro: now, UltimoAcceso: '', Dispositivo: '', Pass: hashPassword_(password) };
-    var newRow = writeSheetRecord_(sheet, 0, newRecord);
-    crmAudit_(ss, { dni: adminDni }, 'CREAR', 'USUARIO', dni, nombres + ' ' + apellidos);
-    return createResponse({ status: 'ok', message: 'Usuario creado correctamente.', record: publicRecord_(headers, newRow) });
+    var newRecord = { DNI: dni, Apellidos: apellidos, Nombres: nombres, Estado: 'ACTIVO', TipoUsuario: tipoUsuario, FechaRegistro: now, UltimoAcceso: '', Dispositivo: '', Correo: correo, Celular: celular, Pass: hashPassword_(password) };
+    created = { headers: headers, values: writeSheetRecord_(sheet, 0, newRecord) };
   } finally {
     lock.releaseLock();
   }
+
+  // Fuera del bloqueo: la cuenta ya está escrita y el envío del acceso puede
+  // tardar segundos, que nadie más debería esperar para iniciar sesión.
+  crmAudit_(ss, { dni: adminDni }, 'CREAR', 'USUARIO', dni, nombres + ' ' + apellidos);
+  var delivery = deliverCredentials_(ss, { dni: dni, nombres: nombres, apellidos: apellidos, tipoUsuario: tipoUsuario, correo: correo, celular: celular }, password);
+  return createResponse({ status: 'ok', message: 'Usuario creado correctamente.', record: publicRecord_(created.headers, created.values), delivery: delivery });
+}
+
+/**
+ * Genera un recordatorio de acceso para que el administrador lo abra desde
+ * WhatsApp. Nunca revela una contraseña que la persona ya haya cambiado: si
+ * sigue usando la inicial, esta es su DNI; de otro modo el texto indica cómo
+ * solicitar el restablecimiento.
+ */
+function resendInvite_(ss, data) {
+  var adminDni = String(data.adminDni || '').trim();
+  var adminPassword = String(data.adminPassword || '');
+  var dni = String(data.dni || '').trim();
+  var canal = String(data.canal || 'whatsapp').toLowerCase();
+  if (!/^\d{8}$/.test(dni)) return createResponse({ status: 'error', message: 'El DNI del usuario no es válido.' });
+  if (canal !== 'whatsapp') return createResponse({ status: 'error', message: 'Este recordatorio se envía únicamente por WhatsApp.' });
+
+  var admin = verifyAdmin_(ss, adminDni, adminPassword);
+  if (!admin.ok) return createResponse({ status: 'error', message: admin.message });
+  var row = findRowByDni_(admin.sheet, dni, admin.headers);
+  if (!row) return createResponse({ status: 'error', message: 'No existe un usuario con ese DNI.' });
+  var values = admin.sheet.getRange(row, 1, 1, admin.headers.length).getValues()[0];
+  var user = publicRecord_(admin.headers, values);
+  if (!String(user.Celular || '').trim()) return createResponse({ status: 'error', message: 'Este usuario no tiene un celular registrado.' });
+
+  var storedPass = String(valueAt_(values, admin.headers, 'Pass') || '');
+  var initialPassword = passwordMatches_(dni, storedPass) ? dni : '';
+  var delivery = deliverCredentials_(ss, {
+    dni: String(user.DNI || dni), apellidos: String(user.Apellidos || ''), nombres: String(user.Nombres || ''),
+    tipoUsuario: getValidUserType_(user.TipoUsuario, dni), correo: String(user.Correo || ''), celular: String(user.Celular || ''),
+  }, initialPassword, { resend: true, sendEmail: false });
+  crmAudit_(ss, { dni: adminDni }, 'RECORDATORIO', 'USUARIO', dni, 'Recordatorio de credenciales preparado para WhatsApp.');
+  return createResponse({ status: 'ok', message: 'Recordatorio preparado.', record: user, delivery: delivery });
 }
 
 /**
@@ -509,6 +675,9 @@ function updateUser_(ss, data) {
   var tipoUsuario = String(usuario.tipoUsuario || '').trim().toUpperCase();
   var estado = String(usuario.estado || '').trim().toUpperCase();
   var password = String(usuario.password || '');
+  // `null` significa "no se envió el campo": esa columna se deja intacta.
+  var correo = usuario.correo === undefined ? null : String(usuario.correo || '').trim();
+  var celular = usuario.celular === undefined ? null : String(usuario.celular || '').trim();
   if (!/^\d{8}$/.test(adminDni) || !adminPassword) return createResponse({ status: 'error', message: 'Confirma tus credenciales de administrador.' });
   if (!/^\d{8}$/.test(dni)) return createResponse({ status: 'error', message: 'El DNI del usuario no es válido.' });
   if (!apellidos || !nombres) return createResponse({ status: 'error', message: 'Ingresa apellidos y nombres del usuario.' });
@@ -517,6 +686,8 @@ function updateUser_(ss, data) {
   if (password && (password.length < MIN_PASSWORD_LENGTH || password.length > 128)) {
     return createResponse({ status: 'error', message: 'La contraseña debe tener entre ' + MIN_PASSWORD_LENGTH + ' y 128 caracteres.' });
   }
+  if (correo && !isEmail_(correo)) return createResponse({ status: 'error', message: 'El correo del usuario no es válido.' });
+  if (celular && !isPhone_(celular)) return createResponse({ status: 'error', message: 'El celular del usuario no es válido.' });
   // Evita que quien edita se deje sin acceso a la administración.
   if (dni === adminDni && tipoUsuario !== 'ADMINISTRADOR') return createResponse({ status: 'error', message: 'No puedes quitar el rol de administrador a tu propia cuenta.' });
   if (dni === adminDni && estado === 'CESADO') return createResponse({ status: 'error', message: 'No puedes cesar tu propia cuenta.' });
@@ -537,6 +708,10 @@ function updateUser_(ss, data) {
     values[headers.indexOf('TipoUsuario')] = getValidUserType_(tipoUsuario, dni);
     var estadoIndex = headers.indexOf('Estado');
     if (estadoIndex !== -1) values[estadoIndex] = estado;
+    var correoIndex = headers.indexOf('Correo');
+    if (correo !== null && correoIndex !== -1) values[correoIndex] = correo;
+    var celularIndex = headers.indexOf('Celular');
+    if (celular !== null && celularIndex !== -1) values[celularIndex] = celular;
     if (password) values[headers.indexOf('Pass')] = hashPassword_(password);
     values = writeSheetValues_(sheet, row, headers, values);
     crmAudit_(ss, { dni: adminDni }, estado === 'CESADO' ? 'DESACTIVAR' : 'EDITAR', 'USUARIO', dni, nombres + ' ' + apellidos);
@@ -699,7 +874,7 @@ function saveSettings_(ss, data) {
   }
 }
 
-/* ═════════════════════════════════ CRM COMERCIAL FORT ═════════════════════════════════ */
+/* ═════════════════════════════════ CRM COMERCIAL RX ═════════════════════════════════ */
 
 function crmResponse_(data) { return createResponse({ status: 'ok', ok: true, data: data, error: null }); }
 function crmError_(message) { return createResponse({ status: 'error', ok: false, data: null, error: message, message: message }); }
@@ -1634,7 +1809,7 @@ function crmDashboard_(ss, data) {
 
 function crmListAgents_(ss, data) {
   var actor = crmActor_(ss, data); if (!actor.ok) return crmError_(actor.message); if (!crmIsAdmin_(actor)) return crmError_('Solo un administrador puede consultar el equipo.'); var sheet = getOrCreateSheetWithHeaders(ss, USERS_SHEET_NAME, USERS_HEADERS);
-  var result = crmObjects_(sheet).map(function (row) { return { dni: String(row.DNI), apellidos: String(row.Apellidos || ''), nombres: String(row.Nombres || ''), estado: getValidEstado_(row.Estado), tipoUsuario: getValidUserType_(row.TipoUsuario, String(row.DNI)), fechaRegistro: apiDateValue_(row.FechaRegistro), ultimoAcceso: apiDateValue_(row.UltimoAcceso), dispositivo: String(row.Dispositivo || '') }; }); return crmResponse_(result);
+  var result = crmObjects_(sheet).map(function (row) { return { dni: String(row.DNI), apellidos: String(row.Apellidos || ''), nombres: String(row.Nombres || ''), estado: getValidEstado_(row.Estado), tipoUsuario: getValidUserType_(row.TipoUsuario, String(row.DNI)), fechaRegistro: apiDateValue_(row.FechaRegistro), ultimoAcceso: apiDateValue_(row.UltimoAcceso), dispositivo: String(row.Dispositivo || ''), correo: String(row.Correo || ''), celular: String(row.Celular || '') }; }); return crmResponse_(result);
 }
 
 function crmUpdateProfile_(ss, data) {
@@ -1762,8 +1937,9 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('⚙️ Login')
     .addItem('Actualizar estructura', 'Actualizar')
     .addItem('Crear / actualizar hoja USUARIOS', 'CrearHojaUsuarios')
+    .addItem('Agregar usuarios del equipo (sin correo)', 'AgregarUsuariosEquipo')
     .addSeparator()
-    .addItem('Generar demo completa (300 + 12 agentes)', 'GenerarDatosPrueba')
+    .addItem('Generar demo completa (300 prospectos)', 'GenerarDatosPrueba')
     .addItem('Eliminar datos de prueba', 'EliminarDatosPrueba')
     .addToUi();
 }

@@ -1,0 +1,103 @@
+- generic [ref=e18]:
+  - link "Saltar al contenido principal" [ref=e19] [cursor=pointer]:
+    - /url: "#main-container"
+  - button
+  - dialog "Menú de navegación" [ref=e20]:
+    - generic [ref=e21]:
+      - button "Cerrar menú" [ref=e23] [cursor=pointer]:
+        - generic [ref=e24]: close
+      - generic [ref=e25]:
+        - generic [ref=e26]: NR
+        - generic [ref=e27]: NOELY RAMIREZ SOTO
+        - generic [ref=e28]: "DNI: 40218765"
+        - button "Ver mi perfil" [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]: account_circle
+          - text: Ver mi perfil
+    - navigation "Navegación principal" [ref=e31]:
+      - generic [ref=e32]: Módulos
+      - button "Panel principal" [ref=e33] [cursor=pointer]:
+        - generic [ref=e34]: dashboard
+      - button "Prospectos" [ref=e36] [cursor=pointer]:
+        - generic [ref=e37]: person_search
+      - button "Agenda" [ref=e39] [cursor=pointer]:
+        - generic [ref=e40]: event
+      - button "Clientes" [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]: groups
+      - button "Equipo" [ref=e45] [cursor=pointer]:
+        - generic [ref=e46]: manage_accounts
+      - button "Ver más módulos" [ref=e699] [cursor=pointer]:
+        - generic [ref=e49]: expand_more
+      - button "Cerrar sesión" [ref=e52] [cursor=pointer]:
+        - generic [ref=e53]: logout
+    - generic [ref=e55]:
+      - generic [ref=e56]:
+        - generic [ref=e57]: verified
+        - generic [ref=e58]: Administrador
+      - generic [ref=e59]: Grupo Comercial RX · RX v1.0.0
+  - banner [ref=e60]:
+    - generic [ref=e61]:
+      - button "Abrir menú de navegación" [ref=e62] [cursor=pointer]:
+        - generic [ref=e63]: menu
+      - generic [ref=e64]: Sistema RX
+    - generic [ref=e65]:
+      - button "Conectado. No hay cambios pendientes. Sincronizar ahora." [ref=e67] [cursor=pointer]:
+        - generic [ref=e68]: cloud_done
+      - button "Activar modo oscuro" [ref=e69] [cursor=pointer]:
+        - generic [ref=e70]: dark_mode
+      - status "Estado de conexión" [ref=e71]:
+        - generic [ref=e73]: Online
+  - main [ref=e74]:
+    - generic [ref=e918]:
+      - button "arrow_back Volver" [ref=e919] [cursor=pointer]:
+        - generic [ref=e920]: arrow_back
+        - text: Volver
+      - paragraph [ref=e921]: NUEVO REGISTRO
+      - heading "Nuevo prospecto" [level=1] [ref=e922]
+      - paragraph [ref=e923]: Los campos con * son obligatorios.
+      - generic [ref=e924]:
+        - generic [ref=e925]:
+          - text: Nombre completo *
+          - textbox "Nombre completo *" [active] [ref=e926]
+        - generic [ref=e927]:
+          - text: Documento
+          - textbox "Documento" [ref=e928]
+        - generic [ref=e929]:
+          - text: Teléfono *
+          - textbox "Teléfono *" [ref=e930]
+        - generic [ref=e931]:
+          - text: Correo
+          - textbox "Correo" [ref=e932]
+        - generic [ref=e933]:
+          - text: Canal *
+          - combobox "Canal *" [ref=e934]:
+            - option "Selecciona" [selected]
+            - option "REFERIDO"
+            - option "FERIA"
+            - option "REDES SOCIALES"
+        - generic [ref=e935]:
+          - text: Agente asignado
+          - combobox "Agente asignado" [ref=e936]:
+            - option "Asignarme a mí" [selected]
+            - option "NOELY RAMIREZ SOTO"
+            - option "CARLA QUISPE MAMANI"
+            - option "DIEGO TORRES VEGA"
+            - option "MARIELA LOPEZ HUAMAN"
+        - generic [ref=e937]:
+          - text: Observaciones
+          - textbox "Observaciones" [ref=e938]
+        - generic [ref=e939]:
+          - button "Cancelar" [ref=e940] [cursor=pointer]
+          - button "Guardar prospecto" [ref=e941] [cursor=pointer]
+  - contentinfo "Navegación rápida" [ref=e675]:
+    - button "Ir a Panel principal" [ref=e676] [cursor=pointer]:
+      - generic [ref=e677]: dashboard
+      - generic [ref=e678]: Inicio
+    - button "Ir a Prospectos" [ref=e679] [cursor=pointer]:
+      - generic [ref=e680]: person_search
+      - generic [ref=e681]: Prospectos
+    - button "Ir a Agenda" [ref=e682] [cursor=pointer]:
+      - generic [ref=e683]: event
+      - generic [ref=e684]: Agenda
+    - button "Ir a Clientes" [ref=e685] [cursor=pointer]:
+      - generic [ref=e686]: groups
+      - generic [ref=e687]: Clientes

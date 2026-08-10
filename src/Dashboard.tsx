@@ -614,7 +614,7 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
 
   return <section className="page-content crm-page dash">
     <div className="crm-heading dash-heading">
-      <div><p className="eyebrow dark">SISTEMA FORT</p><h1>Hola, {user.nombres || 'usuario'}</h1><p className="subtitle">Indicadores y seguimiento de tu operación comercial.</p></div>
+      <div><p className="eyebrow dark">SISTEMA RX</p><h1>Hola, {user.nombres || 'usuario'}</h1><p className="subtitle">Indicadores y seguimiento de tu operación comercial.</p></div>
       <button type="button" className="dash-filter-toggle" aria-expanded={metricsFiltersOpen} onClick={() => setMetricsFiltersOpen((open) => !open)}><span className="material-symbols-outlined">filter_list</span>Filtros<span className="material-symbols-outlined">{metricsFiltersOpen ? 'expand_less' : 'expand_more'}</span></button>
       <div className={`date-filter dash-filter-fields${metricsFiltersOpen ? ' is-open' : ''}`} aria-label="Filtro de fechas de indicadores y paneles superiores">
         <button type="button" className="back-button dash-filter-action" onClick={clearMetricsFilter} disabled={metricLoading}><span className="material-symbols-outlined">filter_alt_off</span>Limpiar filtro</button>

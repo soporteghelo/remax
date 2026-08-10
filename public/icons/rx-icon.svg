@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Sistema RX</title>
+  <rect width="512" height="512" rx="112" fill="#000666"/>
+  <path d="M104 144h107c64 0 104 35 104 91 0 37-18 65-49 79l64 101H248l-53-87h-20v87h-71V144Zm71 55v76h30c24 0 38-14 38-38 0-25-14-38-38-38h-30Z" fill="#fff"/>
+  <path d="m325 278 48-70h78l-86 104 91 103h-81l-52-67-51 67h-79l91-106-86-101h82l45 70Z" fill="#57c6ff"/>
+</svg>
