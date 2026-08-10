@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { isNetworkError, saveSettings, type User } from './api';
+import { formatDateTime } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
 import {
-  applySettings, contrastRatio, DEFAULT_SETTINGS, readSettingsCache, SETTING_DEFS, SETTING_GROUPS,
-  settingText, settingsEqual, type AppSettings as Settings, type SettingDef,
+  applySettings, completeUrl, contrastRatio, DEFAULT_SETTINGS, isSettingUrl, readSettingsCache, SETTING_DEFS,
+  SETTING_GROUPS, settingText, settingsEqual, type AppSettings as Settings, type SettingDef,
 } from './settings';
 
 /**
@@ -53,7 +54,7 @@ export default function AppSettings({ user, settings, onSaved }: { user: User; s
     } finally { setSaving(false); }
   };
 
-  const syncedAt = lastSync ? `Sincronizado: ${new Date(lastSync).toLocaleString('es-PE')}` : 'Aún no sincronizado con la hoja';
+  const syncedAt = lastSync ? `Sincronizado: ${formatDateTime(lastSync)}` : 'Aún no sincronizado con la hoja';
   const warnings = contrastWarnings(draft);
 
   return (
@@ -129,6 +130,8 @@ export default function AppSettings({ user, settings, onSaved }: { user: User; s
 function Field({ def, value, onChange }: { def: SettingDef; value: string; onChange: (value: string) => void }) {
   const id = `cfg-field-${def.key}`;
   const hintId = `${id}-hint`;
+  const required = def.type !== 'boolean' && !def.placeholder;
+  const label = `${def.label}${required ? ' *' : ''}`;
 
   if (def.type === 'boolean') {
     const on = value === 'true';
@@ -149,11 +152,11 @@ function Field({ def, value, onChange }: { def: SettingDef; value: string; onCha
     const valid = /^#[0-9a-f]{6}$/i.test(value);
     return (
       <div className="cfg-field">
-        <label className="cfg-label" htmlFor={id}>{def.label}</label>
+        <label className="cfg-label" htmlFor={id}>{label}</label>
         <span className="cfg-color">
           <input className="cfg-swatch" type="color" value={valid ? value : def.def}
                  onChange={(event) => onChange(event.target.value)} aria-label={`${def.label}: selector de color`} />
-          <input className="cfg-input cfg-hex" id={id} value={value} spellCheck={false} maxLength={7}
+          <input className="cfg-input cfg-hex" id={id} value={value} required={required} spellCheck={false} maxLength={7}
                  aria-describedby={hintId} onChange={(event) => onChange(normalizeHex(event.target.value))} />
         </span>
         <span className="cfg-hint" id={hintId}>{def.hint}{valid ? '' : ' Formato #rrggbb; se conserva el color actual hasta completarlo.'}</span>
@@ -161,11 +164,26 @@ function Field({ def, value, onChange }: { def: SettingDef; value: string; onCha
     );
   }
 
+  if (def.type === 'url') {
+    // Se avisa sobre el enlace ya completado: escribir "mi-portal.com" es válido,
+    // porque al salir del campo se convierte en https://mi-portal.com.
+    const valid = !value.trim() || isSettingUrl(completeUrl(value));
+    return (
+      <div className="cfg-field">
+        <label className="cfg-label" htmlFor={id}>{label}</label>
+        <input className="cfg-input" id={id} type="url" inputMode="url" value={value} required={required} maxLength={def.maxLength}
+               spellCheck={false} placeholder={def.placeholder ?? def.def} aria-describedby={hintId}
+               onChange={(event) => onChange(event.target.value)} onBlur={(event) => onChange(completeUrl(event.target.value))} />
+        <span className="cfg-hint" id={hintId}>{def.hint}{valid ? '' : ' Debe empezar por http:// o https:// y no llevar espacios; un enlace incompleto no se guarda.'}</span>
+      </div>
+    );
+  }
+
   if (def.type === 'select') {
     return (
       <div className="cfg-field">
-        <label className="cfg-label" htmlFor={id}>{def.label}</label>
-        <select className="cfg-input" id={id} value={value} aria-describedby={hintId} onChange={(event) => onChange(event.target.value)}>
+        <label className="cfg-label" htmlFor={id}>{label}</label>
+        <select className="cfg-input" id={id} value={value} required={required} aria-describedby={hintId} onChange={(event) => onChange(event.target.value)}>
           {def.options?.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
         </select>
         <span className="cfg-hint" id={hintId}>{def.hint}</span>
@@ -175,8 +193,8 @@ function Field({ def, value, onChange }: { def: SettingDef; value: string; onCha
 
   return (
     <div className="cfg-field">
-      <label className="cfg-label" htmlFor={id}>{def.label}</label>
-      <input className="cfg-input" id={id} value={value} maxLength={def.maxLength} aria-describedby={hintId}
+      <label className="cfg-label" htmlFor={id}>{label}</label>
+      <input className="cfg-input" id={id} value={value} required={required} maxLength={def.maxLength} aria-describedby={hintId}
              placeholder={def.placeholder ?? def.def} onChange={(event) => onChange(event.target.value)} />
       <span className="cfg-hint" id={hintId}>{def.hint}</span>
     </div>

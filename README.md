@@ -1,4 +1,11 @@
-# Módulo de login
+# Sistema FORT
+
+> El login existente es ahora la puerta de entrada de **Sistema FORT**, un CRM
+> comercial para prospectos, agenda, clientes, equipo, catálogos y configuración.
+> La autenticación por DNI, el cierre por cambio de contraseña y las cuentas
+> cesadas se conservan sin cambios de uso.
+
+## Login y sesión
 
 ## Despliegue en Vercel
 
@@ -38,7 +45,8 @@ aplicación web de Apps Script. La aplicación vive entera en `src/`.
 ## Contenido
 
 ```
-apps-script/Code.gs       # backend de autenticación, hoja USUARIOS y CONFIGURACION
+apps-script/Code.gs        # backend de autenticación, hoja USUARIOS y CONFIGURACION
+apps-script/DatosPrueba.gs # generador reversible de datos masivos para pruebas
 index.html                # tema y marca antes del primer pintado
 src/                      # aplicación (ver "Interfaz" más abajo)
 ```
@@ -92,7 +100,7 @@ la **misma hoja de cálculo**, una fila por ajuste:
 |---|---|
 | `Clave` | Identificador del ajuste (`appName`, `primaryColor`, …) |
 | `Valor` | Valor vigente; si queda vacío o inválido, se usa el valor por defecto |
-| `Tipo` | `text`, `color`, `boolean` o `select` (documentación, la refresca `Actualizar`) |
+| `Tipo` | `text`, `url`, `color`, `boolean` o `select` (documentación, la refresca `Actualizar`) |
 | `Descripcion` | Para qué sirve el ajuste |
 | `Actualizado` / `ActualizadoPor` | Cuándo y qué DNI hizo el último cambio |
 
@@ -139,7 +147,75 @@ src/AppFooter.tsx                    # footer de navegación
 src/UserAdmin.tsx                    # administración de usuarios (listado, alta, edición)
 src/AppSettings.tsx                  # configuración general (solo administradores)
 src/Profile.tsx                      # ficha de la cuenta activa
+src/Prospects.tsx                    # lista, detalle, edición e interacciones
+src/Agenda.tsx                       # seguimientos priorizados
+src/Clients.tsx                      # cartera y fidelización
+src/Catalogs.tsx                     # catálogos administrativos
+src/crm-api.ts                       # contrato de datos del CRM
 ```
+
+## Módulos CRM de Sistema FORT
+
+Después de actualizar `apps-script/Code.gs`, ejecuta **Actualizar** una vez desde
+la hoja de cálculo y vuelve a desplegar la aplicación web. El proceso conserva
+las pestañas existentes y crea, si faltan:
+
+- `PROSPECTOS`
+- `INTERACCIONES`
+- `CLIENTES`
+- `AUDITORIA`
+
+No se insertan prospectos ni clientes simulados.
+
+### Datos masivos de demostración
+
+Para probar la app con volumen, copia también `apps-script/DatosPrueba.gs` al
+mismo proyecto de Apps Script que `Code.gs`, recarga la hoja y usa el menú
+**⚙️ Login → Generar demo completa (300 + 12 agentes)**. El proceso:
+
+- completa de forma no destructiva las columnas que falten (`Captado` y
+  `Etapa` incluidas);
+- crea o reutiliza 12 agentes demo activos; su DNI empieza por `99` y su
+  contraseña inicial es ese mismo DNI;
+- reutiliza exclusivamente etiquetas activas de `CATALOGOS`;
+- crea en bloque 300 prospectos repartidos entre esos agentes, con estados
+  nuevos, seguimientos, interacciones, captaciones, negociaciones, próximas
+  citas, clientes y trazabilidad en `AUDITORIA`;
+- garantiza al menos un flujo completo por agente para que todos aparezcan en
+  Prospectos, Agenda, Clientes, Dashboard e interacciones;
+- identifica los datos operativos con IDs `DEMO-` y los usuarios con la marca
+  `[DATOS_DEMO]` en `Dispositivo`.
+
+Para probar otra cantidad, cambia `DEMO_DEFAULT_PROSPECTS` (máximo 1000). El
+equipo se controla con `DEMO_DEFAULT_USERS` (12 por defecto, máximo 40). El menú
+**Eliminar datos de prueba** retira únicamente filas `DEMO-` y usuarios
+`[DATOS_DEMO]`; conserva catálogos, configuración y registros reales. Si ya
+ejecutaste una versión anterior del generador, elimina primero sus datos y
+vuelve a generarlos para obtener la distribución completa entre agentes.
+
+### CATALOGOS la mantiene la administración
+
+`CATALOGOS` queda **fuera de Actualizar** a propósito: el script no la crea, no
+le añade ni le quita columnas y nunca escribe opciones de ejemplo. Créala a mano
+con las cabeceras `Tipo`, `Etiqueta`, `Orden`, `Activo` y llénala desde la propia
+hoja o desde el módulo **Catálogos** de la app, que permite crear, editar,
+activar/desactivar y eliminar opciones.
+
+La pestaña no tiene columna de código: la **Etiqueta** es a la vez lo que se ve
+en los desplegables y el valor que queda escrito en `PROSPECTOS` e
+`INTERACCIONES`. Por eso renombrar una opción desde la app actualiza también los
+registros históricos que la usaban, y eliminar una que todavía está en uso pide
+una segunda confirmación indicando a cuántos registros afecta.
+
+El frontend envía JSON mediante `POST` con
+`Content-Type: text/plain;charset=utf-8`. Todas las respuestas del backend
+incluyen `ok`, `data` y `error`; durante la transición, las claves heredadas
+`status`, `message` y `record` se mantienen para no romper el login instalado.
+
+Las operaciones CRM envían el DNI y la huella de sesión. Apps Script vuelve a
+leer la cuenta desde `USUARIOS`, valida que esté activa y decide allí si es
+administrador o agente. El rol enviado por el navegador nunca se usa como
+autoridad. Los agentes solo reciben sus propios prospectos y clientes.
 
 ## Sincronización
 

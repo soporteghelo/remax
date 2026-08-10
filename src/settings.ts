@@ -14,7 +14,7 @@
  * sentido único evita un ciclo entre ambos módulos.
  */
 
-export type SettingType = 'text' | 'color' | 'boolean' | 'select';
+export type SettingType = 'text' | 'color' | 'boolean' | 'select' | 'url';
 export type SettingGroupId = 'identidad' | 'acceso' | 'colores' | 'comportamiento';
 
 export interface SettingDef {
@@ -51,11 +51,13 @@ export const SETTING_GROUPS: SettingGroup[] = [
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
-  { key: 'appName', group: 'identidad', type: 'text', def: 'Portal Seguro', maxLength: 40, label: 'Nombre de la aplicación', hint: 'Barra superior y pestaña del navegador.' },
-  { key: 'appShortName', group: 'identidad', type: 'text', def: 'PS', maxLength: 3, label: 'Sigla de marca', hint: 'De 1 a 3 letras para el distintivo del acceso.' },
-  { key: 'appVersion', group: 'identidad', type: 'text', def: 'Portal v1.0.0', maxLength: 24, label: 'Versión', hint: 'Se muestra en el pie del menú lateral.' },
+  { key: 'appName', group: 'identidad', type: 'text', def: 'Sistema FORT', maxLength: 40, label: 'Nombre de la aplicación', hint: 'Barra superior y pestaña del navegador.' },
+  { key: 'appShortName', group: 'identidad', type: 'text', def: 'FORT', maxLength: 4, label: 'Sigla de marca', hint: 'De 1 a 4 letras para el distintivo del acceso.' },
+  { key: 'appVersion', group: 'identidad', type: 'text', def: 'FORT v1.0.0', maxLength: 24, label: 'Versión', hint: 'Se muestra en el pie del menú lateral.' },
   { key: 'organization', group: 'identidad', type: 'text', def: '', maxLength: 60, label: 'Organización', hint: 'Opcional. Acompaña a la versión y a la pantalla de acceso.', placeholder: 'Nombre de tu organización' },
   { key: 'supportContact', group: 'identidad', type: 'text', def: '', maxLength: 80, label: 'Contacto de soporte', hint: 'Opcional. Se ofrece a quien no puede ingresar.', placeholder: 'correo o teléfono' },
+  // Clave con mayúscula a propósito: es la de la fila que ya existe en la hoja.
+  { key: 'Link', group: 'identidad', type: 'url', def: '', maxLength: 300, label: 'Enlace de acceso', hint: 'Opcional. Dirección donde se publica el portal; queda registrada en la hoja.', placeholder: 'https://tu-portal.vercel.app' },
 
   { key: 'loginEyebrow', group: 'acceso', type: 'text', def: 'PORTAL SEGURO', maxLength: 30, label: 'Etiqueta superior', hint: 'Texto corto sobre el título del acceso.' },
   { key: 'loginTitle', group: 'acceso', type: 'text', def: 'Bienvenido', maxLength: 40, label: 'Título', hint: 'Encabezado de la tarjeta de acceso.' },
@@ -85,6 +87,15 @@ export function settingText(settings: AppSettings, key: string): string {
 
 export const settingOn = (settings: AppSettings, key: string): boolean => settings[key] === 'true';
 
+/** Mismo criterio que el servidor (`cleanSettingValue_`): solo http(s) con destino. */
+export const isSettingUrl = (value: string): boolean => /^https?:\/\/\S+$/i.test(value.trim());
+
+/** Un enlace escrito sin esquema se entiende https; con esquema se respeta lo escrito. */
+export const completeUrl = (value: string): string => {
+  const text = value.trim();
+  return !text || /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`;
+};
+
 /**
  * Deja la respuesta del servidor (o un borrador local) en un mapa completo y del
  * tipo correcto. Se descarta cualquier clave desconocida y cualquier valor que
@@ -102,6 +113,8 @@ export function normalizeSettings(raw: Record<string, unknown> | null | undefine
       settings[def.key] = text.toLowerCase() === 'true' ? 'true' : 'false';
     } else if (def.type === 'select') {
       if (def.options?.some((option) => option.value === text)) settings[def.key] = text;
+    } else if (def.type === 'url') {
+      if (!text || isSettingUrl(text)) settings[def.key] = text.slice(0, def.maxLength ?? 300);
     } else {
       settings[def.key] = text.slice(0, def.maxLength ?? 120);
     }

@@ -4,6 +4,10 @@ import {
   updateUser, writeUsersCache, type User,
 } from './api';
 import { writeSettingsCache, type AppSettings } from './settings';
+import {
+  addInteraction, convertProspect, convertProspectToClient, dashboard, listCatalogs, listClients, listProspects, markProspectNoContinue, restoreProspectStage, saveCatalog, saveClient, saveProfile, saveProspect,
+  type CatalogInput, type Client, type ConvertDetails, type InteractionInput, type ProspectInput,
+} from './crm-api';
 
 /**
  * =========================================================================
@@ -42,6 +46,15 @@ export type PendingChange = ChangeBase & (
   | { kind: 'crear-usuario'; payload: NewUserInput }
   | { kind: 'editar-usuario'; payload: EditUserInput }
   | { kind: 'guardar-config'; payload: AppSettings }
+  | { kind: 'guardar-prospecto'; payload: ProspectInput }
+  | { kind: 'registrar-interaccion'; payload: InteractionInput }
+  | { kind: 'convertir-prospecto'; payload: { id: string; details: ConvertDetails } }
+  | { kind: 'convertir-cliente'; payload: { id: string } }
+  | { kind: 'marcar-no-continua'; payload: { id: string } }
+  | { kind: 'restaurar-prospecto'; payload: { id: string } }
+  | { kind: 'guardar-cliente'; payload: Partial<Client> & { id: string } }
+  | { kind: 'guardar-catalogo'; payload: CatalogInput }
+  | { kind: 'guardar-perfil'; payload: { nombres: string; apellidos: string } }
 );
 
 export interface SyncState {
@@ -140,7 +153,16 @@ export function queueChange(change: Omit<PendingChange, 'id' | 'createdAt'>): vo
 async function apply(change: PendingChange, adminDni: string): Promise<void> {
   if (change.kind === 'crear-usuario') { await createUser({ adminDni, ...change.payload }); return; }
   if (change.kind === 'editar-usuario') { await updateUser({ adminDni, ...change.payload }); return; }
-  await saveSettings(adminDni, change.payload);
+  if (change.kind === 'guardar-config') { await saveSettings(adminDni, change.payload); return; }
+  if (change.kind === 'guardar-prospecto') { await saveProspect(adminDni, change.payload); return; }
+  if (change.kind === 'registrar-interaccion') { await addInteraction(adminDni, change.payload); return; }
+  if (change.kind === 'convertir-prospecto') { await convertProspect(adminDni, change.payload.id, change.payload.details); return; }
+  if (change.kind === 'convertir-cliente') { await convertProspectToClient(adminDni, change.payload.id); return; }
+  if (change.kind === 'marcar-no-continua') { await markProspectNoContinue(adminDni, change.payload.id); return; }
+  if (change.kind === 'restaurar-prospecto') { await restoreProspectStage(adminDni, change.payload.id); return; }
+  if (change.kind === 'guardar-cliente') { await saveClient(adminDni, change.payload); return; }
+  if (change.kind === 'guardar-perfil') { await saveProfile(adminDni, change.payload); return; }
+  await saveCatalog(adminDni, change.payload);
 }
 
 /** Envía la cola y luego vuelve a traer los datos de la nube. */
@@ -170,22 +192,15 @@ export async function runSync(): Promise<void> {
     }
   }
 
-  // Cada módulo registrado se actualiza en la misma pulsación. Un rechazo del
-  // servidor solo hunde a ese módulo: los demás siguen trayendo sus datos.
+  // Cada módulo registrado se actualiza en la misma pulsación y en paralelo.
+  // Las lecturas son independientes; hacerlas en serie multiplicaba la espera.
   let refreshed = false;
   if (!offline) {
     const context: SyncModuleContext = { dni: owner, isAdmin: ownerIsAdmin };
-    for (const module of modules.values()) {
-      if (module.appliesTo && !module.appliesTo(context)) continue;
-      try {
-        await module.refresh(context);
-        refreshed = true;
-      } catch (cause) {
-        if (isNetworkError(cause)) { offline = true; break; }
-        // Rechazo del servidor: ese módulo se queda con su caché anterior y el
-        // sello de frescura no avanza, que es la señal de que algo no llegó.
-      }
-    }
+    const applicable = [...modules.values()].filter((module) => !module.appliesTo || module.appliesTo(context));
+    const results = await Promise.allSettled(applicable.map((module) => module.refresh(context)));
+    refreshed = results.some((result) => result.status === 'fulfilled');
+    offline = results.some((result) => result.status === 'rejected' && isNetworkError(result.reason));
   }
 
   writePending(owner, remaining);
@@ -232,3 +247,8 @@ registerSyncModule({
   label: 'Configuración',
   refresh: async () => { writeSettingsCache(await fetchSettings()); },
 });
+
+registerSyncModule({ id: 'crm-prospectos', label: 'Prospectos', refresh: async ({ dni }) => { await listProspects(dni); } });
+registerSyncModule({ id: 'crm-clientes', label: 'Clientes', refresh: async ({ dni }) => { await listClients(dni); } });
+registerSyncModule({ id: 'crm-catalogos', label: 'Catálogos', refresh: async ({ dni }) => { await listCatalogs(dni); } });
+registerSyncModule({ id: 'crm-panel', label: 'Panel comercial', refresh: async ({ dni }) => { await dashboard(dni); } });

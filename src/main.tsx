@@ -1,4 +1,3 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 // Orden: estilos heredados de los módulos → tokens del sistema de diseño →
@@ -12,7 +11,8 @@ import './detail-compact.css';
 import './edit-compact.css';
 import './sync-control.css';
 import './desktop-layout.css';
+import './crm.css';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><App /></StrictMode>,
+  <App />,
 );

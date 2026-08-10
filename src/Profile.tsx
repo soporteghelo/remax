@@ -1,35 +1,13 @@
-import type { User } from './api';
+import { FormEvent, useState } from 'react';
+import { isNetworkError, type User } from './api';
+import { saveProfile } from './crm-api';
+import { formatDateTime } from './dates';
+import { markSaved, queueChange } from './sync';
 
-/** Destino de "Ver mi perfil" del drawer y del footer de navegación. */
-export default function Profile({ user, isAdmin, onLogout }: { user: User; isAdmin: boolean; onLogout: () => void }) {
-  const fields: [string, string][] = [
-    ['Nombres', user.nombres || '—'],
-    ['Apellidos', user.apellidos || '—'],
-    ['DNI', user.dni],
-    ['Tipo de usuario', isAdmin ? 'ADMINISTRADOR' : 'USUARIO'],
-    ['Fecha de registro', user.fechaRegistro || '—'],
-    ['Último acceso', user.ultimoAcceso || '—'],
-    ['Dispositivo', user.dispositivo || '—'],
-  ];
-  return (
-    <section className="page-content">
-      <p className="eyebrow dark">CUENTA</p>
-      <h1>Mi perfil</h1>
-      <p className="subtitle">Datos con los que el servidor identifica tu sesión. Se actualizan en cada inicio de sesión válido.</p>
-      <dl className="profile-grid">
-        {fields.map(([label, value]) => (
-          <div className="profile-field" key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="profile-actions">
-        <button type="button" className="danger-button" onClick={onLogout}>
-          <span className="material-symbols-outlined" aria-hidden="true">logout</span>
-          Cerrar sesión
-        </button>
-      </div>
-    </section>
-  );
+/** Perfil de la sesión activa: identidad de acceso y campos personales autorizados. */
+export default function Profile({ user, isAdmin, onLogout, onUserChange }: { user: User; isAdmin: boolean; onLogout: () => void; onUserChange: (user: User) => void }) {
+  const [editing, setEditing] = useState(false); const [nombres, setNombres] = useState(user.nombres); const [apellidos, setApellidos] = useState(user.apellidos); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState('');
+  const fields: [string, string][] = [['Nombres', user.nombres || '—'], ['Apellidos', user.apellidos || '—'], ['DNI', user.dni], ['Rol comercial', isAdmin ? 'ADMINISTRADOR' : 'AGENTE'], ['Fecha de registro', formatDateTime(user.fechaRegistro)], ['Último acceso', formatDateTime(user.ultimoAcceso)], ['Dispositivo', user.dispositivo || '—']];
+  const submit = async (event: FormEvent) => { event.preventDefault(); setError(''); setMessage(''); if (!nombres.trim() || !apellidos.trim()) return setError('Nombres y apellidos son obligatorios.'); setSaving(true); const payload = { nombres, apellidos }; try { const saved = await saveProfile(user.dni, payload); onUserChange(saved); markSaved(); setEditing(false); setMessage('Perfil actualizado correctamente.'); } catch (cause) { if (isNetworkError(cause)) { queueChange({ kind: 'guardar-perfil', label: `Perfil ${user.dni}`, payload }); setMessage('El cambio quedó pendiente y se enviará al recuperar conexión.'); } else setError(cause instanceof Error ? cause.message : 'No se pudo guardar el perfil.'); } finally { setSaving(false); } };
+  return <section className="page-content crm-page"><div className="crm-heading"><div><p className="eyebrow dark">CUENTA</p><h1>Mi perfil</h1><p className="subtitle">Datos personales y credenciales con las que el servidor identifica tu sesión.</p></div>{!editing && <button type="button" className="primary-button" onClick={() => setEditing(true)}><span className="material-symbols-outlined">edit</span>Editar perfil</button>}</div>{message && <p className="form-hint" role="status">{message}</p>}{error && <p className="form-error" role="alert">{error}</p>}{editing ? <form className="crm-form ds-panel" onSubmit={submit}><label>Nombres *<input required value={nombres} onChange={(e) => setNombres(e.target.value.toUpperCase())} autoFocus /></label><label>Apellidos *<input required value={apellidos} onChange={(e) => setApellidos(e.target.value.toUpperCase())} /></label><p className="form-hint span-2">El DNI y el rol solo pueden modificarse desde Equipo por un administrador.</p><div className="form-buttons span-2"><button type="button" className="back-button" onClick={() => { setNombres(user.nombres); setApellidos(user.apellidos); setEditing(false); }}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Guardar perfil'}</button></div></form> : <dl className="profile-grid">{fields.map(([label, value]) => <div className="profile-field" key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}<div className="profile-actions"><button type="button" className="danger-button" onClick={onLogout}><span className="material-symbols-outlined" aria-hidden="true">logout</span>Cerrar sesión</button></div></section>;
 }

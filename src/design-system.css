@@ -61,6 +61,9 @@
   --space-xl: 32px;
   --space-2xl: 48px;
   --space-3xl: 64px;
+  /* Separación mínima para que las acciones finales no queden tapadas por
+     barras del navegador, el gesto del sistema o el borde inferior del PWA. */
+  --ds-bottom-action-clearance: max(var(--space-lg), env(safe-area-inset-bottom, 0px));
 
   /* Elevación */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -83,6 +86,13 @@
   --sev-high-fg: #b91c1c; --sev-high-bg: rgba(220, 38, 38, 0.08);  --sev-high-bd: rgba(220, 38, 38, 0.25);
   --sev-med-fg: #b45309;  --sev-med-bg: rgba(217, 119, 6, 0.09);   --sev-med-bd: rgba(217, 119, 6, 0.25);
   --sev-ok-fg: #047857;   --sev-ok-bg: rgba(16, 185, 129, 0.10);   --sev-ok-bd: rgba(16, 185, 129, 0.25);
+
+  /* Paleta categórica para gráficos (donas, series apiladas). Ocho matices
+     distinguibles entre sí, anclados en el índigo de marca; --chart-other es el
+     gris del agregado "Otros". El color nunca va solo: la leyenda lleva cifra. */
+  --chart-1: #3d46c4; --chart-2: #0e7c86; --chart-3: #b45309; --chart-4: #9333ea;
+  --chart-5: #047857; --chart-6: #be123c; --chart-7: #0369a1; --chart-8: #7c6f1f;
+  --chart-other: #9ca3af;
 }
 
 [data-theme="dark"] {
@@ -118,6 +128,11 @@
   --sev-high-fg: #fca5a5; --sev-high-bg: rgba(248, 113, 113, 0.13); --sev-high-bd: rgba(248, 113, 113, 0.30);
   --sev-med-fg: #fcd34d;  --sev-med-bg: rgba(252, 211, 77, 0.13);   --sev-med-bd: rgba(252, 211, 77, 0.30);
   --sev-ok-fg: #6ee7b7;   --sev-ok-bg: rgba(110, 231, 183, 0.12);   --sev-ok-bd: rgba(110, 231, 183, 0.28);
+
+  /* Los mismos ocho matices aclarados para el fondo oscuro: aclaran, no invierten. */
+  --chart-1: #a5abff; --chart-2: #5eead4; --chart-3: #fcd34d; --chart-4: #d8b4fe;
+  --chart-5: #6ee7b7; --chart-6: #fda4af; --chart-7: #7dd3fc; --chart-8: #d9cc7a;
+  --chart-other: #9aa0ac;
 }
 
 /* ─── Tonos de icono: fondo y texto emparejados en ambos temas ─── */

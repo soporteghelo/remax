@@ -109,7 +109,7 @@ export default function NavDrawer({ open, user, settings, isAdmin, section, menu
         <div className="drawer-foot">
           <div className="drawer-role-foot">
             <span className="material-symbols-outlined" aria-hidden="true">verified</span>
-            <span>{isAdmin ? 'Administrador' : 'Usuario'}</span>
+            <span>{isAdmin ? 'Administrador' : 'Agente'}</span>
           </div>
           <span className="drawer-version">{[settings.organization?.trim(), settingText(settings, 'appVersion')].filter(Boolean).join(' · ')}</span>
         </div>

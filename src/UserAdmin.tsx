@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createUser, isNetworkError, readUsersCache, updateUser, writeUsersCache, type User } from './api';
+import { createUser, isNetworkError, readUsersCache, syncUsers, updateUser, writeUsersCache, type User } from './api';
+import { formatDateTime } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
 
 /**
@@ -14,6 +15,8 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
   const [users, setUsers] = useState<User[]>([user]);
   const [lastSync, setLastSync] = useState('');
   const [syncMessage, setSyncMessage] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState('');
   const syncState = useSyncState();
 
   useEffect(() => {
@@ -21,6 +24,39 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
     if (cached.users.length) setUsers(cached.users);
     if (cached.lastSync) setLastSync(cached.lastSync);
   }, [user.dni, syncState.dataVersion]);
+
+  useEffect(() => {
+    let active = true;
+    let refreshInProgress = false;
+    const refresh = async () => {
+      if (document.hidden || refreshInProgress) return;
+      refreshInProgress = true;
+      setRefreshing(true);
+      setRefreshError('');
+      try {
+        const fresh = await syncUsers(user.dni);
+        if (!active) return;
+        const date = new Date().toISOString();
+        setUsers(fresh);
+        setLastSync(date);
+        writeUsersCache(user.dni, { users: fresh, lastSync: date });
+      } catch (cause) {
+        if (active) setRefreshError(cause instanceof Error ? cause.message : 'No se pudieron actualizar los usuarios.');
+      } finally {
+        refreshInProgress = false;
+        if (active) setRefreshing(false);
+      }
+    };
+    const refreshOnReturn = () => { if (!document.hidden) void refresh(); };
+    void refresh();
+    window.addEventListener('focus', refreshOnReturn);
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshOnReturn);
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+    };
+  }, [user.dni]);
 
   const saveCache = (nextUsers: User[], date = new Date().toISOString()) => {
     setUsers(nextUsers); setLastSync(date); writeUsersCache(user.dni, { users: nextUsers, lastSync: date });
@@ -30,7 +66,7 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
     if (saved.dni === user.dni) onSessionUserChange(saved);
   };
 
-  const list = <UserList {...{ user, users, lastSync, syncMessage }}
+  const list = <UserList {...{ user, users, lastSync, syncMessage, refreshing, refreshError }}
                          onNew={() => { setSyncMessage(''); setView({ name: 'create' }); }}
                          onOpen={(dni) => setView({ name: 'detail', dni })} />;
 
@@ -61,21 +97,21 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
 
 /* ─── Resumen ─── */
 interface ListProps {
-  user: User; users: User[]; lastSync: string; syncMessage: string;
+  user: User; users: User[]; lastSync: string; syncMessage: string; refreshing: boolean; refreshError: string;
   onNew: () => void; onOpen: (dni: string) => void;
 }
 
-function UserList({ user, users, lastSync, syncMessage, onNew, onOpen }: ListProps) {
-  const syncedAt = lastSync ? new Date(lastSync).toLocaleString('es-PE') : 'Aún no sincronizado';
+function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError, onNew, onOpen }: ListProps) {
+  const syncedAt = lastSync ? formatDateTime(lastSync) : 'Aún no sincronizado';
   const activos = users.filter((row) => row.estado === 'ACTIVO').length;
-  return <section className="page-content user-admin-page"><p className="eyebrow dark">MÓDULO TEMPORAL</p><h1>Administrador de usuarios</h1><p className="subtitle">Toca una fila para ver o editar la cuenta. El listado se guarda localmente y se actualiza al sincronizar.</p>
+  return <section className="page-content user-admin-page"><p className="eyebrow dark">ADMINISTRACIÓN</p><h1>Equipo</h1><p className="subtitle">Crea, edita, desactiva o reactiva las cuentas de agentes y administradores.</p>
     <div className="user-admin-summary" aria-label="Resumen de usuarios">
       <article><span className="material-symbols-outlined" aria-hidden="true">group</span><div><small>USUARIOS</small><b>{users.length}</b><em>{activos} activo(s)</em></div></article>
-      <article><span className="material-symbols-outlined" aria-hidden="true">sync</span><div><small>SINCRONIZACIÓN</small><b>{lastSync ? 'Actualizada' : 'Pendiente'}</b><em>{lastSync ? syncedAt : 'Toca la nube de la barra superior'}</em></div></article>
+      <article><span className={`material-symbols-outlined${refreshing ? ' is-spinning' : ''}`} aria-hidden="true">sync</span><div><small>SINCRONIZACIÓN</small><b>{refreshing ? 'Actualizando…' : lastSync ? 'Actualizada' : 'Pendiente'}</b><em>{lastSync ? syncedAt : 'Conectando con la base de datos'}</em></div></article>
     </div>
     <section className="panel">
       <div className="panel-title">
-        <div><h2>Usuarios</h2><p>{syncMessage || 'La nube de la barra superior actualiza los datos de la base de datos.'}</p></div>
+        <div><h2>Usuarios</h2><p>{syncMessage || (refreshError ? `${refreshError} Se muestra la copia guardada.` : refreshing ? 'Consultando la hoja USUARIOS…' : 'Listado actualizado desde la base de datos.')}</p></div>
         <div className="panel-actions">
           <button type="button" className="new-user-button" onClick={onNew}>+ Nuevo usuario</button>
         </div>
@@ -84,7 +120,7 @@ function UserList({ user, users, lastSync, syncMessage, onNew, onOpen }: ListPro
         <div className="table-head"><span>Usuario</span><span>DNI</span><span>Estado</span></div>
         {users.map((row) => (
           <button type="button" className="table-row" key={row.dni} onClick={() => onOpen(row.dni)} aria-label={`Ver detalle de ${row.nombres} ${row.apellidos}`}>
-            <span><b>{row.nombres} {row.apellidos}</b><small>{row.tipoUsuario}{row.dni === user.dni ? ' · Tu cuenta' : ''}</small></span>
+            <span><b>{row.nombres} {row.apellidos}</b><small>{row.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'}{row.dni === user.dni ? ' · Tu cuenta' : ''}</small></span>
             <span>{row.dni}</span>
             <span><EstadoBadge estado={row.estado} /></span>
           </button>
@@ -108,9 +144,9 @@ function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: bool
     ['Nombres', user.nombres || '—'],
     ['DNI', user.dni],
     ['Estado', <EstadoBadge estado={user.estado} />],
-    ['Tipo de usuario', user.tipoUsuario],
-    ['Fecha de registro', user.fechaRegistro || '—'],
-    ['Último acceso', user.ultimoAcceso || '—'],
+    ['Rol comercial', user.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'],
+    ['Fecha de registro', formatDateTime(user.fechaRegistro)],
+    ['Último acceso', formatDateTime(user.ultimoAcceso)],
     ['Dispositivo', user.dispositivo || '—'],
   ];
   return <section className="page-content user-detail-page">
@@ -170,14 +206,14 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
     <h1>Editar usuario</h1>
     <p className="subtitle">DNI {target.dni}. El DNI identifica la cuenta y no se puede cambiar.</p>
     <form className="admin-form edit-form" onSubmit={submit}>
-      <label>Apellidos<AutoGrowTextarea value={apellidos} onChange={(value) => setApellidos(value.toUpperCase())} /></label>
-      <label>Nombres<AutoGrowTextarea value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
-      <label>Estado<select value={estado} onChange={(e) => setEstado(e.target.value as User['estado'])} disabled={isSelf}>
+      <label>Apellidos *<AutoGrowTextarea required value={apellidos} onChange={(value) => setApellidos(value.toUpperCase())} /></label>
+      <label>Nombres *<AutoGrowTextarea required value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
+      <label>Estado *<select required value={estado} onChange={(e) => setEstado(e.target.value as User['estado'])} disabled={isSelf}>
         <option value="ACTIVO">ACTIVO</option>
         <option value="CESADO">CESADO</option>
       </select></label>
-      <label>Tipo de usuario<select value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value as User['tipoUsuario'])} disabled={isSelf}>
-        <option value="USUARIO">USUARIO</option>
+      <label>Rol comercial *<select required value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value as User['tipoUsuario'])} disabled={isSelf}>
+        <option value="USUARIO">AGENTE</option>
         <option value="ADMINISTRADOR">ADMINISTRADOR</option>
       </select></label>
       <label className="span-2">Nueva contraseña
@@ -199,7 +235,7 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
 
 /* ─── Alta ─── */
 /** Campo de edición que se expande hasta mostrar todo el contenido escrito. */
-function AutoGrowTextarea({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function AutoGrowTextarea({ value, onChange, required = false }: { value: string; onChange: (value: string) => void; required?: boolean }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const resize = () => {
     if (!ref.current) return;
@@ -207,7 +243,7 @@ function AutoGrowTextarea({ value, onChange }: { value: string; onChange: (value
     ref.current.style.height = `${ref.current.scrollHeight}px`;
   };
   useLayoutEffect(resize, [value]);
-  return <textarea ref={ref} className="edit-textarea" rows={1} value={value} onInput={resize} onChange={(event) => onChange(event.target.value)} />;
+  return <textarea ref={ref} className="edit-textarea" rows={1} value={value} required={required} onInput={resize} onChange={(event) => onChange(event.target.value)} />;
 }
 
 /** Misma página que la edición: nada flota, se llega y se vuelve con el mismo gesto. */
@@ -240,13 +276,13 @@ function UserCreate({ adminDni, onCancel, onCreated }: { adminDni: string; onCan
     <h1>Nuevo usuario</h1>
     <p className="subtitle">La cuenta se registra en la base de datos y se agrega al listado. El DNI identifica la cuenta y no se podrá cambiar después.</p>
     <form className="admin-form edit-form" onSubmit={submit}>
-      <label>DNI<input value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" maxLength={8} placeholder="8 dígitos" autoFocus /></label>
-      <label>Tipo de usuario<select value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value as User['tipoUsuario'])}>
-        <option value="USUARIO">USUARIO</option>
+      <label>DNI *<input required value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" maxLength={8} placeholder="8 dígitos" autoFocus /></label>
+      <label>Rol comercial *<select required value={tipoUsuario} onChange={(e) => setTipoUsuario(e.target.value as User['tipoUsuario'])}>
+        <option value="USUARIO">AGENTE</option>
         <option value="ADMINISTRADOR">ADMINISTRADOR</option>
       </select></label>
-      <label>Apellidos<AutoGrowTextarea value={apellidos} onChange={(value) => setApellidos(value.toUpperCase())} /></label>
-      <label>Nombres<AutoGrowTextarea value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
+      <label>Apellidos *<AutoGrowTextarea required value={apellidos} onChange={(value) => setApellidos(value.toUpperCase())} /></label>
+      <label>Nombres *<AutoGrowTextarea required value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
       <p className="form-hint span-2">La contraseña inicial es el propio DNI; puedes cambiarla luego desde la edición de la cuenta.</p>
       {error && <p className="form-error span-2">{error}</p>}
       <div className="form-buttons">

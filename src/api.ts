@@ -18,7 +18,7 @@ export interface User {
  */
 export type SessionEndReason = 'contrasena' | 'cesado' | 'inexistente' | 'desconocida';
 
-type ApiResult = { status?: string; message?: string; record?: Record<string, unknown>; users?: Record<string, unknown>[]; settings?: Record<string, unknown>; stamp?: string; valid?: boolean; reason?: string };
+export type ApiResult = { ok?: boolean; data?: unknown; error?: string | null; status?: string; message?: string; record?: Record<string, unknown>; users?: Record<string, unknown>[]; settings?: Record<string, unknown>; stamp?: string; valid?: boolean; reason?: string };
 const endpoint = import.meta.env.VITE_APPS_SCRIPT_URL as string | undefined;
 
 function device(): string {
@@ -48,18 +48,49 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * El navegador se cansó de esperar la respuesta, pero Apps Script sigue
+ * corriendo en el servidor y puede terminar guardando igual: reintentar tal
+ * cual, como con `NetworkError`, arriesga duplicar el registro. Por eso es una
+ * clase aparte y no se encola sola — quien la atrape debe decirle a la
+ * persona que compruebe si el cambio ya llegó antes de repetirlo.
+ */
+export class TimeoutError extends Error {
+  constructor(message = 'El servicio está tardando más de lo normal en responder.') {
+    super(message);
+    this.name = 'TimeoutError';
+  }
+}
+
 export const isNetworkError = (cause: unknown): boolean => cause instanceof NetworkError;
+export const isTimeoutError = (cause: unknown): boolean => cause instanceof TimeoutError;
 
-async function request(payload: Record<string, unknown>): Promise<ApiResult> {
+/** Apps Script puede tardar en arrancar (arranque en frío), pero nunca debe dejar la pantalla de carga girando para siempre. */
+const REQUEST_TIMEOUT_MS = 25000;
+
+export async function request(payload: Record<string, unknown>): Promise<ApiResult> {
   if (!endpoint) throw new NetworkError('Falta VITE_APPS_SCRIPT_URL en el archivo .env.');
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, REQUEST_TIMEOUT_MS);
   let response: Response;
-  try { response = await fetch(endpoint, { method: 'POST', redirect: 'follow', body: JSON.stringify(payload) }); }
-  catch { throw new NetworkError(); }
+  let responseText: string;
+  try {
+    response = await fetch(endpoint, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), signal: controller.signal });
+    // El temporizador también cubre la descarga del cuerpo. Antes se cancelaba
+    // apenas llegaban las cabeceras y `response.json()` podía esperar sin límite.
+    responseText = await response.text();
+  }
+  catch { throw timedOut ? new TimeoutError() : new NetworkError(); }
+  finally { clearTimeout(timeout); }
 
-  const result = await response.json().catch(() => null) as ApiResult | null;
+  let result: ApiResult | null = null;
+  try { result = JSON.parse(responseText) as ApiResult; } catch { result = null; }
   if (!response.ok || !result) throw new NetworkError();
   // A partir de aquí el servidor respondió y opinó: su mensaje es el que vale.
-  if (result.status !== 'ok') throw new Error(result.message || 'El servicio rechazó la operación.');
+  if (result.ok === false || (result.status !== undefined && result.status !== 'ok')) {
+    throw new Error(result.error || result.message || 'El servicio rechazó la operación.');
+  }
   return result;
 }
 
@@ -71,6 +102,16 @@ async function request(payload: Record<string, unknown>): Promise<ApiResult> {
 const ADMIN_KEY = 'loginapp_admin';
 /** Huella devuelta al iniciar sesión: cambia si el administrador cambia la contraseña. */
 const STAMP_KEY = 'loginapp_stamp';
+
+/** Credencial de sesión para las operaciones CRM. El rol nunca viaja: lo resuelve el servidor. */
+export function sessionStamp(): string {
+  try { return localStorage.getItem(STAMP_KEY) || ''; } catch { return ''; }
+}
+
+export async function authenticatedRequest<T>(action: string, actorDni: string, payload: Record<string, unknown> = {}): Promise<T> {
+  const result = await request({ action, ...payload, actorDni, stamp: sessionStamp() });
+  return result.data as T;
+}
 
 function rememberAdmin(dni: string, password: string): void {
   try { sessionStorage.setItem(ADMIN_KEY, JSON.stringify({ dni, password })); } catch { /* almacenamiento no disponible */ }
@@ -143,8 +184,11 @@ export async function updateUser(input: { adminDni: string; dni: string; apellid
 }
 
 export async function syncUsers(adminDni: string): Promise<User[]> {
-  const result = await request({ action: 'listUsers', adminDni, adminPassword: adminPasswordFor(adminDni) });
-  return (result.users ?? []).map((row) => mapUser(row)).sort((a, b) => a.apellidos.localeCompare(b.apellidos, 'es'));
+  // La lectura usa la huella de sesión persistente, igual que el resto del CRM.
+  // Así Equipo puede actualizarse al entrar incluso después de recargar la app,
+  // cuando la contraseña temporal del administrador ya no está en sessionStorage.
+  const users = await authenticatedRequest<User[]>('crmListAgents', adminDni);
+  return (users ?? []).map(normalizeUser).sort((a, b) => a.apellidos.localeCompare(b.apellidos, 'es'));
 }
 
 /* ─── Configuración general de la app (pestaña CONFIGURACION) ─── */

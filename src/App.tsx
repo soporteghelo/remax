@@ -10,6 +10,10 @@ import UserAdmin from './UserAdmin';
 import AppSettings from './AppSettings';
 import SyncControl from './SyncControl';
 import { attachSync, detachSync } from './sync';
+import Prospects from './Prospects';
+import Agenda from './Agenda';
+import Clients from './Clients';
+import Catalogs from './Catalogs';
 
 const SESSION_KEY = 'loginapp_session';
 
@@ -119,7 +123,7 @@ function Login({ onLogin, notice, settings }: { onLogin: (user: User) => void; n
         `Hola, necesito ayuda para ingresar a ${settingText(settings, 'appName')}.${/^\d{8}$/.test(dni) ? ` Mi DNI es ${dni}.` : ''}`,
       )}`
     : '';
-  return <main className="login-page"><section className="login-card" aria-labelledby="login-title"><div className="brand-mark">{settingText(settings, 'appShortName')}</div><p className="eyebrow">{settingText(settings, 'loginEyebrow')}</p><h1 id="login-title">{settingText(settings, 'loginTitle')}</h1><p className="login-copy">{settingText(settings, 'loginSubtitle')}</p>{notice && <p className="form-error" role="status">{notice}</p>}<form onSubmit={submit} className="login-form"><label>DNI<input value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" maxLength={8} placeholder="DNI de 8 dígitos" autoFocus /></label><label>Contraseña<span className="password-field"><input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? 'text' : 'password'} minLength={6} autoComplete="current-password" placeholder="Tu contraseña" /><button type="button" className="show-password" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}><span className="material-symbols-outlined" aria-hidden="true">{showPassword ? 'visibility_off' : 'visibility'}</span></button></span></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading}>{loading ? 'Validando…' : 'Ingresar'}</button></form>{whatsappUrl && <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noopener noreferrer"><WhatsAppGlyph />¿Problemas para ingresar? Escríbenos por WhatsApp</a>}{(support || organization) && <p className="login-foot">{support && !whatsappUrl ? `¿Problemas para ingresar? Escribe a ${support}.` : ''}{support && !whatsappUrl && organization ? ' · ' : ''}{organization}</p>}</section></main>;
+  return <main className="login-page"><section className="login-card" aria-labelledby="login-title"><div className="brand-mark">{settingText(settings, 'appShortName')}</div><p className="eyebrow">{settingText(settings, 'loginEyebrow')}</p><h1 id="login-title">{settingText(settings, 'loginTitle')}</h1><p className="login-copy">{settingText(settings, 'loginSubtitle')}</p>{notice && <p className="form-error" role="status">{notice}</p>}<form onSubmit={submit} className="login-form"><label>DNI *<input required value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" maxLength={8} placeholder="DNI de 8 dígitos" autoFocus /></label><label>Contraseña *<span className="password-field"><input required value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? 'text' : 'password'} minLength={6} autoComplete="current-password" placeholder="Tu contraseña" /><button type="button" className="show-password" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}><span className="material-symbols-outlined" aria-hidden="true">{showPassword ? 'visibility_off' : 'visibility'}</span></button></span></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary-button" disabled={loading}>{loading ? 'Validando…' : 'Ingresar'}</button></form>{whatsappUrl && <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noopener noreferrer"><WhatsAppGlyph />¿Problemas para ingresar? Escríbenos por WhatsApp</a>}{(support || organization) && <p className="login-foot">{support && !whatsappUrl ? `¿Problemas para ingresar? Escribe a ${support}.` : ''}{support && !whatsappUrl && organization ? ' · ' : ''}{organization}</p>}</section></main>;
 }
 
 /**
@@ -132,12 +136,15 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [section, setSection] = useState<SectionId>('home');
+  const [prospectId, setProspectId] = useState('');
   const [theme, toggleTheme] = useTheme();
   const online = useOnlineStatus();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const isAdmin = user.tipoUsuario === 'ADMINISTRADOR';
   const active = resolveSection(section, isAdmin);
   const dark = theme === 'dark';
+  const openProspect = (id: string) => { setProspectId(id); setSection('prospects'); };
+  const navigate = (next: SectionId) => { if (next === 'prospects') setProspectId(''); setSection(next); };
 
   return (
     <div className="pwa-shell">
@@ -151,7 +158,7 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
         section={active}
         menuButtonRef={menuButtonRef}
         onClose={() => setDrawerOpen(false)}
-        onNavigate={setSection}
+        onNavigate={navigate}
         onLogout={onLogout}
       />
 
@@ -180,14 +187,18 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
 
       <main id="main-container" className="main-container" tabIndex={-1}>
         <div className="page-transition" key={active}>
-        {active === 'home' && <Dashboard user={user} isAdmin={isAdmin} onNavigate={setSection} />}
-          {active === 'admin' && <UserAdmin user={user} onSessionUserChange={onSessionUserChange} />}
+          {active === 'home' && <Dashboard user={user} isAdmin={isAdmin} onNavigate={navigate} />}
+          {active === 'prospects' && <Prospects user={user} isAdmin={isAdmin} initialId={prospectId} />}
+          {active === 'agenda' && <Agenda user={user} isAdmin={isAdmin} onOpenProspect={openProspect} />}
+          {active === 'clients' && <Clients user={user} isAdmin={isAdmin} onOpenProspect={openProspect} />}
+          {active === 'team' && <UserAdmin user={user} onSessionUserChange={onSessionUserChange} />}
+          {active === 'catalogs' && <Catalogs user={user} />}
           {active === 'settings' && <AppSettings user={user} settings={settings} onSaved={onSettingsChange} />}
-          {active === 'profile' && <Profile user={user} isAdmin={isAdmin} onLogout={onLogout} />}
+          {active === 'profile' && <Profile user={user} isAdmin={isAdmin} onLogout={onLogout} onUserChange={onSessionUserChange} />}
         </div>
       </main>
 
-      <AppFooter isAdmin={isAdmin} section={active} onNavigate={setSection} />
+      <AppFooter isAdmin={isAdmin} section={active} onNavigate={navigate} />
     </div>
   );
 }

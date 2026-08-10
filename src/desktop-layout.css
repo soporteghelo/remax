@@ -18,6 +18,15 @@
   .user-edit-page .admin-form .form-buttons { grid-column: 1 / -1; }
   .user-edit-page .password-row { max-width: 100%; }
 
+  /* Formularios CRM (prospecto, cliente, perfil): más columnas en vez de un
+     bloque angosto con espacio vacío al lado.
+     Selector con dos clases para pesar más que la regla base de crm.css,
+     que se importa después de este archivo. */
+  .crm-page .crm-form {
+    max-width: 1440px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
   /* Fichas de datos: cuatro columnas evitan tarjetas excesivamente anchas. */
   .profile-grid,
   .user-detail-page .profile-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }

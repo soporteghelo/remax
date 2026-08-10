@@ -176,6 +176,19 @@ Barra inferior persistente, alto `--footer-height`, columnas centradas de
 112–136px (a pantalla completa bajo 480px). Cada botón: icono + texto, mínimo
 44px de alto, estado activo con fondo teñido al 12% del primario.
 
+### Acciones al final de vistas y modales
+
+Los contenedores desplazables reservan `--ds-bottom-action-clearance` debajo de
+las acciones finales. El token nunca baja de 24px e incorpora
+`env(safe-area-inset-bottom)`, de modo que botones como Guardar, Confirmar,
+Registrar o Eliminar no queden ocultos por el navegador ni por el gesto del
+sistema.
+
+Las barras de acción `sticky` se anclan con `bottom: 0` y suman ese token a su
+`padding-bottom`. Los modales largos usan una columna flex con cabecera de altura
+natural y cuerpo desplazable (`flex: 1; min-height: 0`); no restan una altura de
+cabecera fija al viewport.
+
 ### Sincronización global (`.global-sync-button`)
 
 **Es el único control de sincronización de toda la aplicación.** Vive en la barra
@@ -203,6 +216,27 @@ de frescura (`.dash-updated`, resúmenes) es texto, nunca un botón.
 `.primary-button`, `.secondary-button`, `.new-user-button`,
 `.admin-form input|select` viven en `src/styles.css`. Al modificarlos, replica el
 cambio en todos los módulos que usen el mismo patrón.
+
+### Fechas y horas (`src/dates.ts`)
+
+Formato único en toda la app: fecha **`DD/MM/AAAA`**, hora **`HH:MM` en 24
+horas**, juntas `10/08/2026 08:18`.
+
+| Uso | Función |
+| --- | --- |
+| Mostrar una fecha | `formatDate(valor)` → `10/08/2026` |
+| Mostrar una hora | `formatTime(valor)` → `08:18` |
+| Mostrar ambas | `formatDateTime(valor)` → `10/08/2026 08:18` |
+| `value` de `<input type="date">` | `toDateInput(valor)` |
+| `value` de `<input type="datetime-local">` | `toDateTimeInput(valor)` |
+
+Nunca `toLocaleDateString`/`toLocaleString` en un componente: `es-PE` da la hora
+en 12 horas y la fecha varía según navegador y sistema. Todo campo de fecha abre
+su selector nativo al tocarlo con `onClick={(e) => e.currentTarget.showPicker?.()}`.
+
+En la hoja de cálculo los valores se guardan en **ISO 8601**, no en
+`DD/MM/AAAA`: el orden de las listas y los filtros por rango comparan texto, y
+solo el ISO ordena igual como texto que como fecha.
 
 ---
 
@@ -244,6 +278,8 @@ Cada dato aparece **una sola vez**.
   nube de la barra superior
 - ❌ **Altas y ediciones en ventana flotante** — son vistas del módulo, con el
   mismo formulario y el mismo ancho
+- ❌ **`toLocaleString` para fechas** — usa `src/dates.ts`: `DD/MM/AAAA` y `HH:MM`
+- ❌ **Campos de fecha que obligan a teclear** — abre el selector con `showPicker()`
 
 ---
 
@@ -258,6 +294,8 @@ Cada dato aparece **una sola vez**.
 - [ ] Objetivos táctiles ≥ 44px en `pointer: coarse`
 - [ ] Responsive verificado a 375px, 768px, 1024px y 1440px
 - [ ] Sin contenido oculto tras la barra superior o el footer fijo
+- [ ] Botones inferiores completos, con separación segura debajo
+- [ ] Fechas en `DD/MM/AAAA` y horas en `HH:MM`, formateadas con `src/dates.ts`
 - [ ] Sin scroll horizontal en móvil
 - [ ] Ningún botón de sincronizar/actualizar fuera de la nube de la barra superior
 - [ ] Módulo nuevo registrado con `registerSyncModule` y releyendo su caché con
