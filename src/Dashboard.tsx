@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { User } from './api';
-import { dashboard, hasCrmCache, readCrmCache, type DashboardData } from './crm-api';
+import { dashboard, hasCrmCache, listAgents, readCrmCache, type DashboardData } from './crm-api';
 import { chartDayLabel, formatDate, toDateInput } from './dates';
 import { MODULES, type SectionId } from './shell';
 import { State } from './Prospects';
@@ -31,6 +31,7 @@ const EMPTY: DashboardData = {
 };
 const KPI_CACHE = 'dashboard-kpis';
 const BOARD_CACHE = 'dashboard-board';
+const PREFETCH_CACHE = 'dashboard-prefetch';
 
 function readDashboardCache(dni: string, name: string): DashboardData {
   return hasCrmCache(dni, name)
@@ -46,6 +47,7 @@ function hasDashboardCache(dni: string, name: string): boolean {
 // completo se abre en una ventana flotante al pulsar sobre él.
 const TOP = 5;
 const SERIES_COMPACT = 12;
+const DEFAULT_CHART_ORDER = ['cartera', 'cobertura', 'canal', 'captaciones', 'altas', 'tasa', 'seguimientos', 'interaction-stages', 'funnel', 'series'];
 
 const orderKey = (dni: string) => `fort_dash_order_${dni}`;
 function readOrder(dni: string): string[] {
@@ -88,6 +90,14 @@ function saveSizes(dni: string, sizes: Sizes): void {
 }
 
 const todayStr = () => toDateInput(new Date());
+type DateFilterMode = 'days' | 'months';
+const monthValue = (date: string) => date ? date.slice(0, 7) : '';
+const monthStart = (month: string) => month ? `${month}-01` : '';
+function monthEnd(month: string): string {
+  if (!/^\d{4}-\d{2}$/.test(month)) return '';
+  const [year, monthNumber] = month.split('-').map(Number);
+  return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
+}
 const percent = (value: number, total: number) => total ? Math.round(value / total * 1000) / 10 : 0;
 const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 
@@ -312,6 +322,84 @@ function ChartModal({ chart, onClose }: { chart: Chart; onClose: () => void }) {
   </div>, document.body);
 }
 
+function agentLabel(agent: User): string {
+  return `${agent.nombres} ${agent.apellidos}`.trim() || agent.dni;
+}
+
+function searchableAgentText(agent: User): string {
+  return `${agentLabel(agent)} ${agent.dni}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+}
+
+/** Selector con búsqueda local para no obligar a recorrer listas largas de agentes. */
+function AgentSearch({ agents, value, onChange, onValidityChange, id }: { agents: User[]; value: string; onChange: (dni: string) => void; onValidityChange: (valid: boolean) => void; id: string }) {
+  const selected = agents.find((agent) => agent.dni === value);
+  const [query, setQuery] = useState(() => selected ? agentLabel(selected) : '');
+  const [open, setOpen] = useState(false);
+  const [valid, setValid] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const normalizedQuery = query.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+  const queryParts = normalizedQuery.split(/\s+/).filter(Boolean);
+  const matches = agents.filter((agent) => {
+    const searchable = searchableAgentText(agent);
+    return queryParts.every((part) => searchable.includes(part));
+  }).sort((left, right) => agentLabel(left).localeCompare(agentLabel(right), 'es'));
+
+  useEffect(() => {
+    if (editing) return;
+    setQuery(selected ? agentLabel(selected) : '');
+    setValid(true);
+    onValidityChange(true);
+  }, [value, selected?.dni, editing]);
+
+  const choose = (agent?: User) => {
+    setEditing(false);
+    onChange(agent?.dni || '');
+    onValidityChange(true);
+    setValid(true);
+    setQuery(agent ? agentLabel(agent) : '');
+    setOpen(false);
+  };
+
+  return <div className="dash-agent-search">
+    <input
+      id={id}
+      type="search"
+      value={query}
+      placeholder="Buscar agente o DNI"
+      autoComplete="off"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-expanded={open}
+      aria-controls={`${id}-options`}
+      aria-invalid={!valid}
+      onFocus={(event) => { event.currentTarget.select(); setEditing(true); setOpen(true); }}
+      onChange={(event) => {
+        const nextQuery = event.target.value;
+        const parts = nextQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().split(/\s+/).filter(Boolean);
+        const nextMatches = agents.filter((agent) => parts.every((part) => searchableAgentText(agent).includes(part)));
+        const nextValid = !parts.length || nextMatches.length === 1;
+        setEditing(true);
+        setQuery(nextQuery);
+        setValid(nextValid);
+        setOpen(true);
+        onValidityChange(nextValid);
+        onChange(nextMatches.length === 1 ? nextMatches[0].dni : '');
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { setOpen(false); return; }
+        if (event.key === 'Enter' && matches.length === 1) { event.preventDefault(); choose(matches[0]); }
+      }}
+      onBlur={() => window.setTimeout(() => { setEditing(false); setOpen(false); }, 120)}
+    />
+    {query && <button type="button" className="dash-agent-search-clear" aria-label="Borrar búsqueda de agente" onMouseDown={(event) => event.preventDefault()} onClick={() => choose()}><span className="material-symbols-outlined">close</span></button>}
+    {open && <div className="dash-agent-options" id={`${id}-options`} role="listbox">
+      <button type="button" role="option" aria-selected={!value} onMouseDown={(event) => event.preventDefault()} onClick={() => choose()}>Todos los agentes</button>
+      {matches.map((agent) => <button type="button" role="option" aria-selected={value === agent.dni} key={agent.dni} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(agent)}><b>{agentLabel(agent)}</b><small>DNI {agent.dni}</small></button>)}
+      {!matches.length && <p>No se encontraron agentes.</p>}
+    </div>}
+  </div>;
+}
+
 export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; isAdmin: boolean; onNavigate: (section: SectionId) => void }) {
   const [data, setData] = useState<DashboardData>(() => readDashboardCache(user.dni, BOARD_CACHE));
   const [metricData, setMetricData] = useState<DashboardData>(() => readDashboardCache(user.dni, KPI_CACHE));
@@ -325,6 +413,13 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
   const [to, setTo] = useState(todayStr);
   const [boardFrom, setBoardFrom] = useState('');
   const [boardTo, setBoardTo] = useState(todayStr);
+  const [metricDateMode, setMetricDateMode] = useState<DateFilterMode>('days');
+  const [boardDateMode, setBoardDateMode] = useState<DateFilterMode>('days');
+  const [metricAgentDni, setMetricAgentDni] = useState('');
+  const [boardAgentDni, setBoardAgentDni] = useState('');
+  const [metricAgentValid, setMetricAgentValid] = useState(true);
+  const [boardAgentValid, setBoardAgentValid] = useState(true);
+  const [availableAgents, setAvailableAgents] = useState<User[]>([]);
   const [metricsFiltersOpen, setMetricsFiltersOpen] = useState(false);
   const [boardFiltersOpen, setBoardFiltersOpen] = useState(false);
   const [expanded, setExpanded] = useState('');
@@ -337,35 +432,62 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
   const [dragged, setDragged] = useState('');
   const [armed, setArmed] = useState('');
   const initialViewRef = useRef<HTMLElement>(null);
+  const metricRequestRef = useRef(0);
+  const boardRequestRef = useRef(0);
   // Último panel sobre el que ya se recolocó: sin esto, cada `dragenter` que
   // burbujea desde los hijos volvería a intercambiar y el tablero parpadearía.
   const hovered = useRef('');
   const syncState = useSyncState();
 
-  const loadMetrics = (rangeFrom = from, rangeTo = to, force = false) => {
+  const loadMetrics = (rangeFrom = from, rangeTo = to, force = false, agentDni = metricAgentDni) => {
     if (rangeFrom && rangeTo && rangeFrom > rangeTo) { setMetricError('La fecha Desde no puede ser posterior a Hasta.'); return; }
+    const requestId = ++metricRequestRef.current;
     setMetricLoading(true);
     setMetricError('');
-    dashboard(user.dni, rangeFrom, rangeTo, KPI_CACHE, force)
-      .then((result) => { setMetricData(result); setHasMetricData(true); })
-      .catch((cause) => setMetricError(cause instanceof Error ? cause.message : 'No se pudieron cargar los indicadores.'))
-      .finally(() => setMetricLoading(false));
+    dashboard(user.dni, rangeFrom, rangeTo, KPI_CACHE, force, agentDni)
+      .then((result) => { if (metricRequestRef.current === requestId) { setMetricData(result); setHasMetricData(true); } })
+      .catch((cause) => { if (metricRequestRef.current === requestId) setMetricError(cause instanceof Error ? cause.message : 'No se pudieron cargar los indicadores.'); })
+      .finally(() => { if (metricRequestRef.current === requestId) setMetricLoading(false); });
   };
 
-  const loadBoard = (rangeFrom = boardFrom, rangeTo = boardTo, force = false) => {
+  const loadBoard = (rangeFrom = boardFrom, rangeTo = boardTo, force = false, agentDni = boardAgentDni) => {
     if (rangeFrom && rangeTo && rangeFrom > rangeTo) { setError('La fecha Desde no puede ser posterior a Hasta.'); return; }
+    const requestId = ++boardRequestRef.current;
     setLoading(true);
     setError('');
-    dashboard(user.dni, rangeFrom, rangeTo, BOARD_CACHE, force)
-      .then((result) => { setData(result); setHasData(true); })
-      .catch((cause) => setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los gráficos del tablero.'))
-      .finally(() => setLoading(false));
+    dashboard(user.dni, rangeFrom, rangeTo, BOARD_CACHE, force, agentDni)
+      .then((result) => { if (boardRequestRef.current === requestId) { setData(result); setHasData(true); } })
+      .catch((cause) => { if (boardRequestRef.current === requestId) setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los gráficos del tablero.'); })
+      .finally(() => { if (boardRequestRef.current === requestId) setLoading(false); });
   };
 
-  const clearMetricsFilter = () => { setFrom(''); setTo(''); loadMetrics('', ''); };
-  const clearBoardFilter = () => { setBoardFrom(''); setBoardTo(''); loadBoard('', ''); };
+  const clearMetricsFilter = () => { setFrom(''); setTo(''); setMetricAgentDni(''); loadMetrics('', '', false, ''); };
+  const clearBoardFilter = () => { setBoardFrom(''); setBoardTo(''); setBoardAgentDni(''); loadBoard('', '', false, ''); };
+  const changeMetricDateMode = (mode: DateFilterMode) => {
+    setMetricDateMode(mode);
+    if (mode === 'months') { setFrom(monthStart(monthValue(from))); setTo(monthEnd(monthValue(to))); }
+  };
+  const changeBoardDateMode = (mode: DateFilterMode) => {
+    setBoardDateMode(mode);
+    if (mode === 'months') { setBoardFrom(monthStart(monthValue(boardFrom))); setBoardTo(monthEnd(monthValue(boardTo))); }
+  };
 
-  useEffect(() => { loadMetrics(); loadBoard(); }, [user.dni]);
+  useEffect(() => {
+    loadMetrics(); loadBoard();
+    if (isAdmin) listAgents(user.dni).then((result) => setAvailableAgents(result.filter((agent) => agent.estado === 'ACTIVO'))).catch(() => setAvailableAgents([]));
+    else setAvailableAgents([]);
+  }, [user.dni, isAdmin]);
+  // Precarga la combinación elegida mientras la persona termina de revisar los
+  // filtros y llega al botón Aplicar. `dashboard` comparte las lecturas en curso
+  // y la caché por rango, por lo que esto adelanta el trabajo sin duplicarlo.
+  useEffect(() => {
+    if (!metricAgentValid || (from && to && from > to)) return;
+    dashboard(user.dni, from, to, PREFETCH_CACHE, false, metricAgentDni).catch(() => { /* Aplicar mostrará el error si persiste. */ });
+  }, [user.dni, from, to, metricAgentDni, metricAgentValid]);
+  useEffect(() => {
+    if (!boardAgentValid || (boardFrom && boardTo && boardFrom > boardTo)) return;
+    dashboard(user.dni, boardFrom, boardTo, PREFETCH_CACHE, false, boardAgentDni).catch(() => { /* Aplicar mostrará el error si persiste. */ });
+  }, [user.dni, boardFrom, boardTo, boardAgentDni, boardAgentValid]);
   useLayoutEffect(() => {
     initialViewRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
   }, [user.dni]);
@@ -389,10 +511,9 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
     { label: 'Nuevos', value: metricNuevos, icon: 'fiber_new', tone: 'info', hint: 'aún sin gestionar', description: 'Prospectos del rango superior que todavía no tienen ninguna interacción registrada.' },
     { label: 'Contactados', value: metricContactados, icon: 'forum', tone: 'primary', hint: `${metricTasaGestion}% de cobertura`, description: 'Prospectos con al menos una interacción. El % usa el total del filtro superior.' },
     { label: 'Captados', value: metricCaptados, icon: 'person_check', tone: 'success', hint: `${metricTasaCaptacion}% del total`, description: 'Prospectos captados o convertidos dentro del alcance del filtro superior.' },
-    { label: 'Clientes', value: metricConversiones, icon: 'verified', tone: 'success', hint: 'cierres realizados', description: 'Clientes cuya fecha de cierre pertenece al rango del filtro superior.' },
-    { label: 'Conversión', value: `${metricTasaConversion}%`, icon: 'monitoring', tone: 'primary', hint: 'prospecto a cliente', description: 'Clientes ÷ Prospectos usando exclusivamente el rango del filtro superior.' },
+    { label: 'Ventas', value: metricConversiones, icon: 'verified', tone: 'success', hint: 'ventas cerradas', description: 'Clientes del rango con CierreVenta registrado.' },
   ];
-  const shortcuts = MODULES.filter((item) => ['prospects', 'agenda', 'clients', ...(isAdmin ? ['team'] : [])].includes(item.id));
+  const shortcuts = MODULES.filter((item) => ['prospects', 'agenda', 'birthdays', 'clients', ...(isAdmin ? ['team'] : [])].includes(item.id));
   const donutStyle = { '--dash-managed': `${clampPercent(metricTasaGestion)}%` } as CSSProperties;
   const funnelTotal = data.funnel.reduce((sum, item) => sum + item.total, 0);
   const negotiationStates = data.negotiationStates || [];
@@ -501,7 +622,7 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       id: 'funnel',
       size: { cols: 4, rows: 1 },
       kicker: 'RESULTADOS',
-      title: 'Resultados de citas',
+      title: 'Resultados',
       hint: `${funnelTotal} registros repartidos en ${data.funnel.length} resultados.`,
       badge: <span className="crm-badge is-neutral">{funnelTotal}</span>,
       count: data.funnel.length,
@@ -513,10 +634,10 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       size: { cols: 4, rows: 1 },
       kicker: 'NEGOCIACIÓN',
       title: 'Estado de negociaciones',
-      hint: `${negotiationTotal} interacciones en etapa NEGOCIACION, agrupadas por EstadoResultante.`,
+      hint: `${negotiationTotal} interacciones en etapa NEGOCIACION, agrupadas por Resultado.`,
       badge: <span className="crm-badge is-neutral">{negotiationTotal}</span>,
       count: negotiationStates.length,
-      empty: <State icon="handshake" title="Sin negociaciones en el rango" text="Aquí aparecerán los valores de EstadoResultante cuya Etapa sea NEGOCIACION." />,
+      empty: <State icon="handshake" title="Sin negociaciones en el rango" text="Aquí aparecerán los valores de Resultado cuya Etapa sea NEGOCIACION." />,
       body: (full) => <DonutChart full={full} unit="negociaciones" rows={negotiationStates.map((row) => ({ key: row.estado, label: row.estado, value: row.total }))} />,
     },
     {
@@ -532,7 +653,7 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
     },
     {
       id: 'series',
-      size: { cols: 4, rows: 1 },
+      size: { cols: 12, rows: 1 },
       kicker: 'ACTIVIDAD DIARIA',
       title: 'Interacciones por día',
       hint: seriesPoints.length ? `${seriesTotal} interacciones entre ${formatDate(seriesPoints[0].fecha)} y ${formatDate(seriesPoints[seriesPoints.length - 1].fecha)}.` : '',
@@ -553,12 +674,16 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       empty: <State icon="forum" title="Sin seguimientos registrados" text="Cada interacción registrada por los agentes aparecerá aquí." />,
       body: (full) => <RankRows full={full} max={maxAgentFollowups} unit="seguimientos" rows={agents.map((agent) => ({ key: agent.dni, name: agent.nombre, hint: `${agent.prospectosContactados} prospectos únicos atendidos`, value: agent.seguimientos }))} />,
     },
-  ] as Chart[]).filter((chart) => isAdmin || !chart.admin);
+  ] as Chart[]).filter((chart) => (isAdmin || !chart.admin) && chart.id !== 'negotiation-states');
   const activeChart = charts.find((chart) => chart.id === expanded);
-  // El orden guardado manda; lo que no figure en él conserva su sitio de origen al final.
+  // El orden guardado manda; sin personalización se aplica la vista inicial del tablero.
   const ranked = [...charts].sort((a, b) => {
     const left = order.indexOf(a.id); const right = order.indexOf(b.id);
-    return (left < 0 ? order.length + charts.indexOf(a) : left) - (right < 0 ? order.length + charts.indexOf(b) : right);
+    const fallback = (chart: Chart) => {
+      const position = DEFAULT_CHART_ORDER.indexOf(chart.id);
+      return position < 0 ? DEFAULT_CHART_ORDER.length + charts.indexOf(chart) : position;
+    };
+    return (left < 0 ? order.length + fallback(a) : left) - (right < 0 ? order.length + fallback(b) : right);
   });
   const primaryChartIds = new Set(['cartera', 'cobertura', 'canal', 'captaciones', 'altas', 'tasa']);
   const primaryCharts = ranked.filter((chart) => primaryChartIds.has(chart.id));
@@ -619,9 +744,11 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       <div className={`date-filter dash-filter-fields${metricsFiltersOpen ? ' is-open' : ''}`} aria-label="Filtro de fechas de indicadores y paneles superiores">
         <button type="button" className="back-button dash-filter-action" onClick={clearMetricsFilter} disabled={metricLoading}><span className="material-symbols-outlined">filter_alt_off</span>Limpiar filtro</button>
         <button type="button" className="back-button dash-filter-action dash-reset-order" onClick={resetLayout} disabled={!customized}><span className="material-symbols-outlined">restart_alt</span>Diseño original</button>
-        <label>Desde<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
-        <label>Hasta<input type="date" value={to} onChange={(e) => setTo(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
-        <button type="button" className="back-button" onClick={() => loadMetrics()} disabled={metricLoading}>{metricLoading && hasMetricData ? 'Aplicando…' : 'Aplicar'}</button>
+        {isAdmin && <label>Agente<AgentSearch id="metric-agent" agents={availableAgents} value={metricAgentDni} onChange={setMetricAgentDni} onValidityChange={setMetricAgentValid} /></label>}
+        <div className="dash-date-mode" aria-label="Unidad del rango superior"><span>Periodo</span><div><button type="button" className={metricDateMode === 'days' ? 'is-active' : ''} aria-pressed={metricDateMode === 'days'} onClick={() => changeMetricDateMode('days')}>Días</button><button type="button" className={metricDateMode === 'months' ? 'is-active' : ''} aria-pressed={metricDateMode === 'months'} onClick={() => changeMetricDateMode('months')}>Meses</button></div></div>
+        <label>Desde<input type={metricDateMode === 'months' ? 'month' : 'date'} value={metricDateMode === 'months' ? monthValue(from) : from} onChange={(e) => setFrom(metricDateMode === 'months' ? monthStart(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
+        <label>Hasta<input type={metricDateMode === 'months' ? 'month' : 'date'} value={metricDateMode === 'months' ? monthValue(to) : to} onChange={(e) => setTo(metricDateMode === 'months' ? monthEnd(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
+        <button type="button" className="back-button" onClick={() => loadMetrics()} disabled={metricLoading || !metricAgentValid}>{metricLoading && hasMetricData ? 'Aplicando…' : 'Aplicar'}</button>
       </div>
     </div>
     {metricError && <p className="form-error dash-filter-error" role="alert">{metricError}</p>}
@@ -640,9 +767,11 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       <div className={`date-filter dash-filter-fields${boardFiltersOpen ? ' is-open' : ''}`} aria-label="Filtro de fechas del tablero">
         <button type="button" className="back-button dash-filter-action" onClick={clearBoardFilter} disabled={loading}><span className="material-symbols-outlined">filter_alt_off</span>Limpiar filtro</button>
         <button type="button" className="back-button dash-filter-action dash-reset-order" onClick={resetLayout} disabled={!customized}><span className="material-symbols-outlined">restart_alt</span>Diseño original</button>
-        <label>Desde<input type="date" value={boardFrom} onChange={(e) => setBoardFrom(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
-        <label>Hasta<input type="date" value={boardTo} onChange={(e) => setBoardTo(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
-        <button type="button" className="back-button" onClick={() => loadBoard()} disabled={loading}>{loading && hasData ? 'Aplicando…' : 'Aplicar'}</button>
+        {isAdmin && <label>Agente<AgentSearch id="board-agent" agents={availableAgents} value={boardAgentDni} onChange={setBoardAgentDni} onValidityChange={setBoardAgentValid} /></label>}
+        <div className="dash-date-mode" aria-label="Unidad del rango del tablero"><span>Periodo</span><div><button type="button" className={boardDateMode === 'days' ? 'is-active' : ''} aria-pressed={boardDateMode === 'days'} onClick={() => changeBoardDateMode('days')}>Días</button><button type="button" className={boardDateMode === 'months' ? 'is-active' : ''} aria-pressed={boardDateMode === 'months'} onClick={() => changeBoardDateMode('months')}>Meses</button></div></div>
+        <label>Desde<input type={boardDateMode === 'months' ? 'month' : 'date'} value={boardDateMode === 'months' ? monthValue(boardFrom) : boardFrom} onChange={(e) => setBoardFrom(boardDateMode === 'months' ? monthStart(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
+        <label>Hasta<input type={boardDateMode === 'months' ? 'month' : 'date'} value={boardDateMode === 'months' ? monthValue(boardTo) : boardTo} onChange={(e) => setBoardTo(boardDateMode === 'months' ? monthEnd(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
+        <button type="button" className="back-button" onClick={() => loadBoard()} disabled={loading || !boardAgentValid}>{loading && hasData ? 'Aplicando…' : 'Aplicar'}</button>
       </div>
     </section>
     {error && <p className="form-error dash-filter-error" role="alert">{error}</p>}

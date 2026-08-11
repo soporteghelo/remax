@@ -77,12 +77,12 @@ secuencia sea siempre decreciente y comparable de un vistazo:
 | Captados | `tasaCaptacion` | `Captados ÷ Prospectos` |
 | Clientes | `tasaConversion` | `Clientes ÷ Prospectos` |
 
-## Resultados de citas (embudo por resultado)
+## Resultados (embudo por resultado)
 
-- Se agrupan los `prospects` según `INTERACCIONES.EstadoResultante` de su
+- Se agrupan los `prospects` según `INTERACCIONES.Resultado` de su
   interacción **más reciente**.
 - Un prospecto sin ninguna interacción se agrupa bajo la etiqueta fija
-  `"SIN RESULTADO DE CITA"`.
+  `"SIN RESULTADO"`.
 - Cada barra: cantidad de prospectos con ese estado (no % — cifra absoluta).
 
 ## Prospectos por canal

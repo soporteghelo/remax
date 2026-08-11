@@ -12,6 +12,7 @@ export interface User {
   /** Canales por los que se le entregan sus credenciales; ambos opcionales */
   correo: string;
   celular: string;
+  categoria: string;
 }
 
 /**
@@ -60,7 +61,7 @@ function device(): string {
 }
 
 function mapUser(row: Record<string, unknown>, fallbackDni = ''): User {
-  return { dni: String(row.DNI ?? fallbackDni), apellidos: String(row.Apellidos ?? ''), nombres: String(row.Nombres ?? ''), estado: String(row.Estado ?? 'ACTIVO').toUpperCase() === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: String(row.TipoUsuario ?? 'USUARIO').toUpperCase() === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', fechaRegistro: String(row.FechaRegistro ?? ''), ultimoAcceso: String(row.UltimoAcceso ?? ''), dispositivo: String(row.Dispositivo ?? ''), correo: String(row.Correo ?? ''), celular: String(row.Celular ?? '') };
+  return { dni: String(row.DNI ?? fallbackDni), apellidos: String(row.Apellidos ?? ''), nombres: String(row.Nombres ?? ''), estado: String(row.Estado ?? 'ACTIVO').toUpperCase() === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: String(row.TipoUsuario ?? 'USUARIO').toUpperCase() === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', fechaRegistro: String(row.FechaRegistro ?? ''), ultimoAcceso: String(row.UltimoAcceso ?? ''), dispositivo: String(row.Dispositivo ?? ''), correo: String(row.Correo ?? ''), celular: String(row.Celular ?? ''), categoria: String(row.Categoria ?? '') };
 }
 
 function mapDelivery(raw: Record<string, unknown> | undefined): CredentialDelivery {
@@ -104,11 +105,11 @@ export const isTimeoutError = (cause: unknown): boolean => cause instanceof Time
 /** Apps Script puede tardar en arrancar (arranque en frío), pero nunca debe dejar la pantalla de carga girando para siempre. */
 const REQUEST_TIMEOUT_MS = 25000;
 
-export async function request(payload: Record<string, unknown>): Promise<ApiResult> {
+export async function request(payload: Record<string, unknown>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<ApiResult> {
   if (!endpoint) throw new NetworkError('Falta VITE_APPS_SCRIPT_URL en el archivo .env.');
   const controller = new AbortController();
   let timedOut = false;
-  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   let response: Response;
   let responseText: string;
   try {
@@ -144,8 +145,8 @@ export function sessionStamp(): string {
   try { return localStorage.getItem(STAMP_KEY) || ''; } catch { return ''; }
 }
 
-export async function authenticatedRequest<T>(action: string, actorDni: string, payload: Record<string, unknown> = {}): Promise<T> {
-  const result = await request({ action, ...payload, actorDni, stamp: sessionStamp() });
+export async function authenticatedRequest<T>(action: string, actorDni: string, payload: Record<string, unknown> = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+  const result = await request({ action, ...payload, actorDni, stamp: sessionStamp() }, timeoutMs);
   return result.data as T;
 }
 
@@ -198,7 +199,7 @@ export async function checkSession(dni: string): Promise<{ valid: boolean; reaso
  * La contraseña inicial de toda cuenta nueva es su propio DNI. El servidor
  * envía el acceso al correo indicado y devuelve en `delivery` qué pudo entregar.
  */
-export async function createUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario']; correo?: string; celular?: string }): Promise<{ user: User; delivery: CredentialDelivery }> {
+export async function createUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario']; correo?: string; celular?: string; categoria?: string }): Promise<{ user: User; delivery: CredentialDelivery }> {
   const { adminDni, ...usuario } = input;
   const result = await request({ action: 'createUser', adminDni, adminPassword: adminPasswordFor(adminDni), usuario: { ...usuario, password: usuario.dni } });
   if (!result.record) throw new Error('El servidor no devolvió el usuario creado.');
@@ -221,7 +222,7 @@ export async function resendInvite(adminDni: string, dni: string, canal: InviteC
  * reemplaza y esa persona quedará fuera de la app en su siguiente carga. Marcarla
  * como CESADO tiene el mismo efecto.
  */
-export async function updateUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string }): Promise<User> {
+export async function updateUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string; categoria?: string }): Promise<User> {
   const { adminDni, ...usuario } = input;
   const result = await request({ action: 'updateUser', adminDni, adminPassword: adminPasswordFor(adminDni), usuario });
   if (!result.record) throw new Error('El servidor no devolvió el usuario actualizado.');
@@ -260,7 +261,7 @@ export async function saveSettings(adminDni: string, settings: AppSettings): Pro
 
 /** Completa los campos que no existían en versiones anteriores (Estado, Correo, Celular). */
 export function normalizeUser(saved: User): User {
-  return { ...saved, estado: saved.estado === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: saved.tipoUsuario === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', correo: saved.correo ?? '', celular: saved.celular ?? '' };
+  return { ...saved, estado: saved.estado === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: saved.tipoUsuario === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', correo: saved.correo ?? '', celular: saved.celular ?? '', categoria: saved.categoria ?? '' };
 }
 
 /** Caché local de usuarios: la comparten el módulo de administración y el panel principal. */

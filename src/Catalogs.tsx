@@ -4,7 +4,7 @@ import { deleteCatalog, hasCatalogCache, listCatalogs, readCatalogCache, saveCat
 import { State } from './Prospects';
 import { markSaved, queueChange, useSyncState } from './sync';
 
-const TYPES: CatalogType[] = ['CANAL', 'ESTADO', 'RESULTADO', 'RESULTADO CITA', 'CAPTADO_RESULTADO', 'CAPTADO_CITA', 'REUNION'];
+const TYPES: CatalogType[] = ['CANAL', 'ESTADO', 'RESULTADO', 'CAPTADO_RESULTADO', 'REUNION', 'CATEGORIA_AGENTE'];
 
 /** Opción en espera de confirmación: `uso` deja de ser null cuando el servidor avisa de cuántos registros la usan. */
 interface Removal { item: CatalogItem; uso: number | null; error: string; working: boolean }

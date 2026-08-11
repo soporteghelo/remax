@@ -1,0 +1,165 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   BASE HEREDADA — acceso, contenido de módulo, tabla y formularios
+   Se carga antes que design-system.css y shell.css, que la ajustan al tema.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #182230;
+  background: #f4f7fb;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+
+/* ─── Pantalla de acceso ─── */
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 12% 15%, #2f80ed33, transparent 32%),
+    radial-gradient(circle at 92% 85%, #6952d633, transparent 31%),
+    #101827;
+}
+.login-card {
+  width: min(100%, 440px);
+  padding: 42px;
+  border-radius: 24px;
+  color: #ecf3ff;
+  background: #182335e6;
+  border: 1px solid #ffffff20;
+  box-shadow: 0 30px 80px #02071280;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  background: var(--brand-gradient);
+  color: var(--brand-on-gradient, #fff);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+.login-card .brand-mark { margin: 0 auto 24px; }
+.eyebrow { margin: 0 0 8px; color: #9fc7ff; font-weight: 800; font-size: 11px; letter-spacing: .15em; }
+.login-card .eyebrow { text-align: center; }
+.login-card h1 { margin: 0; text-align: center; font-size: 30px; }
+.login-copy { text-align: center; color: #b4c0d2; margin: 12px 0 28px; }
+.login-form { display: grid; gap: 17px; }
+.login-form label { display: grid; gap: 7px; color: #cbd5e1; font-size: 13px; font-weight: 700; }
+.login-form input {
+  width: 100%;
+  padding: 13px 14px;
+  color: white;
+  background: #ffffff0a;
+  border: 1px solid #ffffff21;
+  border-radius: 10px;
+  outline: none;
+}
+.login-form input:focus { border-color: #56a6ff; box-shadow: 0 0 0 3px #2583e62b; }
+.login-foot { margin: 22px 0 0; text-align: center; color: #94a3b8; font-size: 12px; line-height: 1.5; }
+
+/* Salida de auxilio para quien no puede entrar: abre WhatsApp con el mensaje
+   escrito. El verde es la marca de WhatsApp, no un color del sistema. */
+.whatsapp-button {
+  --whatsapp: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 11px 16px;
+  border: 1px solid color-mix(in srgb, var(--whatsapp) 40%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--whatsapp) 12%, transparent);
+  color: var(--whatsapp);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.whatsapp-button:hover { background: color-mix(in srgb, var(--whatsapp) 22%, transparent); border-color: var(--whatsapp); }
+.whatsapp-button:focus-visible { outline: 2px solid var(--whatsapp); outline-offset: 2px; }
+.whatsapp-button svg { flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .whatsapp-button { transition: none; } }
+
+/* ─── Avisos y botón principal ─── */
+.form-error { margin: 0; padding: 10px 12px; border-radius: 9px; color: #fecaca; background: #ef444422; font-size: 13px; }
+.primary-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 18px;
+  background: var(--brand-gradient);
+  color: var(--brand-on-gradient, #fff);
+  font-weight: 800;
+}
+.primary-button:disabled { opacity: .65; cursor: wait; }
+
+/* ─── Encabezado de módulo ─── */
+.page-content { max-width: 1120px; }
+.page-content h1 { margin: 0; font-size: 31px; letter-spacing: -.04em; }
+.eyebrow.dark { color: #5279b4; }
+.subtitle { max-width: 650px; margin: 10px 0 32px; color: #6b7788; line-height: 1.6; }
+
+/* ─── Panel con tabla ─── */
+.panel {
+  overflow: hidden;
+  border: 1px solid #e4e9f1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 16px #16264b08;
+}
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 23px 25px;
+  border-bottom: 1px solid #e9edf3;
+}
+.panel-title h2 { margin: 0; font-size: 18px; }
+.panel-title p { margin: 6px 0 0; color: #7d8998; font-size: 13px; }
+.panel-actions { display: flex; gap: 9px; align-items: center; }
+.new-user-button { padding: 10px 13px; border: 0; border-radius: 8px; color: white; background: #273f75; font-size: 13px; font-weight: 700; }
+
+.table-head, .table-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; align-items: center; padding: 15px 25px; }
+.table-head { color: #8490a0; background: #fbfcfe; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.table-row { font-size: 14px; }
+.table-row b, .table-row small { display: block; }
+.table-row small { margin-top: 3px; color: #8995a5; font-size: 12px; }
+
+/* ─── Formularios de módulo ─── */
+.admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.admin-form label { display: grid; gap: 6px; color: #3b4756; font-size: 12px; font-weight: 750; }
+.admin-form input, .admin-form select {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #dbe2eb;
+  border-radius: 8px;
+  color: #152033;
+  background: #fff;
+  outline: none;
+}
+.admin-form input:focus, .admin-form select:focus { border-color: #528ee2; box-shadow: 0 0 0 3px #2f80ed20; }
+.admin-form .form-error, .admin-form .primary-button { grid-column: 1 / -1; }
+.admin-form .primary-button { margin-top: 2px; }
+
+@media (max-width: 760px) {
+  .page-content h1 { font-size: 28px; }
+  .panel-title { align-items: flex-start; flex-direction: column; }
+  .panel-actions { width: 100%; flex-direction: column; align-items: stretch; }
+  .new-user-button { width: 100%; }
+  .table-head, .table-row { grid-template-columns: 1.5fr 1fr; gap: 9px; padding: 14px; }
+  .table-head span:last-child, .table-row > span:last-child { display: none; }
+  .login-card { padding: 33px 23px; }
+  .admin-form { grid-template-columns: 1fr; }
+}

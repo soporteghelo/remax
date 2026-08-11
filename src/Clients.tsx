@@ -7,16 +7,22 @@ import {
 import { formatDate, toDateInput } from './dates';
 import { Badge, InteractionTimeline, State } from './Prospects';
 import { markSaved, queueChange, useSyncState } from './sync';
-import GeoFields from './GeoFields';
-import { countryName, DEFAULT_COUNTRY } from './geo';
+
+const CAPTURE_STATE_OPTIONS = ['EN PRECIO', 'HASTA 20% SOBRE PRECIO', 'SOBREPRECIO', 'DESISTIÓ', 'SIN DEFINIR'];
 
 export default function Clients({ user, isAdmin, onOpenProspect }: { user: User; isAdmin: boolean; onOpenProspect: (id: string) => void }) {
-  const [items, setItems] = useState<Client[]>(() => readCrmCache(user.dni, 'clients', [])); const [selected, setSelected] = useState<Client | null>(null); const [query, setQuery] = useState(''); const [agent, setAgent] = useState(''); const [loading, setLoading] = useState(!hasCrmCache(user.dni, 'clients')); const [error, setError] = useState('');
+  const [items, setItems] = useState<Client[]>(() => readCrmCache(user.dni, 'clients', [])); const [selected, setSelected] = useState<Client | null>(null); const [query, setQuery] = useState(''); const [captureState, setCaptureState] = useState(''); const [agent, setAgent] = useState(''); const [loading, setLoading] = useState(!hasCrmCache(user.dni, 'clients')); const [error, setError] = useState('');
   const syncState = useSyncState();
   useEffect(() => { listClients(user.dni).then(setItems).catch((cause) => setError(cause instanceof Error ? cause.message : 'No se pudo cargar la cartera.')).finally(() => setLoading(false)); }, [user.dni]);
   useEffect(() => { if (syncState.dataVersion) setItems(readCrmCache(user.dni, 'clients', [])); }, [syncState.dataVersion, user.dni]);
   const agents = useMemo(() => Array.from(new Map(items.filter((item) => item.agenteDni || item.agenteNombre).map((item) => [item.agenteDni || item.agenteNombre, item.agenteNombre || item.agenteDni])).entries()).map(([dni, nombre]) => ({ dni, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')), [items]);
-  const filtered = useMemo(() => items.filter((item) => `${item.nombre} ${item.documento} ${item.telefono}`.toLowerCase().includes(query.toLowerCase()) && (!agent || item.agenteDni === agent || (!item.agenteDni && item.agenteNombre === agent))), [items, query, agent]);
+  const captureStates = useMemo(() => Array.from(new Set([...CAPTURE_STATE_OPTIONS, ...items.map((item) => item.estadoCaptacion.trim() || 'SIN DEFINIR')])).sort((a, b) => a.localeCompare(b, 'es')), [items]);
+  const filtered = useMemo(() => items.filter((item) => {
+    const itemCaptureState = item.estadoCaptacion.trim() || 'SIN DEFINIR';
+    return `${item.nombre} ${item.documento} ${item.telefono}`.toLowerCase().includes(query.toLowerCase())
+      && (!captureState || itemCaptureState === captureState)
+      && (!agent || item.agenteDni === agent || (!item.agenteDni && item.agenteNombre === agent));
+  }), [items, query, captureState, agent]);
   const replace = (saved: Client) => { setItems((current) => current.map((row) => row.id === saved.id ? saved : row)); setSelected(saved); };
   const saved = (client: Client) => { replace(client); markSaved(); };
   const openProspect = (client: Client) => {
@@ -29,13 +35,13 @@ export default function Clients({ user, isAdmin, onOpenProspect }: { user: User;
 
   const content = selected
     ? <ClientDetail client={selected} dni={user.dni} onBack={() => setSelected(null)} onLoaded={replace} onSaved={saved} />
-    : <section className="page-content crm-page crm-clients-list"><p className="eyebrow dark">CARTERA COMERCIAL</p><h1>Clientes</h1><p className="subtitle">Información complementaria y notas de fidelización de las conversiones.</p><div className={`crm-filters crm-client-filter${isAdmin ? ' is-admin' : ''}`}><label className="crm-search"><span>Buscar</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre, documento o teléfono" /></label>{isAdmin && <label><span>Agente</span><select value={agent} onChange={(e) => setAgent(e.target.value)}><option value="">Todos los agentes</option>{agents.map((item) => <option value={item.dni} key={item.dni}>{item.nombre}</option>)}</select></label>}</div>{error && <p className="form-error">{error}</p>}{loading ? <State icon="progress_activity" title="Cargando clientes" text="Consultando la cartera…" spin /> : !filtered.length ? <State icon="groups" title="Sin clientes" text="Los prospectos convertidos aparecerán aquí." /> : <div className="crm-table-wrap"><table className="crm-table"><thead><tr><th>Cliente</th><th>Estado</th><th>Fecha de cierre</th>{isAdmin && <th>Agente</th>}</tr></thead><tbody>{filtered.map((item) => <tr key={item.id} tabIndex={0} onClick={() => openProspect(item)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProspect(item); } }}><td data-label="Cliente"><b>{item.nombre}</b><small>{item.documento || item.telefono}</small></td><td data-label="Estado"><Badge value={item.estado} /></td><td data-label="Fecha de cierre">{formatDate(item.fechaCierre)}</td>{isAdmin && <td data-label="Agente">{item.agenteNombre || item.agenteDni}</td>}</tr>)}</tbody></table></div>}</section>;
+    : <section className="page-content crm-page crm-clients-list"><p className="eyebrow dark">CARTERA COMERCIAL</p><h1>Clientes</h1><p className="subtitle">Información complementaria y notas de fidelización de las conversiones.</p><div className={`crm-filters crm-client-filter${isAdmin ? ' is-admin' : ''}`}><label className="crm-search"><span>Buscar</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre, documento o teléfono" /></label><label><span>Estado de captación</span><select value={captureState} onChange={(e) => setCaptureState(e.target.value)}><option value="">Todos los estados</option>{captureStates.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>{isAdmin && <label><span>Agente</span><select value={agent} onChange={(e) => setAgent(e.target.value)}><option value="">Todos los agentes</option>{agents.map((item) => <option value={item.dni} key={item.dni}>{item.nombre}</option>)}</select></label>}</div>{error && <p className="form-error">{error}</p>}{loading ? <State icon="progress_activity" title="Cargando clientes" text="Consultando la cartera…" spin /> : !filtered.length ? <State icon="groups" title="Sin clientes" text="Los prospectos convertidos aparecerán aquí." /> : <div className="crm-table-wrap"><table className="crm-table"><thead><tr><th>Cliente</th><th>Teléfono</th><th>Correo</th><th>Fecha de cierre</th><th>Estado de captación</th><th>Cierre de venta</th>{isAdmin && <th>Agente</th>}</tr></thead><tbody>{filtered.map((item) => <tr key={item.id} tabIndex={0} onClick={() => openProspect(item)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProspect(item); } }}><td data-label="Cliente"><b>{item.nombre}</b><small>{item.documento}</small></td><td data-label="Teléfono">{item.telefono || '—'}</td><td data-label="Correo">{item.correo || '—'}</td><td data-label="Fecha de cierre">{formatDate(item.fechaCierre)}</td><td data-label="Estado de captación"><Badge value={item.estadoCaptacion} /></td><td data-label="Cierre de venta">{formatDate(item.cierreVenta)}</td>{isAdmin && <td data-label="Agente">{item.agenteNombre || item.agenteDni}</td>}</tr>)}</tbody></table></div>}</section>;
 
   return <div className="page-transition crm-inner-transition" key={selected ? `detail-${selected.id}` : 'list'}>{content}</div>;
 }
 
 function normalizeClient(client: Client): Client {
-  return { ...client, pais: client.pais || DEFAULT_COUNTRY, departamento: client.departamento || '', provincia: client.provincia || '', distrito: client.distrito || '', direccion: client.direccion || '' };
+  return { ...client, distrito: client.distrito || '', direccion: client.direccion || '' };
 }
 
 function ClientDetail({ client, dni, onBack, onLoaded, onSaved }: { client: Client; dni: string; onBack: () => void; onLoaded: (client: Client) => void; onSaved: (client: Client) => void }) {
@@ -77,14 +83,14 @@ function ClientDetail({ client, dni, onBack, onLoaded, onSaved }: { client: Clie
       <label>Nombre *<input required value={form.nombre} onChange={(e) => update('nombre', e.target.value)} /></label><label>Documento<input value={form.documento} onChange={(e) => update('documento', e.target.value)} /></label>
       <label>Teléfono *<input required value={form.telefono} onChange={(e) => update('telefono', e.target.value)} /></label><label>Correo<input type="email" value={form.correo} onChange={(e) => update('correo', e.target.value)} /></label>
       <label>Fecha de nacimiento<input type="date" value={toDateInput(form.fechaNacimiento)} onChange={(e) => update('fechaNacimiento', e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label><label>Profesión<input value={form.profesion} onChange={(e) => update('profesion', e.target.value)} /></label>
-      <GeoFields value={form} onChange={(geo) => setForm((current) => ({ ...current, ...geo }))} disabled={saving} />
+      <label>Distrito<input value={form.distrito} onChange={(e) => update('distrito', e.target.value)} placeholder="Escribe el distrito" disabled={saving} /></label>
       <label className="span-2">Dirección<input value={form.direccion} onChange={(e) => update('direccion', e.target.value)} /></label>
       <label>Estado<select value={form.estado} onChange={(e) => update('estado', e.target.value)}><option value="ACTIVO">ACTIVO</option><option value="INACTIVO">INACTIVO</option></select></label>
       <label className="span-2">Notas de fidelización<textarea rows={5} value={form.notas} onChange={(e) => update('notas', e.target.value)} /></label>
       <div className="form-buttons span-2"><button type="button" className="back-button" onClick={() => { setForm(normalizeClient(current)); setEditing(false); }}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button></div>
     </form> : <div className="crm-detail-grid"><section className="ds-panel crm-info"><h2>Información principal</h2><dl>
       <Info label="Documento" value={current.documento} /><Info label="Teléfono" value={current.telefono} /><Info label="Correo" value={current.correo} /><Info label="Nacimiento" value={current.fechaNacimiento ? formatDate(current.fechaNacimiento) : ''} /><Info label="Profesión" value={current.profesion} />
-      <Info label="País" value={countryName(current.pais || DEFAULT_COUNTRY)} /><Info label="Departamento / Estado" value={current.departamento} />{current.provincia && <Info label="Provincia" value={current.provincia} />}<Info label="Distrito / Ciudad" value={current.distrito} /><Info label="Dirección" value={current.direccion} />
+      <Info label="Distrito" value={current.distrito} /><Info label="Dirección" value={current.direccion} />
       <Info label="Agente" value={current.agenteNombre || current.agenteDni} /><Info label="Estado" value={current.estado} />
     </dl></section><div className="crm-history-stack">
       <section className="ds-panel crm-history"><h2>Notas de fidelización</h2><p className="notes-text">{current.notas || 'Sin notas registradas.'}</p></section>

@@ -1,0 +1,22 @@
+/* El panel de usuarios prioriza tabla y acciones en pantallas pequeñas. */
+.user-admin-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 14px}.user-admin-summary article{display:flex;align-items:center;gap:10px;min-width:0;padding:13px 14px;border:1px solid var(--ds-border);border-radius:12px;background:var(--ds-surface)}.user-admin-summary>.material-symbols-outlined,.user-admin-summary article>.material-symbols-outlined{flex:0 0 auto;color:var(--color-primary);font-size:23px}.user-admin-summary div{min-width:0}.user-admin-summary small,.user-admin-summary b,.user-admin-summary em{display:block}.user-admin-summary small{color:var(--ds-fg-muted);font-size:10px;font-style:normal;font-weight:800;letter-spacing:.06em}.user-admin-summary b{margin:2px 0;color:var(--ds-fg);font-size:15px;line-height:1.2}.user-admin-summary em{overflow:hidden;color:var(--ds-fg-muted);font-size:11px;font-style:normal;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}.user-admin-page .panel-title{padding:16px 18px}.user-admin-page .panel-title p{margin-top:4px}.user-admin-page .table-head,.user-admin-page .table-row{padding:12px 18px}@media(max-width:760px){.user-admin-page .subtitle{margin:7px 0 14px;font-size:15px;line-height:1.45}.user-admin-summary{gap:8px;margin-bottom:12px}.user-admin-summary article{min-height:72px;padding:10px;gap:8px;border-radius:10px}.user-admin-summary article>.material-symbols-outlined{font-size:20px}.user-admin-summary b{font-size:13px}.user-admin-summary em{font-size:10px}.user-admin-page .panel-title{padding:14px}.user-admin-page .panel-title p{font-size:12px}.user-admin-page .panel-actions{gap:7px}.user-admin-page .table-head,.user-admin-page .table-row{padding:11px 14px}}
+
+/* Los filtros reutilizan los campos de .crm-filters, pero dentro del panel son
+   una banda y no otra tarjeta: sin borde propio ni esquinas redondeadas. */
+.user-admin-page .user-admin-filters{grid-template-columns:repeat(2,minmax(150px,220px)) auto;justify-content:start;align-items:end;margin:0;padding:13px 18px;border-width:0 0 1px;border-radius:0;background:var(--ds-surface-sunken)}
+.user-admin-page .user-admin-filters.is-collapsed{display:none}
+.user-admin-page .user-admin-empty{margin:0;padding:26px 18px;color:var(--ds-fg-muted);font-size:13px;text-align:center}
+/* El chevron se va al extremo solo cuando el botón se estira (móvil); en
+   escritorio no hay espacio sobrante y el margen automático no hace nada. */
+.user-admin-filter-toggle{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:9px 13px;border:1px solid var(--ds-border);border-radius:8px;background:var(--ds-surface-sunken);color:var(--color-primary);font:inherit;font-size:12px;font-weight:800;cursor:pointer;transition:border-color var(--ds-dur-fast) var(--ds-ease),background-color var(--ds-dur-fast) var(--ds-ease)}
+.user-admin-filter-toggle:hover{border-color:var(--color-primary);background:color-mix(in srgb,var(--color-primary) 9%,var(--ds-surface))}
+.user-admin-filter-toggle:focus-visible{outline:3px solid color-mix(in srgb,var(--color-primary) 24%,transparent);outline-offset:2px}
+.user-admin-filter-toggle.is-open{border-color:var(--color-primary);background:color-mix(in srgb,var(--color-primary) 10%,var(--ds-surface))}
+.user-admin-filter-toggle .material-symbols-outlined{font-size:19px}
+.user-admin-filter-toggle .material-symbols-outlined:last-child{margin-left:auto}
+.user-admin-filter-toggle small{display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--color-primary);color:var(--color-on-primary);font-size:10px;font-weight:850}
+@media(max-width:760px){.user-admin-page .user-admin-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px 14px}.user-admin-page .user-admin-filters label{font-size:12px}.user-admin-page .user-admin-filters select{min-height:44px}.user-admin-page .user-admin-filters .crm-clear-filters{grid-column:1/-1;min-height:44px}.user-admin-page .user-admin-empty{padding:22px 14px}.user-admin-filter-toggle{min-height:44px}}
+
+/* En móvil, filtros y alta comparten fila: apilados empujaban la tabla fuera de
+   la primera pantalla. El toggle se queda con su ancho y el alta ocupa el resto. */
+@media(max-width:760px){.user-admin-page .panel-actions{flex-direction:row;align-items:center}.user-admin-page .panel-actions .user-admin-filter-toggle{flex:0 0 auto}.user-admin-page .panel-actions .new-user-button{flex:1 1 auto;width:auto;min-width:0}}

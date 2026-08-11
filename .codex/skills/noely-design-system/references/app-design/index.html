@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#000666" />
+    <meta name="application-name" content="Sistema RX" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Sistema RX" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/rx-icon.svg" />
+    <title>Sistema RX</title>
+
+    <!--
+      Tema y marca antes del primer pintado: evita el destello del tema claro y
+      del color por defecto. Lee la misma caché que src/settings.ts
+      (loginapp_app_settings) y aplica los tokens --brand-*; el color de texto
+      sobre el primario lo calcula React al montar, mientras tanto vale el valor
+      declarado en design-system.css.
+    -->
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var settings = {};
+        try { settings = (JSON.parse(localStorage.getItem('loginapp_app_settings') || 'null') || {}).settings || {}; } catch (e) { /* caché ilegible */ }
+
+        var theme = null;
+        try { theme = localStorage.getItem('pwa_theme'); } catch (e) { /* almacenamiento no disponible */ }
+        if (theme !== 'dark' && theme !== 'light') theme = settings.defaultTheme === 'dark' ? 'dark' : 'light';
+        root.setAttribute('data-theme', theme);
+
+        var brand = { primaryColor: '--brand-primary', primaryColorDark: '--brand-primary-dark', brandGradientStart: '--brand-gradient-from', brandGradientEnd: '--brand-gradient-to' };
+        Object.keys(brand).forEach(function (key) {
+          if (/^#[0-9a-f]{6}$/i.test(settings[key] || '')) root.style.setProperty(brand[key], settings[key]);
+        });
+        if (settings.appName) document.title = settings.appName;
+      })();
+    </script>
+
+    <!-- Tipografía e iconos del sistema de diseño (design-system/portal-pwa/MASTER.md) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

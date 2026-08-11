@@ -30,10 +30,6 @@ function eventTime(value: string): number {
   return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 }
 
-function isNegotiation(item: Prospect): boolean {
-  return item.captado || Boolean(item.clienteId);
-}
-
 export default function Agenda({ user, isAdmin, onOpenProspect }: { user: User; isAdmin: boolean; onOpenProspect: (id: string) => void }) {
   const [items, setItems] = useState<Prospect[]>(() => readCrmCache(user.dni, 'prospects', []));
   const [loading, setLoading] = useState(!hasCrmCache(user.dni, 'prospects'));
@@ -56,8 +52,7 @@ export default function Agenda({ user, isAdmin, onOpenProspect }: { user: User; 
 
   const eventsByDay = useMemo(() => {
     const result = new Map<string, Prospect[]>();
-    // proximoContacto proviene de la interacción más reciente, tanto durante
-    // el seguimiento del prospecto como en la etapa de negociación.
+    // proximoContacto proviene de la interacción más reciente del prospecto.
     items.filter((item) => toDateInput(item.proximoContacto)).forEach((item) => {
       const key = toDateInput(item.proximoContacto);
       const dayEvents = result.get(key) || [];
@@ -91,7 +86,7 @@ export default function Agenda({ user, isAdmin, onOpenProspect }: { user: User; 
     <section className="page-content crm-page">
       <p className="eyebrow dark">SEGUIMIENTOS</p>
       <h1>Agenda</h1>
-      <p className="subtitle">Seguimientos y negociaciones programadas según el campo Próximo contacto de Interacciones.</p>
+      <p className="subtitle">Seguimientos programados según el campo Próximo contacto de Interacciones.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       {loading ? (
         <State icon="progress_activity" title="Cargando agenda" text="Consultando seguimientos…" spin />
@@ -146,19 +141,19 @@ export default function Agenda({ user, isAdmin, onOpenProspect }: { user: User; 
                       {visibleEvents.map((item) => (
                         <button
                           type="button"
-                          className={`agenda-event${isNegotiation(item) ? ' is-negotiation' : ''}`}
+                          className="agenda-event"
                           key={item.id}
                           onClick={(event) => {
                             event.stopPropagation();
                             if (window.matchMedia('(max-width: 760px)').matches) setSelectedDay(dayKey);
                             else onOpenProspect(item.id);
                           }}
-                          title={`${formatTime(item.proximoContacto)} · ${isNegotiation(item) ? 'Negociación' : 'Seguimiento'} · ${item.nombre} · ${item.telefono}`}
-                          aria-label={`Abrir ${item.nombre}, ${isNegotiation(item) ? 'negociación' : 'seguimiento'} a las ${formatTime(item.proximoContacto)}`}
+                          title={`${formatTime(item.proximoContacto)} · Seguimiento · ${item.nombre} · ${item.telefono}`}
+                          aria-label={`Abrir ${item.nombre}, seguimiento a las ${formatTime(item.proximoContacto)}`}
                         >
                           <span>{formatTime(item.proximoContacto)}</span>
                           <b>{item.nombre}</b>
-                          <small>{isNegotiation(item) ? 'Negociación · ' : ''}{item.telefono}</small>
+                          <small>{item.telefono}</small>
                           {isAdmin && <em>{item.agenteNombre || item.agenteDni}</em>}
                         </button>
                       ))}
@@ -191,7 +186,7 @@ export default function Agenda({ user, isAdmin, onOpenProspect }: { user: User; 
                     <dl>
                       <div><dt>Prospecto</dt><dd>{item.nombre}</dd></div>
                       <div><dt>Agente</dt><dd>{item.agenteNombre || item.agenteDni || 'Sin asignar'}</dd></div>
-                      <div><dt>Etapa</dt><dd>{isNegotiation(item) ? 'Negociación' : 'Seguimiento'}</dd></div>
+                      <div><dt>Etapa</dt><dd>Seguimiento</dd></div>
                     </dl>
                     <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
                   </button>

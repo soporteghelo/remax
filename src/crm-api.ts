@@ -1,6 +1,6 @@
-import { authenticatedRequest, type User } from './api';
+import { authenticatedRequest, isTimeoutError, type User } from './api';
 
-export type CatalogType = 'CANAL' | 'ESTADO' | 'RESULTADO' | 'RESULTADO CITA' | 'CAPTADO_RESULTADO' | 'CAPTADO_CITA' | 'REUNION';
+export type CatalogType = 'CANAL' | 'ESTADO' | 'RESULTADO' | 'CAPTADO_RESULTADO' | 'REUNION' | 'CATEGORIA_AGENTE';
 
 /**
  * CATALOGOS no tiene columna de código: la `etiqueta` es a la vez lo que se ve en
@@ -48,7 +48,6 @@ export interface Prospect {
   telefono: string;
   correo: string;
   canal: string;
-  estado: string;
   resultado: string;
   etapa: 'PROSPECTO' | 'NEGOCIACION' | 'CLIENTE' | 'NO CONTINUA';
   agenteDni: string;
@@ -59,9 +58,6 @@ export interface Prospect {
   observaciones: string;
   fechaNacimiento: string;
   profesion: string;
-  pais: string;
-  departamento: string;
-  provincia: string;
   distrito: string;
   direccion: string;
   notas: string;
@@ -82,7 +78,7 @@ export interface Interaction {
   resultado: string;
   comentario: string;
   proximoContacto: string;
-  estadoResultante: string;
+  estadoCaptacion: string;
   captacion: 'SI' | 'NO';
   etapa: 'PROSPECTO' | 'NEGOCIACION' | 'CLIENTE' | 'NO CONTINUA';
 }
@@ -96,13 +92,12 @@ export interface Client {
   correo: string;
   fechaNacimiento: string;
   profesion: string;
-  pais: string;
-  departamento: string;
-  provincia: string;
   distrito: string;
   direccion: string;
   fechaCierre: string;
   estado: string;
+  estadoCaptacion: string;
+  cierreVenta: string;
   notas: string;
   agenteDni: string;
   agenteNombre: string;
@@ -122,7 +117,7 @@ export interface DashboardData {
     tasaConversion: number;
   };
   funnel: Array<{ estado: string; total: number }>;
-  /** EstadoResultante de INTERACCIONES cuya Etapa es NEGOCIACION. */
+  /** Resultado de INTERACCIONES cuya Etapa es NEGOCIACION. */
   negotiationStates: Array<{ estado: string; total: number }>;
   /** Distribución de todas las INTERACCIONES por la columna Etapa. */
   interactionStages: Array<{ etapa: string; total: number }>;
@@ -161,9 +156,6 @@ export interface ProspectInput {
   /** Datos de captación. Se envían al editar la ficha completa del usuario. */
   fechaNacimiento?: string;
   profesion?: string;
-  pais?: string;
-  departamento?: string;
-  provincia?: string;
   distrito?: string;
   direccion?: string;
   notas?: string;
@@ -174,11 +166,6 @@ export interface ProspectInput {
 export interface ConvertDetails {
   fechaNacimiento: string;
   profesion: string;
-  /** ISO-2 del país; `PE` por defecto. */
-  pais: string;
-  departamento: string;
-  /** Solo Perú usa este nivel; en el resto de países va vacío. */
-  provincia: string;
   distrito: string;
   direccion: string;
   notas: string;
@@ -186,6 +173,8 @@ export interface ConvertDetails {
 }
 
 export interface InteractionInput {
+  /** Identifica un único envío para poder reintentarlo sin duplicar filas. */
+  requestId?: string;
   prospectoId: string;
   fechaHoraContacto: string;
   tipo: string;
@@ -194,13 +183,15 @@ export interface InteractionInput {
   resultado: string;
   comentario: string;
   proximoContacto: string;
-  estadoResultante: string;
+  estadoCaptacion?: string;
 }
 
 const cacheKey = (dni: string, name: string) => `fort_${name}_${dni}`;
 const CATALOG_CACHE_NAME = 'catalogs-v4';
-const DASHBOARD_RANGE_CACHE_MS = 5 * 60 * 1000;
-const DASHBOARD_CACHE_SCHEMA = 'v4-client-stage';
+// Las escrituras del CRM fuerzan una actualización mediante dataVersion; entre
+// cambios, conservar los agregados evita releer Apps Script al alternar filtros.
+const DASHBOARD_RANGE_CACHE_MS = 30 * 60 * 1000;
+const DASHBOARD_CACHE_SCHEMA = 'v7-sales-by-client-close';
 const pendingReads = new Map<string, Promise<unknown>>();
 const prospectDetailCacheName = (id: string): string => `prospect-detail-${id}`;
 
@@ -230,7 +221,7 @@ function protectedCachedInteractions(cache: ProspectDetailCache): Interaction[] 
 
 function prospectWithInteractions(prospect: Prospect, interactions: Interaction[]): Prospect {
   const latest = interactions[0];
-  return latest ? { ...prospect, estado: latest.estadoResultante, resultado: latest.resultado, etapa: latest.etapa, proximoContacto: latest.proximoContacto } : prospect;
+  return latest ? { ...prospect, resultado: latest.resultado, etapa: latest.etapa, proximoContacto: latest.proximoContacto } : prospect;
 }
 
 function updateCachedProspect(dni: string, prospect: Prospect): void {
@@ -240,11 +231,11 @@ function updateCachedProspect(dni: string, prospect: Prospect): void {
 }
 
 /** Comparte una misma lectura mientras está en curso para no duplicar llamadas. */
-async function sharedRead<T>(action: string, dni: string, payload: Record<string, unknown> = {}): Promise<T> {
-  const key = `${dni}|${action}|${JSON.stringify(payload)}`;
+async function sharedRead<T>(action: string, dni: string, payload: Record<string, unknown> = {}, timeoutMs?: number): Promise<T> {
+  const key = `${dni}|${action}|${timeoutMs || 'default'}|${JSON.stringify(payload)}`;
   const current = pendingReads.get(key);
   if (current) return current as Promise<T>;
-  const pending = authenticatedRequest<T>(action, dni, payload);
+  const pending = authenticatedRequest<T>(action, dni, payload, timeoutMs);
   pendingReads.set(key, pending);
   try { return await pending; }
   finally { if (pendingReads.get(key) === pending) pendingReads.delete(key); }
@@ -366,21 +357,43 @@ export async function saveProspect(dni: string, prospect: ProspectInput): Promis
 }
 
 export async function addInteraction(dni: string, interaction: InteractionInput): Promise<{ prospect: Prospect; interaction: Interaction }> {
-  const saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmAddInteraction', dni, { interaction });
+  const request = { ...interaction, requestId: interaction.requestId || `INT-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` };
+  let saved: { prospect: Prospect; interaction: Interaction };
+  try {
+    saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmAddInteraction', dni, { interaction: request }, 45000);
+  } catch (cause) {
+    if (!isTimeoutError(cause)) throw cause;
+    // Apps Script puede terminar la escritura después de que venza el navegador.
+    // Repetir la misma requestId es seguro: el servidor devuelve la fila existente.
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+    saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmAddInteraction', dni, { interaction: request }, 45000);
+  }
   const cached = readProspectInteractionsCache(dni, interaction.prospectoId);
   writeCache(dni, prospectDetailCacheName(interaction.prospectoId), { prospect: saved.prospect, interactions: mergeInteractions([saved.interaction], cached), protectedIds: [saved.interaction.id], preserveUntil: Date.now() + RECENT_WRITE_GRACE_MS });
   updateCachedProspect(dni, saved.prospect);
   return saved;
 }
 
-export async function convertProspect(dni: string, id: string, details: ConvertDetails): Promise<{ prospect: Prospect; capturedInteraction: Interaction | null }> {
-  const saved = await authenticatedRequest<{ prospect: Prospect; capturedInteraction: Interaction | null }>('crmConvertProspect', dni, { id, details });
+/** Cambia únicamente la programación de la última interacción del prospecto. */
+export async function rescheduleInteraction(dni: string, interactionId: string, proximoContacto: string): Promise<{ prospect: Prospect; interaction: Interaction }> {
+  const saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmRescheduleInteraction', dni, { interactionId, proximoContacto });
+  const cached = readProspectDetailCache(dni, saved.interaction.prospectoId);
+  const interactions = (cached.interactions || []).map((item) => item.id === saved.interaction.id ? saved.interaction : item);
+  writeCache(dni, prospectDetailCacheName(saved.interaction.prospectoId), { ...cached, prospect: saved.prospect, interactions });
+  updateCachedProspect(dni, saved.prospect);
+  return saved;
+}
+
+export async function convertProspect(dni: string, id: string, details: ConvertDetails): Promise<{ prospect: Prospect; client: Client; capturedInteraction: Interaction | null }> {
+  const saved = await authenticatedRequest<{ prospect: Prospect; client: Client; capturedInteraction: Interaction | null }>('crmConvertProspect', dni, { id, details });
   const cached = readProspectDetailCache(dni, id);
   const interactions = saved.capturedInteraction
     ? (cached.interactions || []).map((item) => item.id === saved.capturedInteraction?.id ? saved.capturedInteraction : item)
     : (cached.interactions || []);
   writeCache(dni, prospectDetailCacheName(id), { ...cached, prospect: saved.prospect, interactions });
   updateCachedProspect(dni, saved.prospect);
+  const clients = readCrmCache<Client[]>(dni, 'clients', []);
+  writeCache(dni, 'clients', [saved.client, ...clients.filter((item) => item.id !== saved.client.id)]);
   return saved;
 }
 
@@ -448,14 +461,29 @@ export async function saveClient(dni: string, client: Partial<Client> & { id: st
   return saved;
 }
 
-export async function dashboard(dni: string, from = '', to = '', cacheName = 'dashboard', force = false): Promise<DashboardData> {
-  const rangeCacheName = `${cacheName}-${DASHBOARD_CACHE_SCHEMA}-range-${from || 'all'}-${to || 'all'}`;
+export async function dashboard(dni: string, from = '', to = '', cacheName = 'dashboard', force = false, agentDni = ''): Promise<DashboardData> {
+  // Ambos bloques consumen la misma respuesta del servidor. La caché por
+  // combinación se comparte para que repetir agente+rango abajo no duplique la
+  // lectura que ya se hizo arriba (cacheName solo conserva la vista vigente).
+  const rangeCacheName = `dashboard-${DASHBOARD_CACHE_SCHEMA}-range-${from || 'all'}-${to || 'all'}-${agentDni || 'all'}`;
   const cached = force ? null : readFreshCrmCache<DashboardData>(dni, rangeCacheName, DASHBOARD_RANGE_CACHE_MS);
   if (cached) {
     writeCache(dni, cacheName, cached);
     return cached;
   }
-  const data = await sharedRead<DashboardData>('crmDashboard', dni, { from, to });
+  const stale = readCrmCache<DashboardData | null>(dni, rangeCacheName, null);
+  let data: DashboardData;
+  try {
+    data = await sharedRead<DashboardData>('crmDashboard', dni, { from, to, agentDni }, 45000);
+  } catch (cause) {
+    // Esta consulta solo lee. Ante un arranque frío que supere el tiempo del
+    // navegador, reutilizar la copia de esta misma combinación es seguro; si
+    // aún no existe, se reintenta una vez para aprovechar la caché del servidor.
+    if (!isTimeoutError(cause)) throw cause;
+    if (stale) return stale;
+    await new Promise((resolve) => window.setTimeout(resolve, 650));
+    data = await sharedRead<DashboardData>('crmDashboard', dni, { from, to, agentDni }, 45000);
+  }
   writeCache(dni, cacheName, data);
   writeCache(dni, rangeCacheName, data);
   return data;
@@ -469,6 +497,6 @@ export async function exportProspects(dni: string, filters: Record<string, strin
   return authenticatedRequest('crmExportProspects', dni, { filters });
 }
 
-export async function saveProfile(dni: string, profile: { nombres: string; apellidos: string }): Promise<User> {
+export async function saveProfile(dni: string, profile: { nombres: string; apellidos: string; correo?: string; celular?: string }): Promise<User> {
   return authenticatedRequest<User>('crmUpdateProfile', dni, { profile });
 }

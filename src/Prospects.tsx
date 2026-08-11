@@ -2,26 +2,34 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isNetworkError, isTimeoutError, type User } from './api';
 import {
-  addInteraction, convertProspect, convertProspectToClient, exportProspects, getProspect, hasCrmCache, hasProspectDetailCache, listAgents, listCatalogs, listProspects,
-  markProspectNoContinue, readCatalogCache, readCrmCache, readProspectInteractionsCache, reassignProspect, restoreProspectStage, saveProspect, type CatalogItem, type ConvertDetails, type CustomField, type Interaction, type Prospect, type ProspectInput,
+  addInteraction, convertProspect, exportProspects, getClient, getProspect, hasCrmCache, hasProspectDetailCache, listAgents, listCatalogs, listProspects,
+  readCatalogCache, readCrmCache, readProspectInteractionsCache, reassignProspect, rescheduleInteraction, saveClient, saveProspect, type CatalogItem, type ConvertDetails, type CustomField, type Interaction, type Prospect, type ProspectInput,
 } from './crm-api';
-import { formatDate as formatDateOnly, formatDateTime, toDateTimeInput } from './dates';
-import GeoFields, { type GeoValue } from './GeoFields';
-import { countryName, DEFAULT_COUNTRY, levelsFor } from './geo';
+import { formatDate as formatDateOnly, formatDateTime, toDateInput, toDateTimeInput } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
 
 type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; id: string } | { name: 'edit'; id: string };
-type ProspectSortKey = 'nombre' | 'estado' | 'canal' | 'proximoContacto' | 'agente' | 'etapa';
+type ProspectSortKey = 'nombre' | 'resultado' | 'canal' | 'proximoContacto' | 'agente' | 'etapa';
 const EMPTY: ProspectInput = { nombre: '', documento: '', telefono: '', correo: '', canal: '', observaciones: '' };
 const OTHER_MEDIUM = '__OTRO__';
 
-/** Solo los datos editables del prospecto; estado, resultado y próxima fecha se gestionan desde sus interacciones. */
+/** Solo los datos editables del prospecto; resultado y próxima fecha se gestionan desde sus interacciones. */
 function prospectInput(item: Prospect): ProspectInput {
   return { id: item.id, nombre: item.nombre, documento: item.documento, telefono: item.telefono, correo: item.correo, canal: item.canal, agenteDni: item.agenteDni, observaciones: item.observaciones, camposPersonalizados: item.camposPersonalizados };
 }
 
 const activeOptions = (catalogs: CatalogItem[], type: string): CatalogItem[] => catalogs.filter((item) => item.tipo === type && item.activo);
 const interactionContactDate = (item: Interaction): string => item.fechaHoraContacto || item.fechaHora || '';
+const isCaptureInteraction = (item: Interaction): boolean => item.captacion === 'SI' || item.resultado.trim().toLocaleUpperCase('es-PE') === 'CAPTACION CERRADA';
+const isWithdrawalInteraction = (item: Interaction | undefined): boolean => item?.estadoCaptacion.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleUpperCase('es-PE') === 'DESISTIO';
+/** La venta debe ocurrir en un día posterior al de la captación. */
+function dayAfter(value: string): string {
+  const date = toDateInput(value);
+  if (!date) return '';
+  const [year, month, day] = date.split('-').map(Number);
+  const next = new Date(year, month - 1, day + 1);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+}
 /**
  * La etiqueta del catálogo es el valor que se guarda: se conserva la del registro
  * mientras siga existiendo y, si el administrador la quitó o renombró, se propone
@@ -86,7 +94,7 @@ export default function Prospects({ user, isAdmin, initialId = '' }: { user: Use
     const item = items.find((row) => row.id === view.id);
     if (!item) content = <State icon="search_off" title="Prospecto no disponible" text="Vuelve al listado y sincroniza los datos." action={() => setView({ name: 'list' })} />;
     else if (view.name === 'edit') content = <ProspectForm value={prospectInput(item)} dni={user.dni} catalogs={catalogs} agents={agents} isAdmin={isAdmin} onCancel={() => setView({ name: 'detail', id: item.id })} onSave={async (value) => saved(await saveProspect(user.dni, { ...value, id: item.id }), 'Cambios guardados correctamente.')} />;
-    else content = <ProspectDetail prospect={item} user={user} isAdmin={isAdmin} catalogs={catalogs} agents={agents} confirmation={confirmation} onBack={() => { setConfirmation(''); setView({ name: 'list' }); }} onEdit={() => { setConfirmation(''); setView({ name: 'edit', id: item.id }); }} onChanged={saved} />;
+    else content = <ProspectDetail prospect={item} user={user} isAdmin={isAdmin} catalogs={catalogs} agents={agents} professions={items.map((row) => row.profesion)} confirmation={confirmation} onBack={() => { setConfirmation(''); setView({ name: 'list' }); }} onEdit={() => { setConfirmation(''); setView({ name: 'edit', id: item.id }); }} onChanged={saved} />;
   }
   return <div className="page-transition crm-inner-transition" key={`${view.name}-${'id' in view ? view.id : ''}`}>{content}</div>;
 }
@@ -95,19 +103,19 @@ function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, o
   items: Prospect[]; loading: boolean; error: string; catalogs: CatalogItem[]; agents: User[]; isAdmin: boolean; dni: string;
   onNew: () => void; onOpen: (id: string) => void;
 }) {
-  const [query, setQuery] = useState(''); const [estado, setEstado] = useState(''); const [etapa, setEtapa] = useState(''); const [resultado, setResultado] = useState(''); const [captado, setCaptado] = useState(''); const [agente, setAgente] = useState('');
+  const [query, setQuery] = useState(''); const [etapa, setEtapa] = useState(''); const [resultado, setResultado] = useState(''); const [captado, setCaptado] = useState(''); const [agente, setAgente] = useState('');
   const [exporting, setExporting] = useState(false); const [exportError, setExportError] = useState(''); const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<ProspectSortKey | null>(null); const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const hasActiveFilters = Boolean(query || estado || etapa || resultado || captado || agente);
-  const activeFiltersCount = [query, estado, etapa, resultado, captado, agente].filter(Boolean).length;
-  const clearFilters = () => { setQuery(''); setEstado(''); setEtapa(''); setResultado(''); setCaptado(''); setAgente(''); };
+  const hasActiveFilters = Boolean(query || etapa || resultado || captado || agente);
+  const activeFiltersCount = [query, etapa, resultado, captado, agente].filter(Boolean).length;
+  const clearFilters = () => { setQuery(''); setEtapa(''); setResultado(''); setCaptado(''); setAgente(''); };
   const filtered = useMemo(() => items.filter((item) => {
     const haystack = `${item.nombre} ${item.documento} ${item.telefono}`.toLowerCase();
-    return (!query || haystack.includes(query.toLowerCase())) && (!estado || item.estado === estado) && (!etapa || (item.etapa || 'PROSPECTO') === etapa) && (!resultado || item.resultado === resultado) && (!captado || item.captado === (captado === 'SI')) && (!agente || item.agenteDni === agente);
-  }), [items, query, estado, etapa, resultado, captado, agente]);
+    return (!query || haystack.includes(query.toLowerCase())) && (!etapa || (item.etapa || 'PROSPECTO') === etapa) && (!resultado || item.resultado === resultado) && (!captado || item.captado === (captado === 'SI')) && (!agente || item.agenteDni === agente);
+  }), [items, query, etapa, resultado, captado, agente]);
   const ordered = useMemo(() => {
     if (!sortBy) return filtered;
-    const value = (item: Prospect): string => ({ nombre: item.nombre, estado: item.estado, canal: item.canal, proximoContacto: item.proximoContacto, agente: item.agenteNombre || item.agenteDni, etapa: item.etapa || 'PROSPECTO' })[sortBy] || '';
+    const value = (item: Prospect): string => ({ nombre: item.nombre, resultado: item.resultado, canal: item.canal, proximoContacto: item.proximoContacto, agente: item.agenteNombre || item.agenteDni, etapa: item.etapa || 'PROSPECTO' })[sortBy] || '';
     return [...filtered].sort((left, right) => {
       if (sortBy === 'proximoContacto') {
         const leftDate = Date.parse(value(left)); const rightDate = Date.parse(value(right));
@@ -123,7 +131,7 @@ function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, o
   const download = async () => {
     setExporting(true); setExportError('');
     try {
-      const result = await exportProspects(dni, { estado, etapa, resultado, captado, agente });
+      const result = await exportProspects(dni, { etapa, resultado, captado, agente });
       const url = URL.createObjectURL(new Blob(['\ufeff', result.csv], { type: 'text/csv;charset=utf-8' }));
       const link = document.createElement('a'); link.href = url; link.download = result.filename; link.click(); URL.revokeObjectURL(url);
     } catch (cause) { setExportError(messageOf(cause)); }
@@ -134,8 +142,7 @@ function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, o
     <button className="crm-mobile-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="prospect-filters" onClick={() => setFiltersOpen((current) => !current)}><span className="material-symbols-outlined">filter_list</span><span>Filtros</span>{hasActiveFilters && <small>{activeFiltersCount}</small>}<span className="material-symbols-outlined">{filtersOpen ? 'expand_less' : 'expand_more'}</span></button>
     <div id="prospect-filters" className={`crm-filters crm-prospect-filters${isAdmin ? ' is-admin' : ''}${filtersOpen ? ' is-open' : ' is-collapsed'}`}>
       <label className="crm-search"><span>Buscar</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre, documento o teléfono" /></label>
-      <Filter label="Resultado de la cita" value={estado} onChange={setEstado} items={options('RESULTADO CITA')} />
-      <label><span>Etapa</span><select value={etapa} onChange={(e) => setEtapa(e.target.value)}><option value="">Todos</option><option value="PROSPECTO">PROSPECTO</option><option value="NEGOCIACION">NEGOCIACION</option><option value="CLIENTE">CLIENTE</option><option value="NO CONTINUA">NO CONTINUA</option></select></label>
+      <label><span>Etapa</span><select value={etapa} onChange={(e) => setEtapa(e.target.value)}><option value="">Todos</option><option value="PROSPECTO">PROSPECTO</option><option value="CLIENTE">CLIENTE</option><option value="NO CONTINUA">NO CONTINUA</option></select></label>
       <Filter label="Resultado" value={resultado} onChange={setResultado} items={options('RESULTADO')} />
       <div className="crm-captured-filter"><span>Usuario captado</span><div role="group" aria-label="Filtrar por usuario captado">
         {[{ value: '', label: 'Ambos' }, { value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }].map((option) => <button type="button" className={captado === option.value ? 'is-active' : ''} aria-pressed={captado === option.value} onClick={() => setCaptado(option.value)} key={option.value || 'AMBOS'}>{option.label}</button>)}
@@ -145,7 +152,7 @@ function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, o
     </div>
     {(error || exportError) && <p className="form-error" role="alert">{error || exportError}</p>}
     {loading ? <State icon="progress_activity" title="Cargando prospectos" text="Consultando la operación comercial…" spin /> : !filtered.length ? <State icon="person_search" title="Sin prospectos" text={items.length ? 'No hay coincidencias con los filtros.' : 'Crea el primer prospecto para comenzar.'} action={!items.length ? onNew : undefined} /> :
-      <div className="crm-table-wrap"><table className="crm-table"><thead><tr><SortHeader label="Prospecto" active={sortBy === 'nombre'} direction={sortDirection} onClick={() => toggleSort('nombre')} /><SortHeader label="Resultado de la cita" active={sortBy === 'estado'} direction={sortDirection} onClick={() => toggleSort('estado')} /><SortHeader label="Canal" active={sortBy === 'canal'} direction={sortDirection} onClick={() => toggleSort('canal')} /><SortHeader label="Próximo contacto" active={sortBy === 'proximoContacto'} direction={sortDirection} onClick={() => toggleSort('proximoContacto')} />{isAdmin && <SortHeader label="Agente" active={sortBy === 'agente'} direction={sortDirection} onClick={() => toggleSort('agente')} />}<SortHeader label="Etapa" active={sortBy === 'etapa'} direction={sortDirection} onClick={() => toggleSort('etapa')} /></tr></thead><tbody>{ordered.map((item) => <tr key={item.id} onClick={() => onOpen(item.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(item.id); }}><td data-label="Prospecto"><b>{item.nombre}</b><small>{item.documento || item.telefono}</small></td><td data-label="Resultado de la cita"><Badge value={item.estado} /></td><td data-label="Canal">{item.canal}</td><td data-label="Próximo contacto">{formatDate(item.proximoContacto)}</td>{isAdmin && <td data-label="Agente">{item.agenteNombre || item.agenteDni}</td>}<td data-label="Etapa"><StageBadge value={item.etapa || 'PROSPECTO'} /></td></tr>)}</tbody></table></div>}
+      <div className="crm-table-wrap"><table className="crm-table"><thead><tr><SortHeader label="Prospecto" active={sortBy === 'nombre'} direction={sortDirection} onClick={() => toggleSort('nombre')} /><SortHeader label="Resultado" active={sortBy === 'resultado'} direction={sortDirection} onClick={() => toggleSort('resultado')} /><SortHeader label="Canal" active={sortBy === 'canal'} direction={sortDirection} onClick={() => toggleSort('canal')} /><SortHeader label="Próximo contacto" active={sortBy === 'proximoContacto'} direction={sortDirection} onClick={() => toggleSort('proximoContacto')} />{isAdmin && <SortHeader label="Agente" active={sortBy === 'agente'} direction={sortDirection} onClick={() => toggleSort('agente')} />}<SortHeader label="Etapa" active={sortBy === 'etapa'} direction={sortDirection} onClick={() => toggleSort('etapa')} /></tr></thead><tbody>{ordered.map((item) => <tr key={item.id} onClick={() => onOpen(item.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(item.id); }}><td data-label="Prospecto"><b>{item.nombre}</b><small>{item.documento || item.telefono}</small></td><td data-label="Resultado"><Badge value={item.resultado} /></td><td data-label="Canal">{item.canal}</td><td data-label="Próximo contacto">{formatDate(item.proximoContacto)}</td>{isAdmin && <td data-label="Agente">{item.agenteNombre || item.agenteDni}</td>}<td data-label="Etapa"><StageBadge value={item.etapa || 'PROSPECTO'} /></td></tr>)}</tbody></table></div>}
   </section>;
 }
 
@@ -187,21 +194,18 @@ function ProspectForm({ value, dni, catalogs, agents, isAdmin, onCancel, onSave 
   </section>;
 }
 
-function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, confirmation, onBack, onEdit, onChanged }: { prospect: Prospect; user: User; isAdmin: boolean; catalogs: CatalogItem[]; agents: User[]; confirmation: string; onBack: () => void; onEdit: () => void; onChanged: (prospect: Prospect, message?: string) => void }) {
-  const [interactions, setInteractions] = useState<Interaction[]>(() => readProspectInteractionsCache(user.dni, prospect.id)); const [historyLoading, setHistoryLoading] = useState(() => !hasProspectDetailCache(user.dni, prospect.id)); const [error, setError] = useState(''); const [showInteraction, setShowInteraction] = useState(false); const [showConvert, setShowConvert] = useState(false); const [showCapturedDetails, setShowCapturedDetails] = useState(false); const [showClientData, setShowClientData] = useState(false); const [showClientConfirm, setShowClientConfirm] = useState(false); const [busy, setBusy] = useState(false); const [clientBusy, setClientBusy] = useState(false); const [stageBusy, setStageBusy] = useState(false);
+function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions, confirmation, onBack, onEdit, onChanged }: { prospect: Prospect; user: User; isAdmin: boolean; catalogs: CatalogItem[]; agents: User[]; professions: string[]; confirmation: string; onBack: () => void; onEdit: () => void; onChanged: (prospect: Prospect, message?: string) => void }) {
+  const [interactions, setInteractions] = useState<Interaction[]>(() => readProspectInteractionsCache(user.dni, prospect.id)); const [historyLoading, setHistoryLoading] = useState(() => !hasProspectDetailCache(user.dni, prospect.id)); const [error, setError] = useState(''); const [showInteraction, setShowInteraction] = useState(false); const [showConvert, setShowConvert] = useState(false); const [showCapturedDetails, setShowCapturedDetails] = useState(false); const [busy, setBusy] = useState(false); const [editingNextContact, setEditingNextContact] = useState(''); const [nextContactValue, setNextContactValue] = useState(''); const [rescheduling, setRescheduling] = useState(false);
   const interactionSectionRef = useRef<HTMLElement>(null);
   const latestInteraction = interactions[0];
+  const latestInteractionIsWithdrawal = isWithdrawalInteraction(latestInteraction);
+  const canCapture = interactions.length > 0 && !latestInteractionIsWithdrawal;
+  const captureUnavailableMessage = latestInteractionIsWithdrawal ? 'El prospecto desistió en la última interacción y no puede captarse.' : 'Registra al menos una interacción antes de captar al prospecto.';
   const captured = Boolean(prospect.captado || prospect.clienteId);
-  const historicalInteractions = interactions.filter((item) => item.etapa !== 'NEGOCIACION' && item.etapa !== 'CLIENTE' && item.etapa !== 'NO CONTINUA');
-  const negotiationInteractions = interactions.filter((item) => item.etapa === 'NEGOCIACION' || item.etapa === 'CLIENTE' || item.etapa === 'NO CONTINUA');
   const displayedResult = latestInteraction?.resultado ?? '';
-  const displayedState = latestInteraction?.estadoResultante ?? '';
   const displayedNextContact = latestInteraction?.proximoContacto ?? '';
   const currentStage = (prospect.etapa || latestInteraction?.etapa || '').toUpperCase();
-  const isClient = displayedState.trim().toUpperCase() === 'CLIENTE' || currentStage === 'CLIENTE';
-  const isNoContinue = currentStage === 'NO CONTINUA';
-  const isNegotiating = currentStage === 'NEGOCIACION';
-  const showStageActions = !isClient;
+  const isClient = currentStage === 'CLIENTE';
   useEffect(() => {
     if (showInteraction) interactionSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [showInteraction]);
@@ -211,7 +215,9 @@ function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, confirmatio
       if (document.hidden) return;
       getProspect(user.dni, prospect.id)
         .then((data) => { if (active) setInteractions(data.interactions); })
-        .catch((cause) => { if (active) setError(messageOf(cause)); })
+        // Es una actualización silenciosa: si falla, se conserva la ficha y el
+        // historial disponibles. El control global de nube ya comunica conexión.
+        .catch(() => undefined)
         .finally(() => { if (active) setHistoryLoading(false); });
     };
     loadHistory();
@@ -221,66 +227,65 @@ function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, confirmatio
     return () => { active = false; window.clearTimeout(confirmationRefresh); window.removeEventListener('focus', loadHistory); document.removeEventListener('visibilitychange', loadHistory); };
   }, [user.dni, prospect.id]);
   const reassign = async (agentDni: string) => { if (!agentDni || agentDni === prospect.agenteDni) return; setBusy(true); try { onChanged(await reassignProspect(user.dni, prospect.id, agentDni), 'Prospecto reasignado correctamente.'); markSaved(); } catch (cause) { setError(messageOf(cause)); } finally { setBusy(false); } };
-  const convertToClient = async () => {
-    setClientBusy(true); setError('');
-    try {
-      const saved = await convertProspectToClient(user.dni, prospect.id);
-      if (saved.clientInteraction) setInteractions((current) => current.map((item) => item.id === saved.clientInteraction?.id ? saved.clientInteraction : item));
-      setShowInteraction(false); markSaved(); onChanged(saved.prospect, 'Usuario captado convertido en cliente correctamente.');
-    }
-    catch (cause) {
-      if (isNetworkError(cause)) { queueChange({ kind: 'convertir-cliente', label: `Conversión a cliente de ${prospect.nombre}`, payload: { id: prospect.id } }); setError('La conversión a cliente quedó pendiente y se enviará al recuperar conexión.'); }
-      else if (isTimeoutError(cause)) setError('El servicio tardó demasiado en responder. Sincroniza para comprobar si el cliente ya se registró antes de repetir la conversión.');
-      else setError(messageOf(cause));
-    } finally { setClientBusy(false); }
-  };
-  const stopProspect = async () => {
-    setStageBusy(true); setError('');
-    try {
-      const saved = await markProspectNoContinue(user.dni, prospect.id);
-      setInteractions((current) => [saved.interaction, ...current.filter((item) => item.id !== saved.interaction.id)].sort((a, b) => new Date(interactionContactDate(b)).getTime() - new Date(interactionContactDate(a)).getTime()));
-      setShowInteraction(false); markSaved(); onChanged(saved.prospect, 'Etapa actualizada a NO CONTINUA.');
-    } catch (cause) {
-      if (isNetworkError(cause)) { queueChange({ kind: 'marcar-no-continua', label: `Cierre de ${prospect.nombre} como NO CONTINUA`, payload: { id: prospect.id } }); setError('El cambio a NO CONTINUA quedó pendiente y se enviará al recuperar conexión.'); }
-      else if (isTimeoutError(cause)) setError('El servicio tardó demasiado en responder. Sincroniza para comprobar si la etapa ya se actualizó.');
-      else setError(messageOf(cause));
-    } finally { setStageBusy(false); }
-  };
-  const restoreProspect = async () => {
-    setStageBusy(true); setError('');
-    try {
-      const saved = await restoreProspectStage(user.dni, prospect.id);
-      setInteractions((current) => [saved.interaction, ...current.filter((item) => item.id !== saved.interaction.id)].sort((a, b) => new Date(interactionContactDate(b)).getTime() - new Date(interactionContactDate(a)).getTime()));
-      markSaved(); onChanged(saved.prospect, 'Etapa restaurada a PROSPECTO.');
-    } catch (cause) {
-      if (isNetworkError(cause)) { queueChange({ kind: 'restaurar-prospecto', label: `Reapertura de ${prospect.nombre} como PROSPECTO`, payload: { id: prospect.id } }); setError('El cambio a PROSPECTO quedó pendiente y se enviará al recuperar conexión.'); }
-      else if (isTimeoutError(cause)) setError('El servicio tardó demasiado en responder. Sincroniza para comprobar si la etapa ya se restauró.');
-      else setError(messageOf(cause));
-    } finally { setStageBusy(false); }
-  };
   const interactionSaved = (result: { prospect: Prospect; interaction: Interaction }) => {
     setInteractions((current) => [...current.filter((item) => item.id !== result.interaction.id), result.interaction].sort((a, b) => new Date(interactionContactDate(b)).getTime() - new Date(interactionContactDate(a)).getTime()));
-    onChanged(result.prospect, captured ? 'Negociación registrada correctamente.' : 'Interacción registrada correctamente.');
+    setError('');
+    onChanged(result.prospect, result.interaction.etapa === 'NO CONTINUA' ? 'Interacción registrada y prospecto cerrado como NO CONTINUA por desistimiento.' : 'Interacción registrada correctamente.');
     setShowInteraction(false);
   };
+  const startRescheduling = (item: Interaction) => { setError(''); setEditingNextContact(item.id); setNextContactValue(toDateTimeInput(item.proximoContacto)); };
+  const cancelRescheduling = () => { setEditingNextContact(''); setNextContactValue(''); };
+  const saveNextContact = async (item: Interaction) => {
+    if (!nextContactValue) return setError('Indica la nueva fecha y hora de programación.');
+    setRescheduling(true); setError('');
+    try {
+      const saved = await rescheduleInteraction(user.dni, item.id, nextContactValue);
+      setInteractions((current) => current.map((currentItem) => currentItem.id === saved.interaction.id ? saved.interaction : currentItem));
+      markSaved(); onChanged(saved.prospect, 'Programación actualizada correctamente.'); cancelRescheduling();
+    } catch (cause) {
+      if (isNetworkError(cause)) { queueChange({ kind: 'reprogramar-interaccion', label: `Reprogramación de ${prospect.nombre}`, payload: { interactionId: item.id, proximoContacto: nextContactValue } }); setError('La nueva programación quedó pendiente y se enviará desde la nube al recuperar conexión.'); cancelRescheduling(); }
+      else if (isTimeoutError(cause)) setError('El servicio tardó demasiado en responder. Sincroniza para confirmar la programación.');
+      else setError(messageOf(cause));
+    } finally { setRescheduling(false); }
+  };
   return <section className="page-content crm-page"><button className="back-button" type="button" onClick={onBack}><span className="material-symbols-outlined">arrow_back</span>Volver al listado</button>
-    <div className="crm-heading"><div><p className="eyebrow dark">DETALLE DEL PROSPECTO</p><h1>{prospect.nombre}</h1><p className="subtitle">Creado {formatDate(prospect.fechaCreacion)}</p></div><div className="crm-actions"><button className="back-button" type="button" onClick={onEdit}><span className="material-symbols-outlined">edit</span>Editar</button>{!isClient && !isNoContinue && <button className="primary-button" type="button" onClick={() => setShowInteraction(!showInteraction)}><span className="material-symbols-outlined">add_call</span>{captured ? 'Registrar negociación' : 'Registrar interacción'}</button>}</div></div>
+    <div className="crm-heading"><div><p className="eyebrow dark">DETALLE DEL PROSPECTO</p><h1>{prospect.nombre}</h1><p className="subtitle">Creado {formatDate(prospect.fechaCreacion)}</p></div><div className="crm-actions"><button className="back-button" type="button" onClick={onEdit}><span className="material-symbols-outlined">edit</span>Editar</button>{!isClient && <button className="primary-button" type="button" onClick={() => setShowInteraction(!showInteraction)}><span className="material-symbols-outlined">add_call</span>Registrar interacción</button>}</div></div>
     {confirmation && <p className="form-success" role="status"><span className="material-symbols-outlined">check_circle</span>{confirmation}</p>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    <div className="crm-detail-grid"><section className="ds-panel crm-info"><div className="crm-info-heading"><h2>Información principal</h2>{captured && <button className="back-button crm-full-details-button" type="button" onClick={() => setShowCapturedDetails(true)}><span className="material-symbols-outlined">visibility</span>Ver detalles completos</button>}</div><dl><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Canal" value={prospect.canal} /><Field label="Resultado de la cita" value={displayedState ? <Badge value={displayedState} /> : ''} /><Field label="Resultado" value={displayedResult} /><Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} /><Field label="Próximo contacto" value={displayedNextContact ? formatDate(displayedNextContact) : ''} /></dl>{prospect.observaciones && <div className="crm-notes"><b>Observaciones</b><p>{prospect.observaciones}</p></div>}
+    <div className="crm-detail-grid"><section className="ds-panel crm-info"><div className="crm-info-heading"><h2>Información principal</h2>{captured && <button className="back-button crm-full-details-button" type="button" onClick={() => setShowCapturedDetails(true)}><span className="material-symbols-outlined">visibility</span>Ver detalles completos</button>}</div><dl><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Canal" value={prospect.canal} /><Field label="Resultado" value={displayedResult} /><Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} /><Field label="Próximo contacto" value={displayedNextContact ? formatDate(displayedNextContact) : ''} /></dl>{prospect.observaciones && <div className="crm-notes"><b>Observaciones</b><p>{prospect.observaciones}</p></div>}
       {isAdmin && <label className="crm-reassign">Reasignar a<select value={prospect.agenteDni} disabled={busy} onChange={(e) => void reassign(e.target.value)}>{agents.filter((row) => row.estado === 'ACTIVO').map((row) => <option value={row.dni} key={row.dni}>{row.nombres} {row.apellidos}</option>)}</select></label>}
-      {!captured && <div className="crm-convert crm-client-convert"><button className="success-button" type="button" onClick={() => setShowConvert(true)}><span className="material-symbols-outlined">verified</span>Convertir en usuario captado</button>{showConvert && <ConvertForm prospect={prospect} dni={user.dni} onCancel={() => setShowConvert(false)} onSaved={(result) => { if (result.capturedInteraction) setInteractions((current) => current.map((item) => item.id === result.capturedInteraction?.id ? result.capturedInteraction : item)); onChanged(result.prospect, 'Prospecto convertido en usuario captado.'); setShowConvert(false); }} />}</div>}
-      {showStageActions && <div className="crm-convert crm-client-convert crm-stage-actions">{isNoContinue ? <button className="primary-button" type="button" disabled={stageBusy} onClick={() => void restoreProspect()}><span className="material-symbols-outlined">person</span>{stageBusy ? 'Actualizando…' : 'Prospecto'}</button> : <>{captured && <button className="success-button" type="button" disabled={clientBusy || stageBusy || !isNegotiating} title={!isNegotiating ? 'Registra primero una negociación para habilitar esta conversión.' : undefined} onClick={() => setShowClientData(true)}><span className="material-symbols-outlined">person_check</span>{clientBusy ? 'Convirtiendo…' : isNegotiating ? 'Convertir a cliente' : 'Disponible al negociar'}</button>}<button className="danger-button" type="button" disabled={clientBusy || stageBusy} onClick={() => void stopProspect()}><span className="material-symbols-outlined">person_cancel</span>{stageBusy ? 'Actualizando…' : 'No continúa'}</button></>}</div>}
+      {!captured && (
+        <div className="crm-prospect-actions"><div className="crm-convert">
+          <button className="success-button" type="button" disabled={!canCapture} title={canCapture ? undefined : captureUnavailableMessage} onClick={() => setShowConvert(true)}><span className="material-symbols-outlined">verified</span>Captar y registrar cliente</button>
+          {showConvert && <ConvertForm prospect={prospect} dni={user.dni} professions={professions} onCancel={() => setShowConvert(false)} onSaved={(result) => {
+            if (result.capturedInteraction) setInteractions((current) => current.map((item) => item.id === result.capturedInteraction?.id ? result.capturedInteraction : item));
+            onChanged(result.prospect, 'Prospecto captado y registrado como cliente.');
+            setShowConvert(false);
+          }} />}
+        </div></div>
+      )}
       {isClient && <div className="crm-client-stamp" role="status" aria-label="Este usuario ya es cliente"><span className="material-symbols-outlined" aria-hidden="true">verified</span><div><strong>CLIENTE</strong><small>Conversión completada</small></div></div>}
     </section>
     <div className="crm-history-stack">
-      <section className="ds-panel crm-history"><h2>Historial</h2>{!captured && showInteraction && <InteractionForm prospect={prospect} catalogs={catalogs} dni={user.dni} captured={false} onCancel={() => setShowInteraction(false)} onSaved={interactionSaved} />}{historyLoading && !interactions.length ? <State icon="progress_activity" title="Cargando historial" text="Consultando interacciones…" spin /> : <InteractionTimeline items={historicalInteractions} emptyTitle="Sin interacciones" emptyText="Registra el primer contacto comercial." />}</section>
-      {captured && <section ref={interactionSectionRef} className="ds-panel crm-history crm-negotiation"><h2>NEGOCIACION</h2>{!isClient && !isNoContinue && showInteraction && <InteractionForm prospect={prospect} catalogs={catalogs} dni={user.dni} captured onCancel={() => setShowInteraction(false)} onSaved={interactionSaved} />}<InteractionTimeline items={negotiationInteractions} emptyTitle="Sin negociaciones" emptyText="Registra el primer contacto posterior a la captación." /></section>}
+      <section ref={interactionSectionRef} className="ds-panel crm-history"><div className="crm-history-heading"><h2>Historial</h2>{captured && prospect.clienteId && <SaleCloseControl clientId={prospect.clienteId} dni={user.dni} captureDate={interactionContactDate(interactions.find(isCaptureInteraction) ?? latestInteraction)} latestContactDate={interactionContactDate(latestInteraction)} />}</div>{!isClient && showInteraction && <InteractionForm prospect={prospect} catalogs={catalogs} dni={user.dni} onCancel={() => setShowInteraction(false)} onSaved={interactionSaved} />}{historyLoading && !interactions.length ? <State icon="progress_activity" title="Cargando historial" text="Consultando interacciones…" spin /> : <InteractionTimeline items={interactions} emptyTitle="Sin interacciones" emptyText="Registra el primer contacto comercial." editableInteractionId={latestInteraction?.id} editingInteractionId={editingNextContact} nextContactValue={nextContactValue} saving={rescheduling} onStartEdit={startRescheduling} onNextContactChange={setNextContactValue} onCancelEdit={cancelRescheduling} onSaveEdit={saveNextContact} />}</section>
     </div></div>
     {showCapturedDetails && <CapturedProspectDetails prospect={prospect} dni={user.dni} catalogs={catalogs} agents={agents} isAdmin={isAdmin} onClose={() => setShowCapturedDetails(false)} onSaved={(saved) => onChanged(saved, 'Información del usuario actualizada correctamente.')} />}
-    {showClientData && <CapturedProspectDetails conversion prospect={prospect} dni={user.dni} catalogs={catalogs} agents={agents} isAdmin={isAdmin} onClose={() => setShowClientData(false)} onSaved={(saved) => onChanged(saved)} onRequestConversion={() => { setShowClientData(false); setShowClientConfirm(true); }} />}
-    {showClientConfirm && <ClientConversionConfirm prospect={prospect} onCancel={() => { setShowClientConfirm(false); setShowClientData(true); }} onConfirm={() => { setShowClientConfirm(false); void convertToClient(); }} />}
   </section>;
+}
+
+function SaleCloseControl({ clientId, dni, captureDate, latestContactDate }: { clientId: string; dni: string; captureDate: string; latestContactDate: string }) {
+  const [open, setOpen] = useState(false); const [value, setValue] = useState(''); const [savedValue, setSavedValue] = useState(''); const [saving, setSaving] = useState(false); const [error, setError] = useState('');
+  const minimumDate = dayAfter(captureDate);
+  useEffect(() => { let active = true; getClient(dni, clientId).then((client) => { if (active) { const date = toDateInput(client.cierreVenta); setValue(date); setSavedValue(date); } }).catch(() => undefined); return () => { active = false; }; }, [clientId, dni]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !saving) setOpen(false); };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [open, saving]);
+  const submit = async (event: FormEvent) => { event.preventDefault(); const next = value.trim(); if (!next) return setError('Selecciona la fecha de cierre de venta.'); if (minimumDate && next < minimumDate) return setError(`La fecha de cierre debe ser posterior a la fecha de captación (${formatDateOnly(captureDate)}).`); setSaving(true); setError(''); try { const client = await saveClient(dni, { id: clientId, cierreVenta: next }); const date = toDateInput(client.cierreVenta); setValue(date); setSavedValue(date); setOpen(false); markSaved(); } catch (cause) { if (isNetworkError(cause)) { queueChange({ kind: 'guardar-cliente', label: 'Fecha de cierre de venta pendiente', payload: { id: clientId, cierreVenta: next } }); setSavedValue(next); setOpen(false); setError('La fecha quedó pendiente y se enviará al recuperar conexión.'); } else setError(messageOf(cause)); } finally { setSaving(false); } };
+  const showModal = () => { setValue(savedValue || toDateInput(latestContactDate)); setError(''); setOpen(true); };
+  return <div className="crm-sale-close"><button type="button" className="back-button" onClick={showModal}><span className="material-symbols-outlined" aria-hidden="true">point_of_sale</span>{savedValue ? 'Editar cierre de venta' : 'Registrar cierre de venta'}</button>{savedValue && <small>Fecha registrada: {formatDateOnly(savedValue)}</small>}{error && !open && <p className="form-error" role="alert">{error}</p>}{open && createPortal(<div className="crm-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setOpen(false); }}><section className="crm-modal crm-sale-close-modal" role="dialog" aria-modal="true" aria-labelledby="sale-close-title"><header className="crm-modal-header"><div><p className="eyebrow dark">CIERRE COMERCIAL</p><h2 id="sale-close-title">Registrar cierre de venta</h2><p>La fecha inicial corresponde al último contacto registrado.</p></div><button className="crm-modal-close" type="button" aria-label="Cerrar registro de cierre de venta" disabled={saving} onClick={() => setOpen(false)}><span className="material-symbols-outlined">close</span></button></header><form className="crm-modal-form crm-sale-close-form" onSubmit={submit}><label>Fecha de cierre de venta<input required type="date" autoFocus disabled={saving} value={value} onChange={(event) => setValue(event.target.value)} onClick={(event) => event.currentTarget.showPicker?.()} /></label>{minimumDate && <p className="crm-sale-close-rule"><span className="material-symbols-outlined" aria-hidden="true">info</span>Debe ser posterior a la captación del {formatDateOnly(captureDate)}.</p>}{error && <p className="form-error" role="alert">{error}</p>}<div className="form-buttons"><button type="button" className="back-button" disabled={saving} onClick={() => { setValue(savedValue); setOpen(false); setError(''); }}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Guardar fecha'}</button></div></form></section></div>, document.body)}</div>;
 }
 
 function ClientConversionConfirm({ prospect, onCancel, onConfirm }: { prospect: Prospect; onCancel: () => void; onConfirm: () => void }) {
@@ -294,7 +299,7 @@ function ClientConversionConfirm({ prospect, onCancel, onConfirm }: { prospect: 
   return createPortal(<div className="crm-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
     <section className="crm-modal crm-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="client-confirm-title" aria-describedby="client-confirm-description">
       <header className="crm-modal-header"><div><p className="eyebrow dark">CONFIRMACIÓN DE DATOS</p><h2 id="client-confirm-title">¿Los datos son correctos?</h2><p>Revisa la información antes de convertir.</p></div><button className="crm-modal-close" type="button" aria-label="Cancelar conversión" onClick={onCancel}><span className="material-symbols-outlined">close</span></button></header>
-      <div className="crm-confirm-body"><dl className="crm-client-confirm-data"><Field label="Nombre completo" value={prospect.nombre} /><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Profesión" value={prospect.profesion} /><Field label="Ubicación" value={[prospect.distrito, prospect.provincia, prospect.departamento].filter(Boolean).join(', ')} /><Field label="Dirección" value={prospect.direccion} /></dl><div className="crm-confirm-warning"><span className="material-symbols-outlined">warning</span><p id="client-confirm-description">Al confirmar, el usuario captado se convertirá definitivamente en cliente y la acción no podrá deshacerse.</p></div><div className="crm-confirm-actions"><button className="back-button" type="button" onClick={onCancel}>Volver y revisar</button><button className="danger-button" type="button" onClick={onConfirm}><span className="material-symbols-outlined">person_check</span>Confirmar y convertir</button></div></div>
+      <div className="crm-confirm-body"><dl className="crm-client-confirm-data"><Field label="Nombre completo" value={prospect.nombre} /><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Profesión" value={prospect.profesion} /><Field label="Distrito" value={prospect.distrito} /><Field label="Dirección" value={prospect.direccion} /></dl><div className="crm-confirm-warning"><span className="material-symbols-outlined">warning</span><p id="client-confirm-description">Al confirmar, el usuario captado se convertirá definitivamente en cliente y la acción no podrá deshacerse.</p></div><div className="crm-confirm-actions"><button className="back-button" type="button" onClick={onCancel}>Volver y revisar</button><button className="danger-button" type="button" onClick={onConfirm}><span className="material-symbols-outlined">person_check</span>Confirmar y convertir</button></div></div>
     </section>
   </div>, document.body);
 }
@@ -343,16 +348,13 @@ function CustomFieldsEditor({ value, onChange, disabled, idPrefix, readOnly = fa
   </section>;
 }
 
-type CapturedProspectForm = ProspectInput & Required<Pick<ProspectInput, 'fechaNacimiento' | 'profesion' | 'pais' | 'departamento' | 'provincia' | 'distrito' | 'direccion' | 'notas'>>;
+type CapturedProspectForm = ProspectInput & Required<Pick<ProspectInput, 'fechaNacimiento' | 'profesion' | 'distrito' | 'direccion' | 'notas'>>;
 
 function capturedProspectForm(prospect: Prospect): CapturedProspectForm {
   return {
     ...prospectInput(prospect),
     fechaNacimiento: prospect.fechaNacimiento,
     profesion: prospect.profesion,
-    pais: prospect.pais || DEFAULT_COUNTRY,
-    departamento: prospect.departamento,
-    provincia: prospect.provincia,
     distrito: prospect.distrito,
     direccion: prospect.direccion,
     notas: prospect.notas,
@@ -364,8 +366,8 @@ function normalizedCapturedForm(form: CapturedProspectForm): CapturedProspectFor
   return {
     ...form,
     nombre: form.nombre.trim(), documento: form.documento.trim(), telefono: form.telefono.trim(), correo: form.correo.trim(), canal: form.canal.trim(),
-    observaciones: form.observaciones.trim(), fechaNacimiento: form.fechaNacimiento.trim(), profesion: form.profesion.trim(), pais: form.pais.trim(),
-    departamento: form.departamento.trim(), provincia: form.provincia.trim(), distrito: form.distrito.trim(), direccion: form.direccion.trim(), notas: form.notas.trim(),
+    observaciones: form.observaciones.trim(), fechaNacimiento: form.fechaNacimiento.trim(), profesion: form.profesion.trim(),
+    distrito: form.distrito.trim(), direccion: form.direccion.trim(), notas: form.notas.trim(),
     camposPersonalizados: cleanCustomFields(form.camposPersonalizados || []),
   };
 }
@@ -401,8 +403,7 @@ function CapturedProspectDetails({ prospect, dni, catalogs, agents, isAdmin, con
     if (!normalized.nombre || !normalized.telefono) return setError('El nombre y el teléfono son obligatorios.');
     if (!validEmail) return setError('Ingresa un correo válido.');
     if (!normalized.canal) return setError('Selecciona un canal.');
-    const levels = levelsFor(normalized.pais || DEFAULT_COUNTRY);
-    if (!normalized.fechaNacimiento || !normalized.profesion || !normalized.pais || !normalized.departamento || (levels.hasProvince && !normalized.provincia) || !normalized.distrito || !normalized.direccion) return setError('Completa todos los campos obligatorios del usuario captado.');
+    if (!normalized.fechaNacimiento || !normalized.profesion || !normalized.distrito || !normalized.direccion) return setError('Completa todos los campos obligatorios del usuario captado.');
     const fieldsError = customFieldsError(form.camposPersonalizados || []); if (fieldsError) return setError(fieldsError);
     if (!dirty) { if (conversion) onRequestConversion?.(prospect); return; }
     setSaving(true);
@@ -430,7 +431,7 @@ function CapturedProspectDetails({ prospect, dni, catalogs, agents, isAdmin, con
             <DetailSelect label="Canal *" value={form.canal} disabled={saving} onChange={(value) => update('canal', value)}><option value="">Selecciona</option>{form.canal && !channelOptions.some((row) => row.etiqueta === form.canal) && <option value={form.canal}>{form.canal}</option>}{channelOptions.map((row) => <option value={row.etiqueta} key={row.etiqueta}>{row.etiqueta}</option>)}</DetailSelect>
             <DetailInput label="Fecha de nacimiento *" value={form.fechaNacimiento} disabled={saving} type="date" onChange={(value) => update('fechaNacimiento', value)} />
             <DetailInput label="Profesión *" value={form.profesion} disabled={saving} onChange={(value) => update('profesion', value)} />
-            <div className="crm-details-geo"><GeoFields required value={form} onChange={(geo) => { setForm((current) => ({ ...current, ...geo })); setConfirmation(''); }} disabled={saving} /></div>
+            <DetailInput label="Distrito *" value={form.distrito} disabled={saving} onChange={(value) => update('distrito', value)} />
             <DetailInput label="Dirección *" value={form.direccion} disabled={saving} className="span-2" onChange={(value) => update('direccion', value)} />
             {isAdmin ? <DetailSelect label="Agente" value={form.agenteDni || ''} disabled={saving} onChange={(value) => update('agenteDni', value)}>{prospect.agenteDni && !agents.some((row) => row.dni === prospect.agenteDni) && <option value={prospect.agenteDni}>{prospect.agenteNombre || prospect.agenteDni}</option>}{agents.filter((row) => row.estado === 'ACTIVO' || row.dni === prospect.agenteDni).map((row) => <option value={row.dni} key={row.dni}>{row.nombres} {row.apellidos}</option>)}</DetailSelect> : <Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} />}
           </> : <>
@@ -441,14 +442,11 @@ function CapturedProspectDetails({ prospect, dni, catalogs, agents, isAdmin, con
             <Field label="Canal" value={prospect.canal} />
             <Field label="Fecha de nacimiento" value={formatDateOnly(prospect.fechaNacimiento)} />
             <Field label="Profesión" value={prospect.profesion} />
-            <Field label="País" value={countryName(prospect.pais || DEFAULT_COUNTRY)} />
-            <Field label="Departamento / región" value={prospect.departamento} />
-            <Field label="Provincia" value={prospect.provincia} />
-            <Field label="Distrito / ciudad" value={prospect.distrito} />
+            <Field label="Distrito" value={prospect.distrito} />
             <Field label="Dirección" value={prospect.direccion} />
             <Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} />
           </>}
-          <Field label="Etapa" value={<Badge value={prospect.etapa || 'NEGOCIACION'} />} />
+          <Field label="Etapa" value={<Badge value={prospect.etapa || 'CLIENTE'} />} />
           <Field label="Fecha de registro" value={formatDate(prospect.fechaCreacion)} />
         </dl>
         <CustomFieldsEditor value={form.camposPersonalizados || []} onChange={(fields) => update('camposPersonalizados', fields)} disabled={saving} readOnly={!editing} idPrefix="captured-details-custom" />
@@ -473,13 +471,14 @@ function ContactDetail({ label, value, action }: { label: string; value: string;
   return <div className="crm-contact-field"><dt>{label}</dt><dd><div className="crm-contact-control crm-contact-read"><span>{value || '—'}</span>{action}</div></dd></div>;
 }
 
-export function InteractionTimeline({ items, emptyTitle, emptyText }: { items: Interaction[]; emptyTitle: string; emptyText: string }) {
+export function InteractionTimeline({ items, emptyTitle, emptyText, editableInteractionId = '', editingInteractionId = '', nextContactValue = '', saving = false, onStartEdit, onNextContactChange, onCancelEdit, onSaveEdit }: { items: Interaction[]; emptyTitle: string; emptyText: string; editableInteractionId?: string; editingInteractionId?: string; nextContactValue?: string; saving?: boolean; onStartEdit?: (item: Interaction) => void; onNextContactChange?: (value: string) => void; onCancelEdit?: () => void; onSaveEdit?: (item: Interaction) => void }) {
   if (!items.length) return <State icon="history" title={emptyTitle} text={emptyText} />;
-  return <ol>{items.map((item) => <li key={item.id}><span className="timeline-dot" /><div><b>{item.tipo} · {item.resultado}</b><time>Contacto: {formatDate(interactionContactDate(item))}</time><p>{item.comentario || 'Sin comentario'}</p>{item.proximoContacto && <small>Próximo: {formatDate(item.proximoContacto)}</small>}</div></li>)}</ol>;
+  return <ol>{items.map((item) => <li key={item.id}><span className="timeline-dot" /><div><b>{item.tipo} · {item.resultado}</b><time>Contacto: {formatDate(interactionContactDate(item))}</time><p>{item.comentario || 'Sin comentario'}</p>{item.estadoCaptacion && <small>Estado de captación: {item.estadoCaptacion}</small>}{item.proximoContacto && (editingInteractionId === item.id ? <form className="timeline-reschedule" onSubmit={(event) => { event.preventDefault(); onSaveEdit?.(item); }}><label>Nueva programación<input type="datetime-local" value={nextContactValue} disabled={saving} onChange={(event) => onNextContactChange?.(event.target.value)} onClick={(event) => event.currentTarget.showPicker?.()} autoFocus /></label><div><button type="button" className="back-button" disabled={saving} onClick={onCancelEdit}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Guardar fecha'}</button></div></form> : <div className="timeline-next-contact"><small>Próximo: {formatDateTime(item.proximoContacto)}</small>{item.id === editableInteractionId && <button type="button" onClick={() => onStartEdit?.(item)} aria-label="Cambiar fecha de programación" title="Cambiar fecha de programación"><span className="material-symbols-outlined" aria-hidden="true">edit_calendar</span><span>Cambiar fecha</span></button>}</div>)}</div></li>)}</ol>;
 }
 
-function ConvertForm({ prospect, dni, onCancel, onSaved }: { prospect: Prospect; dni: string; onCancel: () => void; onSaved: (result: { prospect: Prospect; capturedInteraction: Interaction | null }) => void }) {
-  const [fechaNacimiento, setFechaNacimiento] = useState(''); const [profesion, setProfesion] = useState(''); const [geo, setGeo] = useState<GeoValue>({ pais: DEFAULT_COUNTRY, departamento: '', provincia: '', distrito: '' }); const [direccion, setDireccion] = useState(''); const [notas, setNotas] = useState(''); const [customFields, setCustomFields] = useState<CustomField[]>([]); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
+function ConvertForm({ prospect, dni, professions, onCancel, onSaved }: { prospect: Prospect; dni: string; professions: string[]; onCancel: () => void; onSaved: (result: { prospect: Prospect; capturedInteraction: Interaction | null }) => void }) {
+  const [fechaNacimiento, setFechaNacimiento] = useState(''); const [profesion, setProfesion] = useState(''); const [distrito, setDistrito] = useState(''); const [direccion, setDireccion] = useState(''); const [notas, setNotas] = useState(''); const [customFields, setCustomFields] = useState<CustomField[]>([]); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
+  const professionOptions = useMemo(() => Array.from(new Set(professions.map((item) => item.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')), [professions]);
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -489,13 +488,12 @@ function ConvertForm({ prospect, dni, onCancel, onSaved }: { prospect: Prospect;
   }, [onCancel, saving]);
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError('');
-    const levels = levelsFor(geo.pais || DEFAULT_COUNTRY);
-    if (!fechaNacimiento || !profesion.trim() || !geo.pais || !geo.departamento || (levels.hasProvince && !geo.provincia) || !geo.distrito || !direccion.trim()) {
+    if (!fechaNacimiento || !profesion.trim() || !distrito.trim() || !direccion.trim()) {
       return setError('Completa todos los campos obligatorios de la captación.');
     }
     const fieldsError = customFieldsError(customFields); if (fieldsError) return setError(fieldsError);
     setSaving(true);
-    const details: ConvertDetails = { fechaNacimiento, profesion, ...geo, direccion, notas, camposPersonalizados: cleanCustomFields(customFields) };
+    const details: ConvertDetails = { fechaNacimiento, profesion: profesion.trim(), distrito: distrito.trim(), direccion: direccion.trim(), notas: notas.trim(), camposPersonalizados: cleanCustomFields(customFields) };
     try { const saved = await convertProspect(dni, prospect.id, details); markSaved(); onSaved(saved); } catch (cause) {
       if (isNetworkError(cause)) { queueChange({ kind: 'convertir-prospecto', label: `Conversión de ${prospect.nombre}`, payload: { id: prospect.id, details } }); setError('La conversión quedó pendiente y se enviará desde la nube al recuperar conexión.'); }
       else if (isTimeoutError(cause)) setError('El servicio tardó demasiado en responder. Sincroniza para comprobar si la conversión ya se registró antes de repetirla.');
@@ -504,41 +502,47 @@ function ConvertForm({ prospect, dni, onCancel, onSaved }: { prospect: Prospect;
   };
   return createPortal(<div className="crm-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onCancel(); }}>
     <section className="crm-modal" role="dialog" aria-modal="true" aria-labelledby="convert-title">
-      <header className="crm-modal-header"><div><p className="eyebrow dark">USUARIO CAPTADO</p><h2 id="convert-title">Captar a {prospect.nombre}</h2><p>Completa la información adicional de la captación.</p></div><button className="crm-modal-close" type="button" aria-label="Cerrar" disabled={saving} onClick={onCancel}><span className="material-symbols-outlined">close</span></button></header>
+      <header className="crm-modal-header"><div><p className="eyebrow dark">REGISTRO DE CLIENTE</p><h2 id="convert-title">Captar a {prospect.nombre}</h2><p>Completa la información para registrarlo automáticamente como cliente.</p></div><button className="crm-modal-close" type="button" aria-label="Cerrar" disabled={saving} onClick={onCancel}><span className="material-symbols-outlined">close</span></button></header>
       <form className="crm-modal-form" onSubmit={submit}><div className="interaction-fields">
         <label>Fecha de nacimiento *<input required type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} autoFocus /></label>
-        <label>Profesión *<input required value={profesion} onChange={(e) => setProfesion(e.target.value)} /></label>
-        <GeoFields required value={geo} onChange={setGeo} disabled={saving} />
-        <label className="span-2">Dirección *<input required value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, avenida, número y referencia" /></label>
+        <label>Profesión *<ProfessionCombobox value={profesion} options={professionOptions} disabled={saving} onChange={setProfesion} /></label>
+        <label>Distrito *<input required value={distrito} onChange={(e) => setDistrito(e.target.value)} placeholder="Escribe el distrito" disabled={saving} /></label>
+        <label>Dirección *<textarea className="crm-autogrow-input" required rows={1} value={direccion} onChange={(e) => setDireccion(e.target.value)} onInput={(e) => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`; }} placeholder="Calle, avenida, número y referencia" /></label>
         <label className="span-2">Notas<textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} /></label>
         <CustomFieldsEditor value={customFields} onChange={setCustomFields} disabled={saving} idPrefix="capture-custom" />
-      </div>{error && <p className="form-error" role="alert">{error}</p>}<footer className="form-buttons"><button type="button" className="back-button" disabled={saving} onClick={onCancel}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Confirmar captación'}</button></footer></form>
+      </div>{error && <p className="form-error" role="alert">{error}</p>}<footer className="form-buttons"><button type="button" className="back-button" disabled={saving} onClick={onCancel}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Captar y registrar cliente'}</button></footer></form>
     </section>
   </div>, document.body);
 }
 
-function InteractionForm({ prospect, catalogs, dni, captured, onCancel, onSaved }: { prospect: Prospect; catalogs: CatalogItem[]; dni: string; captured: boolean; onCancel: () => void; onSaved: (result: { prospect: Prospect; interaction: Interaction }) => void }) {
-  const resultCatalog = captured ? 'CAPTADO_RESULTADO' : 'RESULTADO';
-  const appointmentCatalog = captured ? 'CAPTADO_CITA' : 'RESULTADO CITA';
-  const [tipo, setTipo] = useState(() => pickOption(catalogs, 'REUNION', '')); const [tipoOtro, setTipoOtro] = useState(''); const [resultado, setResultado] = useState(() => pickOption(catalogs, resultCatalog, captured ? '' : prospect.resultado)); const [resultadoCita, setResultadoCita] = useState(() => pickOption(catalogs, appointmentCatalog, captured ? '' : prospect.estado)); const [fechaHoraContacto, setFechaHoraContacto] = useState(() => toDateTimeInput(new Date())); const [comentario, setComentario] = useState(''); const [next, setNext] = useState(''); const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
+function ProfessionCombobox({ value, options, disabled, onChange }: { value: string; options: string[]; disabled: boolean; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const visibleOptions = options.filter((item) => item.toLocaleLowerCase('es').includes(value.trim().toLocaleLowerCase('es')));
+  const selectOption = (option: string) => { onChange(option); setOpen(false); };
+  return <div className="profession-combobox"><div className="profession-combobox-input"><input required value={value} disabled={disabled} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onChange={(event) => { onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); if (event.key === 'ArrowDown') setOpen(true); if (event.key === 'Enter' && visibleOptions.length === 1) { event.preventDefault(); selectOption(visibleOptions[0]); } }} placeholder="Escribe o selecciona una profesión" autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls="capture-profession-options" /><button type="button" tabIndex={-1} disabled={disabled} aria-label={open ? 'Ocultar profesiones' : 'Mostrar profesiones'} onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen((current) => !current)}><span className="material-symbols-outlined" aria-hidden="true">expand_more</span></button></div>{open && <div id="capture-profession-options" className="profession-combobox-menu" role="listbox">{visibleOptions.length ? visibleOptions.map((item) => <button type="button" role="option" aria-selected={item === value} key={item} onMouseDown={(event) => { event.preventDefault(); selectOption(item); }}>{item}</button>) : <p>Escribe para registrar una nueva profesión.</p>}</div>}</div>;
+}
+
+function InteractionForm({ prospect, catalogs, dni, onCancel, onSaved }: { prospect: Prospect; catalogs: CatalogItem[]; dni: string; onCancel: () => void; onSaved: (result: { prospect: Prospect; interaction: Interaction }) => void }) {
+  const resultCatalog = 'RESULTADO';
+  const [tipo, setTipo] = useState(() => pickOption(catalogs, 'REUNION', '')); const [tipoOtro, setTipoOtro] = useState(''); const [resultado, setResultado] = useState(() => pickOption(catalogs, resultCatalog, prospect.resultado)); const [estadoCaptacion, setEstadoCaptacion] = useState(''); const [fechaHoraContacto, setFechaHoraContacto] = useState(() => toDateTimeInput(new Date())); const [comentario, setComentario] = useState(''); const [next, setNext] = useState(''); const [error, setError] = useState(''); const [saving, setSaving] = useState(false); const requestId = useRef(`INT-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const options = (type: string) => activeOptions(catalogs, type);
+  const captureClosed = resultado.trim().toLocaleUpperCase('es-PE') === 'CAPTACION CERRADA';
   useEffect(() => {
     setTipo((current) => current === OTHER_MEDIUM ? current : pickOption(catalogs, 'REUNION', current));
     setResultado((current) => pickOption(catalogs, resultCatalog, current));
-    setResultadoCita((current) => pickOption(catalogs, appointmentCatalog, current));
-  }, [catalogs, resultCatalog, appointmentCatalog]);
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!fechaHoraContacto) return setError('Indica la fecha y hora del contacto.'); const manualMedium = tipoOtro.trim().toLocaleUpperCase('es-PE'); if (tipo === OTHER_MEDIUM && !manualMedium) return setError('Escribe el otro medio de contacto.'); if (!comentario.trim()) return setError('Describe brevemente el contacto realizado.'); setSaving(true); const payload = { prospectoId: prospect.id, fechaHoraContacto, tipo: tipo === OTHER_MEDIUM ? manualMedium : tipo, tipoManual: tipo === OTHER_MEDIUM, resultado, comentario, proximoContacto: next, estadoResultante: resultadoCita }; try { const saved = await addInteraction(dni, payload); markSaved(); onSaved(saved); } catch (cause) { if (isNetworkError(cause)) { queueChange({ kind: 'registrar-interaccion', label: `Interacción de ${prospect.nombre}`, payload }); setError('La interacción quedó pendiente y se enviará desde la nube al recuperar conexión.'); } else if (isTimeoutError(cause)) setError('El servicio tardó demasiado en responder. Sincroniza para comprobar si la interacción ya quedó registrada antes de repetirla.'); else setError(messageOf(cause)); } finally { setSaving(false); } };
+  }, [catalogs, resultCatalog]);
+  useEffect(() => { if (!captureClosed) setEstadoCaptacion(''); }, [captureClosed]);
+  const submit = async (event: FormEvent) => { event.preventDefault(); setError(''); if (!fechaHoraContacto) return setError('Indica la fecha y hora del contacto.'); const manualMedium = tipoOtro.trim().toLocaleUpperCase('es-PE'); if (tipo === OTHER_MEDIUM && !manualMedium) return setError('Escribe el otro medio de contacto.'); if (captureClosed && !estadoCaptacion) return setError('Selecciona el estado de captación.'); if (!comentario.trim()) return setError('Describe brevemente el contacto realizado.'); setSaving(true); const payload = { requestId: requestId.current, prospectoId: prospect.id, fechaHoraContacto, tipo: tipo === OTHER_MEDIUM ? manualMedium : tipo, tipoManual: tipo === OTHER_MEDIUM, resultado, comentario, proximoContacto: next, estadoCaptacion: captureClosed ? estadoCaptacion : '' }; try { const saved = await addInteraction(dni, payload); markSaved(); onSaved(saved); } catch (cause) { if (isNetworkError(cause)) { queueChange({ kind: 'registrar-interaccion', label: `Interacción de ${prospect.nombre}`, payload }); setError('No hubo respuesta del servicio. La interacción quedó pendiente y se confirmará automáticamente al recuperar conexión.'); } else if (isTimeoutError(cause)) setError('No se pudo confirmar la respuesta del servicio. La misma operación puede reintentarse sin duplicar la interacción.'); else setError(messageOf(cause)); } finally { setSaving(false); } };
   return <form className="interaction-form" onSubmit={submit}><h3>Nueva interacción</h3><div className="interaction-fields">
     <label>Fecha y hora de contacto *<input type="datetime-local" required value={fechaHoraContacto} onChange={(e) => setFechaHoraContacto(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
     <label>Medio *<select required value={tipo} onChange={(e) => { setTipo(e.target.value); if (e.target.value !== OTHER_MEDIUM) setTipoOtro(''); }}><option value="" disabled>Selecciona</option>{options('REUNION').filter((row) => row.etiqueta.trim().toUpperCase() !== 'OTRO').map((row) => <option value={row.etiqueta} key={row.etiqueta}>{row.etiqueta}</option>)}<option value={OTHER_MEDIUM}>OTRO</option></select>{tipo === OTHER_MEDIUM && <input required autoFocus maxLength={80} value={tipoOtro} onChange={(e) => setTipoOtro(e.target.value.toLocaleUpperCase('es-PE'))} placeholder="ESCRIBE EL MEDIO" aria-label="Especificar otro medio" />}</label>
-    <label>Resultado *<select required value={resultado} onChange={(e) => setResultado(e.target.value)}><option value="" disabled>Selecciona</option>{options(resultCatalog).map((row) => <option value={row.etiqueta} key={row.etiqueta}>{row.etiqueta}</option>)}</select></label><label>Resultado de la cita *<select required value={resultadoCita} onChange={(e) => setResultadoCita(e.target.value)}><option value="" disabled>Selecciona</option>{options(appointmentCatalog).map((row) => <option value={row.etiqueta} key={row.etiqueta}>{row.etiqueta}</option>)}</select></label><label>Próximo contacto<span className="datetime-clear-field"><input type="datetime-local" value={next} onChange={(e) => setNext(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} />{next && <button type="button" className="datetime-clear-button" onClick={() => setNext('')} aria-label="Limpiar próximo contacto" title="Limpiar próximo contacto"><span className="material-symbols-outlined" aria-hidden="true">close</span></button>}</span></label><label className="span-2">Comentario *<textarea required rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} /></label></div>{error && <p className="form-error">{error}</p>}<div className="form-buttons"><button type="button" className="back-button" onClick={onCancel}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Registrando…' : 'Registrar'}</button></div></form>;
+    <label>Resultado *<select required value={resultado} onChange={(e) => setResultado(e.target.value)}><option value="" disabled>Selecciona</option>{options(resultCatalog).map((row) => <option value={row.etiqueta} key={row.etiqueta}>{row.etiqueta}</option>)}</select></label><label>Próximo contacto<span className="datetime-clear-field"><input type="datetime-local" value={next} onChange={(e) => setNext(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} />{next && <button type="button" className="datetime-clear-button" onClick={() => setNext('')} aria-label="Limpiar próximo contacto" title="Limpiar próximo contacto"><span className="material-symbols-outlined" aria-hidden="true">close</span></button>}</span></label>{captureClosed && <label>Estado de captación *<select required value={estadoCaptacion} onChange={(e) => setEstadoCaptacion(e.target.value)}><option value="" disabled>Selecciona</option>{['EN PRECIO', 'HASTA 20% SOBRE PRECIO', 'SOBREPRECIO', 'DESISTIÓ'].map((item) => <option value={item} key={item}>{item}</option>)}</select></label>}<label className="span-2">Comentario *<textarea required rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} /></label></div>{error && <p className="form-error">{error}</p>}<div className="form-buttons"><button type="button" className="back-button" onClick={onCancel}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Registrando…' : 'Registrar'}</button></div></form>;
 }
 
 export function Badge({ value }: { value: string }) { return <span className={`crm-badge ${tone(value)}`}>{value || 'SIN DEFINIR'}</span>; }
 function StageBadge({ value }: { value: string }) {
   const stage = value.toUpperCase();
   if (stage === 'CLIENTE') return <span className="crm-stage-badge is-client"><span className="material-symbols-outlined" aria-hidden="true">workspace_premium</span>Cliente</span>;
-  if (stage === 'NEGOCIACION') return <span className="crm-stage-badge is-negotiation">Negociación</span>;
   return <Badge value={value || 'PROSPECTO'} />;
 }
 function Field({ label, value }: { label: string; value: React.ReactNode }) { return <div><dt>{label}</dt><dd>{value || '—'}</dd></div>; }

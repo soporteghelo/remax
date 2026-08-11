@@ -3,6 +3,7 @@ import { createUser, isNetworkError, readUsersCache, resendInvite, syncUsers, up
 import { formatDateTime } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
 import { WhatsAppGlyph } from './whatsapp';
+import { listCatalogs, readCatalogCache } from './crm-api';
 
 /**
  * Resumen → Detalle → Edición, el mismo recorrido de los módulos de MOTOR.
@@ -18,12 +19,20 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
   const [syncMessage, setSyncMessage] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState('');
+  const [categories, setCategories] = useState<string[]>(() => categoryOptions(readCatalogCache(user.dni)));
   const syncState = useSyncState();
 
   useEffect(() => {
     const cached = readUsersCache(user.dni);
     if (cached.users.length) setUsers(cached.users);
     if (cached.lastSync) setLastSync(cached.lastSync);
+  }, [user.dni, syncState.dataVersion]);
+
+  useEffect(() => {
+    let active = true;
+    const loadCategories = () => { const cached = categoryOptions(readCatalogCache(user.dni)); if (cached.length) setCategories(cached); void listCatalogs(user.dni).then((items) => { if (active) setCategories(categoryOptions(items)); }).catch(() => { /* el selector conserva la copia local */ }); };
+    loadCategories();
+    return () => { active = false; };
   }, [user.dni, syncState.dataVersion]);
 
   useEffect(() => {
@@ -75,6 +84,7 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
   if (view.name === 'create') {
     return <UserCreate
       adminDni={user.dni}
+      categories={categories}
       onCancel={() => setView({ name: 'list' })}
       onCreated={upsert}
       onFinish={(message) => { setSyncMessage(message); setView({ name: 'list' }); }}
@@ -99,6 +109,7 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
     return <UserEdit
       target={selected}
       adminDni={user.dni}
+      categories={categories}
       onCancel={() => setView({ name: 'detail', dni: selected.dni })}
       onSaved={(saved, message) => { upsert(saved); setSyncMessage(message); setView({ name: 'detail', dni: saved.dni }); }}
     />;
@@ -202,6 +213,10 @@ function EstadoBadge({ estado }: { estado: User['estado'] }) {
   </span>;
 }
 
+function categoryOptions(items: Array<{ tipo: string; etiqueta: string; activo: boolean }>): string[] {
+  return [...new Set(items.filter((item) => item.tipo === 'CATEGORIA_AGENTE' && item.activo).map((item) => item.etiqueta.trim()).filter(Boolean))];
+}
+
 /* ─── Detalle ─── */
 function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: boolean; onBack: () => void; onEdit: () => void }) {
   const fields: [string, React.ReactNode][] = [
@@ -210,6 +225,7 @@ function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: bool
     ['DNI', user.dni],
     ['Correo', user.correo || '—'],
     ['Celular', user.celular || '—'],
+    ['Categoría', user.categoria || '—'],
     ['Estado', <EstadoBadge estado={user.estado} />],
     ['Rol comercial', user.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'],
     ['Fecha de registro', formatDateTime(user.fechaRegistro)],
@@ -234,7 +250,7 @@ function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: bool
 }
 
 /* ─── Edición ─── */
-function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; adminDni: string; onCancel: () => void; onSaved: (saved: User, message: string) => void }) {
+function UserEdit({ target, adminDni, categories, onCancel, onSaved }: { target: User; adminDni: string; categories: string[]; onCancel: () => void; onSaved: (saved: User, message: string) => void }) {
   const isSelf = target.dni === adminDni;
   const [apellidos, setApellidos] = useState(target.apellidos);
   const [nombres, setNombres] = useState(target.nombres);
@@ -242,6 +258,7 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
   const [tipoUsuario, setTipoUsuario] = useState<User['tipoUsuario']>(target.tipoUsuario);
   const [correo, setCorreo] = useState(target.correo);
   const [celular, setCelular] = useState(target.celular);
+  const [categoria, setCategoria] = useState(target.categoria);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -254,12 +271,12 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
     if (password && password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.');
     setSaving(true);
     try {
-      const saved = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular });
+      const saved = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular, categoria });
       markSaved();
       onSaved(saved, cierraSesion ? `Usuario actualizado. ${saved.nombres} deberá iniciar sesión de nuevo.` : 'Usuario actualizado correctamente.');
     } catch (cause) {
       if (isNetworkError(cause)) {
-        queueChange({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular } });
+        queueChange({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular, categoria } });
         setError('El cambio quedó guardado en este dispositivo. Toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el usuario.');
     }
@@ -287,6 +304,7 @@ function UserEdit({ target, adminDni, onCancel, onSaved }: { target: User; admin
       </select></label>
       <label>Correo<input type="email" value={correo} onChange={(e) => setCorreo(e.target.value.trim())} inputMode="email" autoComplete="off" placeholder="correo@ejemplo.com" /></label>
       <label>Celular<input type="tel" value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="tel" autoComplete="off" placeholder="9 dígitos o +51…" /></label>
+      <label>Categoría<select value={categoria} onChange={(e) => setCategoria(e.target.value)}><option value="">Sin categoría</option>{categoria && !categories.includes(categoria) && <option value={categoria}>{categoria}</option>}{categories.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
       <label className="span-2">Nueva contraseña
         <span className="password-row">
           <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Déjalo vacío para no cambiarla" autoComplete="new-password" />
@@ -323,12 +341,13 @@ function AutoGrowTextarea({ value, onChange, required = false }: { value: string
  * de la app, rol asignado, enlace, usuario y contraseña) y devuelve ese mismo
  * mensaje escrito para WhatsApp, que solo puede abrir quien administra.
  */
-function UserCreate({ adminDni, onCancel, onCreated, onFinish }: {
-  adminDni: string; onCancel: () => void; onCreated: (created: User) => void; onFinish: (message: string) => void;
+function UserCreate({ adminDni, categories, onCancel, onCreated, onFinish }: {
+  adminDni: string; categories: string[]; onCancel: () => void; onCreated: (created: User) => void; onFinish: (message: string) => void;
 }) {
   const [dni, setDni] = useState(''); const [apellidos, setApellidos] = useState(''); const [nombres, setNombres] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState<User['tipoUsuario']>('USUARIO');
   const [correo, setCorreo] = useState(''); const [celular, setCelular] = useState('');
+  const [categoria, setCategoria] = useState('');
   const [error, setError] = useState(''); const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState<{ user: User; delivery: CredentialDelivery } | null>(null);
 
@@ -338,13 +357,13 @@ function UserCreate({ adminDni, onCancel, onCreated, onFinish }: {
     if (!apellidos.trim() || !nombres.trim()) return setError('Completa nombres y apellidos.');
     setSaving(true);
     try {
-      const result = await createUser({ adminDni, dni, apellidos, nombres, tipoUsuario, correo, celular });
+      const result = await createUser({ adminDni, dni, apellidos, nombres, tipoUsuario, correo, celular, categoria });
       markSaved();
       onCreated(result.user);
       setCreated(result);
     } catch (cause) {
       if (isNetworkError(cause)) {
-        queueChange({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario, correo, celular } });
+        queueChange({ kind: 'crear-usuario', label: `Nuevo usuario ${dni}`, payload: { dni, apellidos, nombres, tipoUsuario, correo, celular, categoria } });
         setError('El usuario quedó guardado en este dispositivo. Su acceso se enviará al crearse la cuenta: toca la nube de la barra superior cuando vuelva la conexión.');
       } else setError(cause instanceof Error ? cause.message : 'No se pudo crear el usuario.');
     }
@@ -371,6 +390,7 @@ function UserCreate({ adminDni, onCancel, onCreated, onFinish }: {
       <label>Nombres *<AutoGrowTextarea required value={nombres} onChange={(value) => setNombres(value.toUpperCase())} /></label>
       <label>Correo<input type="email" value={correo} onChange={(e) => setCorreo(e.target.value.trim())} inputMode="email" autoComplete="off" placeholder="correo@ejemplo.com" /></label>
       <label>Celular<input type="tel" value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="tel" autoComplete="off" placeholder="9 dígitos o +51…" /></label>
+      <label>Categoría<select value={categoria} onChange={(e) => setCategoria(e.target.value)}><option value="">Sin categoría</option>{categories.map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
       <p className="form-hint span-2">
         La contraseña inicial es el propio DNI. Al crear la cuenta se envía el acceso al correo indicado;
         con el celular podrás enviárselo por WhatsApp en el siguiente paso.

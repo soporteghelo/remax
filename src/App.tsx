@@ -12,6 +12,7 @@ import SyncControl from './SyncControl';
 import { attachSync, detachSync } from './sync';
 import Prospects from './Prospects';
 import Agenda from './Agenda';
+import Birthdays from './Birthdays';
 import Clients from './Clients';
 import Catalogs from './Catalogs';
 import { WhatsAppGlyph, whatsappNumber } from './whatsapp';
@@ -174,6 +175,7 @@ function Home({ user, settings, onLogout, onSessionUserChange, onSettingsChange 
           {active === 'home' && <Dashboard user={user} isAdmin={isAdmin} onNavigate={navigate} />}
           {active === 'prospects' && <Prospects user={user} isAdmin={isAdmin} initialId={prospectId} />}
           {active === 'agenda' && <Agenda user={user} isAdmin={isAdmin} onOpenProspect={openProspect} />}
+          {active === 'birthdays' && <Birthdays user={user} isAdmin={isAdmin} onOpenProspect={openProspect} />}
           {active === 'clients' && <Clients user={user} isAdmin={isAdmin} onOpenProspect={openProspect} />}
           {active === 'team' && <UserAdmin user={user} onSessionUserChange={onSessionUserChange} />}
           {active === 'catalogs' && <Catalogs user={user} />}

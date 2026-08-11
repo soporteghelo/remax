@@ -1,0 +1,309 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO — "Data-Dense Dashboard"
+   Portado de MOTOR PWA. Referencia: design-system/portal-pwa/MASTER.md
+   Un solo lugar define superficies, densidad, severidad y accesibilidad.
+   Los componentes NO deben usar hex crudos.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Marca configurable ───────────────────────────────────────────────────
+     Los tokens --brand-* son el ÚNICO punto que el módulo "Configuración de la
+     app" reescribe en línea sobre <html> (src/settings.ts → applySettings).
+     Se declaran aquí con el valor por defecto y en el elemento raíz, así que
+     valen para los dos temas: es el CSS de abajo el que decide cuál usar según
+     data-theme. Ningún componente los consume directamente: usa --color-*. */
+  --brand-primary: #000666;
+  --brand-primary-dark: #bdc2ff;
+  --brand-on-primary: #ffffff;
+  --brand-on-primary-dark: #000767;
+  --brand-gradient-from: #000666;
+  --brand-gradient-to: #283593;
+  --brand-gradient: linear-gradient(135deg, var(--brand-gradient-from), var(--brand-gradient-to));
+  /* Texto legible sobre el degradado: lo calcula applySettings según su luminancia */
+  --brand-on-gradient: #ffffff;
+
+  /* Marca y estructura */
+  --color-primary: var(--brand-primary);
+  --color-on-primary: var(--brand-on-primary);
+  /* Contenedor suave y su texto: derivados del primario para que un color de
+     marca distinto no deje la pareja descoordinada. */
+  --color-primary-fixed: color-mix(in srgb, var(--color-primary) 14%, #ffffff);
+  --color-on-primary-fixed: color-mix(in srgb, var(--color-primary) 92%, #000000);
+  --color-bg: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-text: #1b1b21;
+  --color-border: #dadce0;
+
+  /* Tokens semánticos: light y dark se diseñan en pareja */
+  --ds-surface: #ffffff;        /* tarjeta / fila */
+  --ds-surface-sunken: #f5f2fb; /* cabecera de tabla, zonas hundidas */
+  --ds-fg: #1b1b21;             /* texto principal  — 15.8:1 sobre surface */
+  --ds-fg-muted: #454652;       /* texto secundario —  9.1:1 sobre surface */
+  --ds-border: #c6c5d4;
+  --ds-border-soft: rgba(198, 197, 212, 0.45);
+  --ds-skeleton: #e8e6ef;
+  --ds-skeleton-shine: #f5f3fa;
+  --ds-scrim: rgba(27, 27, 33, 0.55);
+
+  /* Densidad y movimiento */
+  --ds-gap: 8px;
+  --ds-card-pad: 12px;
+  --ds-row-h: 36px;
+  --ds-dur-fast: 150ms;
+  --ds-dur: 220ms;
+  --ds-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Escala de espaciado */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  /* Separación mínima para que las acciones finales no queden tapadas por
+     barras del navegador, el gesto del sistema o el borde inferior del PWA. */
+  --ds-bottom-action-clearance: max(var(--space-lg), env(safe-area-inset-bottom, 0px));
+
+  /* Elevación */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+
+  /* Medidas de la estructura persistente */
+  --topbar-height: 60px;
+  --footer-height: 68px;
+  --drawer-width: 280px;
+  --drawer-gradient: linear-gradient(145deg,
+    var(--brand-gradient-from) 0%,
+    color-mix(in srgb, var(--brand-gradient-from) 45%, var(--brand-gradient-to)) 55%,
+    var(--brand-gradient-to) 100%);
+
+  /* Escala de severidad: en claro el crítico es casi negro; en oscuro ACLARA,
+     no invierte (regla color-dark-mode). */
+  --sev-crit-fg: #111827; --sev-crit-bg: rgba(17, 24, 39, 0.07);   --sev-crit-bd: rgba(17, 24, 39, 0.22);
+  --sev-high-fg: #b91c1c; --sev-high-bg: rgba(220, 38, 38, 0.08);  --sev-high-bd: rgba(220, 38, 38, 0.25);
+  --sev-med-fg: #b45309;  --sev-med-bg: rgba(217, 119, 6, 0.09);   --sev-med-bd: rgba(217, 119, 6, 0.25);
+  --sev-ok-fg: #047857;   --sev-ok-bg: rgba(16, 185, 129, 0.10);   --sev-ok-bd: rgba(16, 185, 129, 0.25);
+
+  /* Marca de WhatsApp: no es un color del sistema y solo lo usan las acciones
+     que abren WhatsApp. En claro se oscurece hasta 5.9:1 con su texto blanco;
+     en oscuro ACLARA al verde de la marca, como el resto de la paleta. */
+  --brand-whatsapp: #0b6a5f;
+  --brand-on-whatsapp: #ffffff;
+
+  /* Paleta categórica para gráficos (donas, series apiladas). Ocho matices
+     distinguibles entre sí, anclados en el índigo de marca; --chart-other es el
+     gris del agregado "Otros". El color nunca va solo: la leyenda lleva cifra. */
+  --chart-1: #3d46c4; --chart-2: #0e7c86; --chart-3: #b45309; --chart-4: #9333ea;
+  --chart-5: #047857; --chart-6: #be123c; --chart-7: #0369a1; --chart-8: #7c6f1f;
+  --chart-other: #9ca3af;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* El primario ACLARA en oscuro (regla color-dark-mode); el contenedor suave
+     se oscurece a partir de él en vez de aclararse. */
+  --color-primary: var(--brand-primary-dark);
+  --color-on-primary: var(--brand-on-primary-dark);
+  --color-primary-fixed: color-mix(in srgb, var(--color-primary) 30%, #101014);
+  --color-on-primary-fixed: color-mix(in srgb, var(--color-primary) 88%, #ffffff);
+  --color-bg: #101014;
+  --color-surface: #1b1b21;
+  --color-text: #e4e1e9;
+  --color-border: #45464f;
+
+  --ds-surface: #1b1b21;
+  --ds-surface-sunken: #24242b;
+  --ds-fg: #e4e1e9;             /* 13.4:1 sobre surface */
+  --ds-fg-muted: #c7c5d0;       /*  9.6:1 sobre surface */
+  --ds-border: #45464f;
+  --ds-border-soft: rgba(199, 197, 208, 0.20);
+  --ds-skeleton: #2a2a32;
+  --ds-skeleton-shine: #35353f;
+  --ds-scrim: rgba(0, 0, 0, 0.68);
+
+  /* Mismo degradado de marca, asentado sobre el fondo oscuro */
+  --drawer-gradient: linear-gradient(145deg,
+    color-mix(in srgb, var(--brand-gradient-from) 82%, #000000) 0%,
+    color-mix(in srgb, var(--brand-gradient-from) 45%, var(--brand-gradient-to)) 55%,
+    var(--brand-gradient-to) 100%);
+
+  --sev-crit-fg: #e5e7eb; --sev-crit-bg: rgba(229, 231, 235, 0.10); --sev-crit-bd: rgba(229, 231, 235, 0.24);
+  --sev-high-fg: #fca5a5; --sev-high-bg: rgba(248, 113, 113, 0.13); --sev-high-bd: rgba(248, 113, 113, 0.30);
+  --sev-med-fg: #fcd34d;  --sev-med-bg: rgba(252, 211, 77, 0.13);   --sev-med-bd: rgba(252, 211, 77, 0.30);
+  --sev-ok-fg: #6ee7b7;   --sev-ok-bg: rgba(110, 231, 183, 0.12);   --sev-ok-bd: rgba(110, 231, 183, 0.28);
+
+  --brand-whatsapp: #25d366;
+  --brand-on-whatsapp: #101014;
+
+  /* Los mismos ocho matices aclarados para el fondo oscuro: aclaran, no invierten. */
+  --chart-1: #a5abff; --chart-2: #5eead4; --chart-3: #fcd34d; --chart-4: #d8b4fe;
+  --chart-5: #6ee7b7; --chart-6: #fda4af; --chart-7: #7dd3fc; --chart-8: #d9cc7a;
+  --chart-other: #9aa0ac;
+}
+
+/* ─── Tonos de icono: fondo y texto emparejados en ambos temas ─── */
+.ds-tone-primary  { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+.ds-tone-violet   { background: #ede9fe; color: #5b21b6; }
+.ds-tone-slate    { background: #f1f5f9; color: #334155; }
+.ds-tone-emerald  { background: #d1fae5; color: #065f46; }
+.ds-tone-amber    { background: #fef3c7; color: #92400e; }
+.ds-tone-red      { background: #fee2e2; color: #991b1b; }
+
+[data-theme="dark"] .ds-tone-violet  { background: rgba(167, 139, 250, 0.16); color: #c4b5fd; }
+[data-theme="dark"] .ds-tone-slate   { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+[data-theme="dark"] .ds-tone-emerald { background: rgba(16, 185, 129, 0.16);  color: #6ee7b7; }
+[data-theme="dark"] .ds-tone-amber   { background: rgba(245, 158, 11, 0.18);  color: #fcd34d; }
+[data-theme="dark"] .ds-tone-red     { background: rgba(239, 68, 68, 0.18);   color: #fca5a5; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   1. ACCESIBILIDAD (prioridad CRÍTICA)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* focus-states: anillo visible en todo elemento interactivo */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible,
+[tabindex]:focus-visible, [role="button"]:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* skip-links: saltar al contenido (teclado y lector de pantalla) */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 300;
+  background: var(--color-primary); color: var(--color-on-primary);
+  padding: 10px 18px; border-radius: 0 0 10px 10px;
+  font-size: 13px; font-weight: 700; text-decoration: none;
+  transition: top var(--ds-dur) var(--ds-ease);
+}
+.skip-link:focus { top: 0; }
+
+/* Contenido solo para lectores de pantalla */
+.sr-only-ds {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* 2. TOUCH TARGETS ≥ 44px: el área de toque crece SIN cambiar el tamaño visual */
+@media (pointer: coarse) {
+  button, .icon-btn, [role="button"] { min-height: 44px; min-width: 44px; }
+  td button, th button { min-height: 40px; min-width: 40px; }
+}
+
+/* 3. MOVIMIENTO REDUCIDO */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 4. TIPOGRAFÍA LEGIBLE EN MÓVIL: 16px evita el auto-zoom de iOS al enfocar */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px; }
+}
+
+/* ─── Scrollbar delgado ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ds-border-soft); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ds-border); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPONENTES COMPARTIDOS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tarjeta de indicador: compacta, accionable, con área táctil completa ── */
+.ds-kpi {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; border-radius: 16px; text-align: left;
+  background: var(--ds-surface); border: 1px solid var(--ds-border);
+  color: var(--ds-fg); cursor: pointer;
+  transition: border-color 180ms var(--ds-ease), box-shadow 180ms var(--ds-ease), transform 180ms var(--ds-ease);
+}
+.ds-kpi:hover { border-color: var(--color-primary); box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 12%, transparent); transform: translateY(-2px); }
+.ds-kpi:active { transform: translateY(0); }
+.ds-kpi[disabled] { cursor: default; opacity: 1; }
+.ds-kpi[disabled]:hover { border-color: var(--ds-border); box-shadow: none; transform: none; }
+.ds-kpi-ico { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ds-kpi-ico .material-symbols-outlined { font-size: 20px; }
+.ds-kpi-val { display: block; font-size: 26px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.ds-kpi-lbl { display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 4px; color: var(--ds-fg-muted); }
+.ds-kpi-share { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--ds-fg-muted); font-variant-numeric: tabular-nums; }
+/* La tarjeta crítica se distingue por borde Y por icono (color-not-only) */
+.ds-kpi.is-critical { border-left: 4px solid var(--sev-high-fg); }
+/* En pantallas estrechas el porcentaje sube a la esquina para que la etiqueta
+   no se parta en dos líneas */
+@media (max-width: 479px) {
+  .ds-kpi { position: relative; gap: 10px; padding: 12px; }
+  .ds-kpi-share { position: absolute; top: 10px; right: 12px; margin-left: 0; }
+  .ds-kpi-lbl { letter-spacing: 0.04em; }
+}
+
+/* ── Panel ── */
+.ds-panel { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: 18px; }
+.ds-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 10px; }
+.ds-panel-title { font-size: 13px; font-weight: 800; color: var(--ds-fg); display: flex; align-items: center; gap: 7px; }
+.ds-panel-body { padding: 0 16px 16px; }
+
+/* ── Barra apilada: toda la distribución en una sola línea ── */
+.ds-stack { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--ds-surface-sunken); }
+.ds-stack > span { height: 100%; transition: width 700ms var(--ds-ease); }
+.ds-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.ds-legend button { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--ds-fg-muted); background: none; border: 0; cursor: pointer; padding: 2px 0; }
+.ds-legend button:hover { color: var(--color-primary); }
+.ds-legend i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+.ds-legend b { font-variant-numeric: tabular-nums; color: var(--ds-fg); }
+
+/* ── Alerta accionable ── */
+.ds-alert {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 14px; border-radius: 12px; border: 1px solid transparent;
+  cursor: pointer; transition: transform var(--ds-dur-fast) var(--ds-ease), box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.ds-alert:hover { transform: translateX(3px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07); }
+.ds-alert[disabled] { cursor: default; }
+.ds-alert[disabled]:hover { transform: none; box-shadow: none; }
+/* Variante informativa: misma severidad, sin acción detrás (no es un botón) */
+div.ds-alert { cursor: default; }
+div.ds-alert:hover { transform: none; box-shadow: none; }
+.ds-alert.sev-crit { background: var(--sev-crit-bg); border-color: var(--sev-crit-bd); color: var(--sev-crit-fg); }
+.ds-alert.sev-high { background: var(--sev-high-bg); border-color: var(--sev-high-bd); color: var(--sev-high-fg); }
+.ds-alert.sev-med  { background: var(--sev-med-bg);  border-color: var(--sev-med-bd);  color: var(--sev-med-fg); }
+.ds-alert.sev-ok   { background: var(--sev-ok-bg);   border-color: var(--sev-ok-bd);   color: var(--sev-ok-fg); }
+.ds-alert.sev-neutral { background: var(--ds-surface-sunken); color: var(--ds-fg); }
+.ds-alert .ds-sev-chip {
+  font-size: 9px; font-weight: 900; padding: 2px 7px; border-radius: 999px;
+  border: 1px solid currentColor; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.ds-alert .material-symbols-outlined { font-size: 19px; flex-shrink: 0; }
+.ds-alert-tx { font-size: 12px; font-weight: 600; line-height: 1.35; flex: 1; }
+
+/* ── Acceso a módulo ── */
+.ds-mod {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 14px; border-radius: 16px; background: var(--ds-surface);
+  border: 1px solid var(--ds-border); color: var(--ds-fg); cursor: pointer;
+  transition: border-color 180ms var(--ds-ease), transform 180ms var(--ds-ease);
+}
+.ds-mod:hover { border-color: var(--color-primary); transform: translateY(-2px); }
+.ds-mod.is-active { border-color: var(--color-primary); background: var(--ds-surface-sunken); }
+.ds-mod-ico { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ds-mod-ico .material-symbols-outlined { font-size: 19px; }
+.ds-mod-txt { min-width: 0; }
+.ds-mod-name { display: block; font-size: 12px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-mod-hint { display: block; font-size: 10px; color: var(--ds-fg-muted); margin-top: 2px; }
+
+/* ── Rejillas densas ── */
+.ds-grid { display: grid; gap: var(--ds-gap); }
+/* auto-fill, no auto-fit: las tarjetas conservan su densidad en pantallas anchas
+   en vez de estirarse hasta ocupar un tercio de la fila. */
+.ds-grid-kpi { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.ds-grid-mod { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.ds-section-title { font-size: 11px; font-weight: 900; color: var(--ds-fg-muted); text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 8px 4px; }

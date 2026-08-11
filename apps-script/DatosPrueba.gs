@@ -218,7 +218,7 @@ function demoPrepareSheets_(ss) {
 }
 
 function demoRequiredCatalogs_(rows) {
-  var required = ['CANAL', 'RESULTADO', 'RESULTADO CITA', 'CAPTADO_RESULTADO', 'CAPTADO_CITA', 'REUNION'];
+  var required = ['CANAL', 'RESULTADO', 'CAPTADO_RESULTADO', 'REUNION'];
   var result = {};
   var missing = [];
   required.forEach(function (type) {
@@ -322,14 +322,7 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
   var firstNames = ['Andrea', 'Carlos', 'Valeria', 'Luis', 'Daniela', 'Jorge', 'Camila', 'Miguel', 'Lucia', 'Renato', 'Paola', 'Diego', 'Mariana', 'Jose', 'Fiorella', 'Alonso', 'Rosa', 'Marco', 'Natalia', 'Sergio'];
   var lastNames = ['Garcia', 'Quispe', 'Flores', 'Rojas', 'Torres', 'Vargas', 'Mendoza', 'Castillo', 'Ramirez', 'Chavez', 'Huaman', 'Salazar', 'Paredes', 'Espinoza', 'Reyes', 'Cruz'];
   var professions = ['Administracion', 'Arquitectura', 'Contabilidad', 'Derecho', 'Ingenieria', 'Marketing', 'Medicina', 'Docencia', 'Comercio', 'Diseño'];
-  var locations = [
-    { departamento: 'Lima', provincia: 'Lima', distrito: 'Miraflores' },
-    { departamento: 'Lima', provincia: 'Lima', distrito: 'Santiago de Surco' },
-    { departamento: 'Lima', provincia: 'Lima', distrito: 'San Miguel' },
-    { departamento: 'Arequipa', provincia: 'Arequipa', distrito: 'Cayma' },
-    { departamento: 'La Libertad', provincia: 'Trujillo', distrito: 'Victor Larco Herrera' },
-    { departamento: 'Cusco', provincia: 'Cusco', distrito: 'Wanchaq' }
-  ];
+  var districts = ['Miraflores', 'Santiago de Surco', 'San Miguel', 'Cayma', 'Victor Larco Herrera', 'Wanchaq'];
   var comments = [
     'Solicito informacion y se explico la propuesta comercial.',
     'Se confirmaron necesidades, presupuesto y plazo estimado.',
@@ -349,7 +342,6 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
   var nowMs = now.getTime();
   var day = 86400000;
   var openResults = demoExcludeCatalog_(catalogs.RESULTADO, ['CAPTACION CERRADA', 'CONVERTIDO', 'CERRADO']);
-  var openStates = demoExcludeCatalog_(catalogs['RESULTADO CITA'], ['CAPTACION CERRADA', 'CONVERTIDO', 'CERRADO']);
 
   for (var index = 0; index < count; index++) {
     var sequence = demoPad_(index + 1, 4);
@@ -371,7 +363,7 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
     var hasClient = mandatoryFlow || (captured && random() < 0.72);
     var preCount = contacted ? (mandatoryFlow ? 2 : 1 + Math.floor(random() * 4)) : 0;
     var postCount = captured ? (mandatoryFlow ? 2 : Math.floor(random() * 3)) : 0;
-    var location = demoPick_(locations, random);
+    var district = demoPick_(districts, random);
     var latestDate = created;
     var captureDate = null;
     if (contacted) contactedTotal++;
@@ -395,7 +387,6 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
         Resultado: isCaptureBoundary ? demoPreferred_(catalogs.RESULTADO, ['CAPTACION CERRADA', 'CONVERTIDO'], random) : demoPick_(openResults, random),
         Comentario: DEMO_NOTE_TAG + ' ' + demoPick_(comments, random),
         ProximoContacto: preNext,
-        EstadoResultante: isCaptureBoundary ? demoPreferred_(catalogs['RESULTADO CITA'], ['CAPTACION CERRADA', 'CERRADO'], random) : demoPick_(openStates, random),
         Captacion: isCaptureBoundary ? 'SI' : 'NO',
         Etapa: 'PROSPECTO'
       };
@@ -422,7 +413,6 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
         Resultado: demoPick_(catalogs.CAPTADO_RESULTADO, random),
         Comentario: DEMO_NOTE_TAG + ' Seguimiento posterior a la captacion.',
         ProximoContacto: postNext,
-        EstadoResultante: demoPick_(catalogs.CAPTADO_CITA, random),
         Captacion: 'SI',
         Etapa: 'NEGOCIACION'
       };
@@ -449,10 +439,7 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
       Observaciones: DEMO_NOTE_TAG + ' Registro ficticio del lote ' + batch + '.',
       FechaNacimiento: captured ? birthDate : '',
       Profesion: captured ? demoPick_(professions, random) : '',
-      Pais: captured ? 'PE' : '',
-      Departamento: captured ? location.departamento : '',
-      Provincia: captured ? location.provincia : '',
-      Distrito: captured ? location.distrito : '',
+      Distrito: captured ? district : '',
       Direccion: captured ? 'Av. ' + demoPick_(streetNames, random) + ' ' + (100 + Math.floor(random() * 1800)) : '',
       Notas: captured ? DEMO_NOTE_TAG + ' Perfil completado para demostracion.' : '',
       ClienteID: hasClient ? clientId : '',
@@ -463,7 +450,6 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
     if (hasClient) {
       for (var latestIndex = interactions.length - 1; latestIndex >= 0; latestIndex--) {
         if (String(interactions[latestIndex].ProspectoID) !== prospectId) continue;
-        interactions[latestIndex].EstadoResultante = 'CLIENTE';
         interactions[latestIndex].Etapa = 'CLIENTE';
         break;
       }
@@ -476,7 +462,8 @@ function demoBuildData_(count, batch, now, random, agents, catalogs, usedDocumen
         Correo: prospect.Correo,
         FechaCierre: captureDate || latestDate,
         Estado: 'ACTIVO',
-        AgenteDNI: String(agent.DNI)
+        AgenteDNI: String(agent.DNI),
+        EstadoCaptacion: ''
       };
       clients.push(client);
       audits.push({ UsuarioDNI: String(agent.DNI), Accion: 'CONVERTIR', Entidad: 'PROSPECTO', EntidadID: prospectId, FechaHora: client.FechaCierre, Descripcion: DEMO_NOTE_TAG + ' Cliente ' + clientId });

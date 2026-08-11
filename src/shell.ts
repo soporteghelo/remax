@@ -5,7 +5,7 @@ import { configuredTheme, readSettingsCache } from './settings';
  * Modelo de navegación compartido: el drawer, el footer y el panel principal
  * leen de aquí. Añadir un módulo es añadir una entrada a MODULES.
  */
-export type SectionId = 'home' | 'prospects' | 'agenda' | 'clients' | 'team' | 'catalogs' | 'settings' | 'profile';
+export type SectionId = 'home' | 'prospects' | 'agenda' | 'birthdays' | 'clients' | 'team' | 'catalogs' | 'settings' | 'profile';
 
 export interface NavItem {
   id: SectionId;
@@ -31,6 +31,7 @@ export const MODULES: NavItem[] = [
   { id: 'home', label: 'Panel principal', short: 'Inicio', hint: 'Indicadores y actividad comercial', icon: 'dashboard', tone: 'ds-tone-primary', inFooter: true },
   { id: 'prospects', label: 'Prospectos', short: 'Prospectos', hint: 'Captación y seguimiento de oportunidades', icon: 'person_search', tone: 'ds-tone-violet', inFooter: true },
   { id: 'agenda', label: 'Agenda', short: 'Agenda', hint: 'Seguimientos vencidos y próximos', icon: 'event', tone: 'ds-tone-amber', inFooter: true },
+  { id: 'birthdays', label: 'Cumpleaños', short: 'Cumple', hint: 'Fechas de usuarios captados', icon: 'cake', tone: 'ds-tone-violet', inFooter: true },
   { id: 'clients', label: 'Clientes', short: 'Clientes', hint: 'Cartera comercial convertida', icon: 'groups', tone: 'ds-tone-teal', inFooter: true },
   { id: 'team', label: 'Equipo', short: 'Equipo', hint: 'Usuarios, roles y accesos', icon: 'manage_accounts', tone: 'ds-tone-violet', adminOnly: true },
   { id: 'catalogs', label: 'Catálogos', short: 'Catálogos', hint: 'Canales, medios, estados y resultados', icon: 'category', tone: 'ds-tone-teal', adminOnly: true },

@@ -1,0 +1,10 @@
+.timeline-next-contact{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:2px}
+.timeline-next-contact button{display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border:0;border-radius:5px;background:transparent;color:var(--color-primary);font-size:10px;font-weight:800;cursor:pointer}
+.timeline-next-contact button:hover{background:var(--color-primary-fixed)}
+.timeline-next-contact button .material-symbols-outlined{font-size:15px}
+.timeline-reschedule{display:grid;gap:7px;margin-top:7px;padding:9px;border:1px solid var(--ds-border);border-radius:9px;background:var(--ds-surface-sunken)}
+.timeline-reschedule label{display:grid;gap:4px;color:var(--ds-fg);font-size:10px;font-weight:800}
+.timeline-reschedule input{min-height:40px;padding:8px 10px;border:1px solid var(--ds-border);border-radius:8px;background:var(--ds-surface);color:var(--ds-fg);font:inherit}
+.timeline-reschedule input:focus{outline:0;border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-primary) 20%,transparent)}
+.timeline-reschedule>div{display:flex;justify-content:flex-end;gap:7px}
+.timeline-reschedule button{min-height:36px;padding:7px 10px;font-size:11px}

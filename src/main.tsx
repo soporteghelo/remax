@@ -12,6 +12,7 @@ import './edit-compact.css';
 import './sync-control.css';
 import './desktop-layout.css';
 import './crm.css';
+import './reschedule.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

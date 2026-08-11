@@ -1,0 +1,4 @@
+interface:
+  display_name: "Noely Design System"
+  short_description: "Apply the complete Noely app design system."
+  default_prompt: "Use $noely-design-system to design or restyle the Noely app consistently."

@@ -5,7 +5,7 @@ import {
 } from './api';
 import { writeSettingsCache, type AppSettings } from './settings';
 import {
-  addInteraction, convertProspect, convertProspectToClient, dashboard, listCatalogs, listClients, listProspects, markProspectNoContinue, restoreProspectStage, saveCatalog, saveClient, saveProfile, saveProspect,
+  addInteraction, convertProspect, convertProspectToClient, dashboard, listCatalogs, listClients, listProspects, markProspectNoContinue, rescheduleInteraction, restoreProspectStage, saveCatalog, saveClient, saveProfile, saveProspect,
   type CatalogInput, type Client, type ConvertDetails, type InteractionInput, type ProspectInput,
 } from './crm-api';
 
@@ -48,6 +48,7 @@ export type PendingChange = ChangeBase & (
   | { kind: 'guardar-config'; payload: AppSettings }
   | { kind: 'guardar-prospecto'; payload: ProspectInput }
   | { kind: 'registrar-interaccion'; payload: InteractionInput }
+  | { kind: 'reprogramar-interaccion'; payload: { interactionId: string; proximoContacto: string } }
   | { kind: 'convertir-prospecto'; payload: { id: string; details: ConvertDetails } }
   | { kind: 'convertir-cliente'; payload: { id: string } }
   | { kind: 'marcar-no-continua'; payload: { id: string } }
@@ -156,6 +157,7 @@ async function apply(change: PendingChange, adminDni: string): Promise<void> {
   if (change.kind === 'guardar-config') { await saveSettings(adminDni, change.payload); return; }
   if (change.kind === 'guardar-prospecto') { await saveProspect(adminDni, change.payload); return; }
   if (change.kind === 'registrar-interaccion') { await addInteraction(adminDni, change.payload); return; }
+  if (change.kind === 'reprogramar-interaccion') { await rescheduleInteraction(adminDni, change.payload.interactionId, change.payload.proximoContacto); return; }
   if (change.kind === 'convertir-prospecto') { await convertProspect(adminDni, change.payload.id, change.payload.details); return; }
   if (change.kind === 'convertir-cliente') { await convertProspectToClient(adminDni, change.payload.id); return; }
   if (change.kind === 'marcar-no-continua') { await markProspectNoContinue(adminDni, change.payload.id); return; }
