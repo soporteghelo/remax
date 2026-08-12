@@ -1,5 +1,5 @@
-import { RefObject, useEffect, useRef, useState } from 'react';
-import { DRAWER_VISIBLE_MODULES, moduleList, type NavItem, type SectionId } from './shell';
+import { RefObject, useEffect, useRef } from 'react';
+import { moduleList, type NavItem, type SectionId } from './shell';
 import { settingText, type AppSettings } from './settings';
 import type { User } from './api';
 
@@ -18,20 +18,18 @@ interface Props {
 }
 
 export default function NavDrawer({ open, user, settings, isAdmin, section, menuButtonRef, onClose, onNavigate, onLogout }: Props) {
-  const [expanded, setExpanded] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
   const firstLinkRef = useRef<HTMLButtonElement>(null);
-  const modules = moduleList(isAdmin);
-  // Cada apertura inicia con los destinos principales y evita un menú largo.
-  const visible = expanded ? modules : modules.slice(0, DRAWER_VISIBLE_MODULES);
-  const hasMore = modules.length > DRAWER_VISIBLE_MODULES;
+  // Inicio conserva su acceso permanente en el footer; el drawer muestra solo
+  // los módulos de trabajo para evitar duplicar la entrada al panel principal.
+  const modules = moduleList(isAdmin).filter((item) => item.id !== 'home');
   const initial = `${user.nombres.charAt(0)}${user.apellidos.charAt(0)}`.toUpperCase() || 'U';
 
   useEffect(() => {
     // Cerrado sigue en el DOM para conservar la animación de salida: `inert` lo
     // saca del recorrido de teclado y del árbol de accesibilidad.
     drawerRef.current?.toggleAttribute('inert', !open);
-    if (!open) { setExpanded(false); return; }
+    if (!open) return;
     // Foco al primer destino del menú (lector de pantalla y teclado)
     const focus = setTimeout(() => firstLinkRef.current?.focus({ preventScroll: true }), 120);
     // escape-routes: Escape cierra el panel lateral (patrón esperado en diálogos)
@@ -89,13 +87,7 @@ export default function NavDrawer({ open, user, settings, isAdmin, section, menu
         {/* ═══ Navegación: cada destino lleva icono Y texto; el activo usa aria-current ═══ */}
         <nav className="drawer-nav" aria-label="Navegación principal">
           <div className="drawer-group-title">Módulos</div>
-          {visible.map(link)}
-          {hasMore && (
-            <button type="button" className="drawer-nav-more" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-              <span className="material-symbols-outlined" aria-hidden="true">{expanded ? 'expand_less' : 'expand_more'}</span>
-              <span>{expanded ? 'Ver menos módulos' : 'Ver más módulos'}</span>
-            </button>
-          )}
+          {modules.map(link)}
 
           {/* destructive-nav-separation: cerrar sesión, separado del resto */}
           <div className="drawer-divider" />

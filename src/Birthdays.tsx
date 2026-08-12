@@ -61,7 +61,6 @@ export default function Birthdays({ user, isAdmin, onOpenProspect }: { user: Use
     <section className="page-content crm-page">
       <p className="eyebrow dark">USUARIOS CAPTADOS</p>
       <h1>Cumpleaños</h1>
-      <p className="subtitle">Consulta todos los cumpleaños del año de prospectos con estado Captado = Sí.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       {loading ? <State icon="cake" title="Cargando cumpleaños" text="Consultando usuarios captados…" spin /> : (
         <section className="ds-panel birthday-year" aria-label={`Cumpleaños de ${year}`}>

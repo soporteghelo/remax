@@ -166,9 +166,9 @@ filtra. Cada segmento lleva su cifra en la leyenda, no solo el color.
 
 280px, fijo a la izquierda, `translateX(-100%) → 0`. Cabecera con degradado de
 marca (`--drawer-gradient`), patrón de puntos al 7%, avatar, nombre, DNI y chip
-de rol. Lista de destinos con icono **y** texto; el activo lleva `aria-current`.
-Cuando hay más de 5 módulos aparece "Ver más módulos". Cerrar sesión va separado
-del resto por una línea. Pie con estado del sistema y versión.
+de rol. Lista completa de destinos con icono **y** texto; el activo lleva
+`aria-current`. Cerrar sesión va separado del resto por una línea. Pie con estado
+del sistema y versión.
 
 ### Footer de navegación (`.main-footer`)
 

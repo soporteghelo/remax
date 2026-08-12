@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { isNetworkError, isTimeoutError, type User } from './api';
 import {
   addInteraction, convertProspect, exportProspects, getClient, getProspect, hasCrmCache, hasProspectDetailCache, listAgents, listCatalogs, listProspects,
-  readCatalogCache, readCrmCache, readProspectInteractionsCache, reassignProspect, rescheduleInteraction, saveClient, saveProspect, type CatalogItem, type ConvertDetails, type CustomField, type Interaction, type Prospect, type ProspectInput,
+  readCatalogCache, readCrmCache, readProspectInteractionsCache, rescheduleInteraction, saveClient, saveProspect, type CatalogItem, type ConvertDetails, type CustomField, type Interaction, type Prospect, type ProspectInput,
 } from './crm-api';
 import { formatDate as formatDateOnly, formatDateTime, toDateInput, toDateTimeInput } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
@@ -195,7 +195,7 @@ function ProspectForm({ value, dni, catalogs, agents, isAdmin, onCancel, onSave 
 }
 
 function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions, confirmation, onBack, onEdit, onChanged }: { prospect: Prospect; user: User; isAdmin: boolean; catalogs: CatalogItem[]; agents: User[]; professions: string[]; confirmation: string; onBack: () => void; onEdit: () => void; onChanged: (prospect: Prospect, message?: string) => void }) {
-  const [interactions, setInteractions] = useState<Interaction[]>(() => readProspectInteractionsCache(user.dni, prospect.id)); const [historyLoading, setHistoryLoading] = useState(() => !hasProspectDetailCache(user.dni, prospect.id)); const [error, setError] = useState(''); const [showInteraction, setShowInteraction] = useState(false); const [showConvert, setShowConvert] = useState(false); const [showCapturedDetails, setShowCapturedDetails] = useState(false); const [busy, setBusy] = useState(false); const [editingNextContact, setEditingNextContact] = useState(''); const [nextContactValue, setNextContactValue] = useState(''); const [rescheduling, setRescheduling] = useState(false);
+  const [interactions, setInteractions] = useState<Interaction[]>(() => readProspectInteractionsCache(user.dni, prospect.id)); const [historyLoading, setHistoryLoading] = useState(() => !hasProspectDetailCache(user.dni, prospect.id)); const [error, setError] = useState(''); const [showInteraction, setShowInteraction] = useState(false); const [showConvert, setShowConvert] = useState(false); const [showCapturedDetails, setShowCapturedDetails] = useState(false); const [editingNextContact, setEditingNextContact] = useState(''); const [nextContactValue, setNextContactValue] = useState(''); const [rescheduling, setRescheduling] = useState(false);
   const interactionSectionRef = useRef<HTMLElement>(null);
   const latestInteraction = interactions[0];
   const latestInteractionIsWithdrawal = isWithdrawalInteraction(latestInteraction);
@@ -226,7 +226,6 @@ function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions
     document.addEventListener('visibilitychange', loadHistory);
     return () => { active = false; window.clearTimeout(confirmationRefresh); window.removeEventListener('focus', loadHistory); document.removeEventListener('visibilitychange', loadHistory); };
   }, [user.dni, prospect.id]);
-  const reassign = async (agentDni: string) => { if (!agentDni || agentDni === prospect.agenteDni) return; setBusy(true); try { onChanged(await reassignProspect(user.dni, prospect.id, agentDni), 'Prospecto reasignado correctamente.'); markSaved(); } catch (cause) { setError(messageOf(cause)); } finally { setBusy(false); } };
   const interactionSaved = (result: { prospect: Prospect; interaction: Interaction }) => {
     setInteractions((current) => [...current.filter((item) => item.id !== result.interaction.id), result.interaction].sort((a, b) => new Date(interactionContactDate(b)).getTime() - new Date(interactionContactDate(a)).getTime()));
     setError('');
@@ -253,7 +252,6 @@ function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions
     {confirmation && <p className="form-success" role="status"><span className="material-symbols-outlined">check_circle</span>{confirmation}</p>}
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className="crm-detail-grid"><section className="ds-panel crm-info"><div className="crm-info-heading"><h2>Información principal</h2>{captured && <button className="back-button crm-full-details-button" type="button" onClick={() => setShowCapturedDetails(true)}><span className="material-symbols-outlined">visibility</span>Ver detalles completos</button>}</div><dl><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Canal" value={prospect.canal} /><Field label="Resultado" value={displayedResult} /><Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} /><Field label="Próximo contacto" value={displayedNextContact ? formatDate(displayedNextContact) : ''} /></dl>{prospect.observaciones && <div className="crm-notes"><b>Observaciones</b><p>{prospect.observaciones}</p></div>}
-      {isAdmin && <label className="crm-reassign">Reasignar a<select value={prospect.agenteDni} disabled={busy} onChange={(e) => void reassign(e.target.value)}>{agents.filter((row) => row.estado === 'ACTIVO').map((row) => <option value={row.dni} key={row.dni}>{row.nombres} {row.apellidos}</option>)}</select></label>}
       {!captured && (
         <div className="crm-prospect-actions"><div className="crm-convert">
           <button className="success-button" type="button" disabled={!canCapture} title={canCapture ? undefined : captureUnavailableMessage} onClick={() => setShowConvert(true)}><span className="material-symbols-outlined">verified</span>Captar y registrar cliente</button>

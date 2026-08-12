@@ -24,9 +24,6 @@ export interface NavItem {
   inFooter?: boolean;
 }
 
-/** Destinos visibles antes de "Ver más módulos" en el drawer. */
-export const DRAWER_VISIBLE_MODULES = 5;
-
 export const MODULES: NavItem[] = [
   { id: 'home', label: 'Panel principal', short: 'Inicio', hint: 'Indicadores y actividad comercial', icon: 'dashboard', tone: 'ds-tone-primary', inFooter: true },
   { id: 'prospects', label: 'Prospectos', short: 'Prospectos', hint: 'Captación y seguimiento de oportunidades', icon: 'person_search', tone: 'ds-tone-violet', inFooter: true },
@@ -45,9 +42,11 @@ export const moduleList = (isAdmin: boolean): NavItem[] => MODULES.filter((item)
 export const resolveSection = (section: SectionId, isAdmin: boolean): SectionId =>
   (moduleList(isAdmin).some((item) => item.id === section) ? section : 'home');
 
-/** El destino principal queda al centro, como en el footer de MOTOR. */
+/** Agenda abre el footer y el destino principal queda al centro. */
 export function footerItems(isAdmin: boolean): NavItem[] {
-  return moduleList(isAdmin).filter((item) => item.inFooter);
+  const order: SectionId[] = ['agenda', 'prospects', 'home', 'birthdays', 'clients'];
+  const items = moduleList(isAdmin).filter((item) => item.inFooter);
+  return order.flatMap((id) => items.filter((item) => item.id === id));
 }
 
 /* ─── Tema claro/oscuro (persistente, emparejado con los tokens --ds-*) ─── */

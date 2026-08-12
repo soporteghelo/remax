@@ -463,6 +463,9 @@ function UserInvite({ target, adminDni, onBack, onFinish }: {
   target: User; adminDni: string; onBack: () => void; onFinish: (message: string) => void;
 }) {
   const [delivery, setDelivery] = useState<CredentialDelivery | null>(null);
+  const [resetDelivery, setResetDelivery] = useState<CredentialDelivery | null>(null);
+  const [resetError, setResetError] = useState('');
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   // El envío se dispara una vez por intento, aunque el componente vuelva a pintarse.
@@ -485,7 +488,23 @@ function UserInvite({ target, adminDni, onBack, onFinish }: {
     return () => { active = false; };
   }, [adminDni, target.dni, attempt]);
 
-  if (delivery) return <UserCredentials user={target} delivery={delivery} mode="resend" onFinish={onFinish} />;
+  const resetPassword = async (password: string) => {
+    setResetting(true); setResetError('');
+    try {
+      const { delivery: newDelivery } = await updateUser({
+        adminDni, dni: target.dni, apellidos: target.apellidos, nombres: target.nombres,
+        estado: target.estado, tipoUsuario: target.tipoUsuario, correo: target.correo,
+        celular: target.celular, categoria: target.categoria, password,
+      });
+      if (!newDelivery) throw new Error('No se pudo preparar la nueva contraseña.');
+      markSaved(); setResetDelivery(newDelivery);
+    } catch (cause) {
+      setResetError(cause instanceof Error ? cause.message : 'No se pudo restablecer la contraseña.');
+    } finally { setResetting(false); }
+  };
+
+  if (resetDelivery) return <UserCredentials user={target} delivery={resetDelivery} mode="reset" onFinish={onFinish} />;
+  if (delivery) return <UserCredentials user={target} delivery={delivery} mode="resend" onFinish={onFinish} onResetPassword={resetPassword} resetting={resetting} resetError={resetError} />;
 
   return <section className="page-content user-edit-page">
     <button type="button" className="back-button" onClick={onBack}>
@@ -510,12 +529,15 @@ function UserInvite({ target, adminDni, onBack, onFinish }: {
  * Qué se entregó y por dónde. El correo ya salió del servidor; WhatsApp y el
  * copiado quedan a mano porque el navegador no puede enviarlos por su cuenta.
  */
-function UserCredentials({ user, delivery, mode, onFinish }: {
+function UserCredentials({ user, delivery, mode, onFinish, onResetPassword, resetting = false, resetError = '' }: {
   user: User; delivery: CredentialDelivery; mode: 'create' | 'resend' | 'reset'; onFinish: (message: string) => void;
+  onResetPassword?: (password: string) => Promise<void>; resetting?: boolean; resetError?: string;
 }) {
   const [copyNote, setCopyNote] = useState('');
+  const [newPassword, setNewPassword] = useState(user.dni);
+  const [passwordError, setPasswordError] = useState('');
   const creating = mode === 'create';
-  const resetting = mode === 'reset';
+  const resetComplete = mode === 'reset';
   const role = user.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR';
   const copy = async () => {
     try { await navigator.clipboard.writeText(delivery.text); setCopyNote('Mensaje copiado: pégalo donde quieras enviarlo.'); }
@@ -526,16 +548,16 @@ function UserCredentials({ user, delivery, mode, onFinish }: {
     ['Usuario (DNI)', user.dni],
     // Al reenviar, una contraseña ya cambiada no se puede recuperar: el mensaje
     // remite a la que esa persona definió, y aquí se dice lo mismo.
-    [creating ? 'Contraseña inicial' : resetting ? 'Nueva contraseña' : 'Contraseña', delivery.password || 'La que ya definió'],
+    [creating ? 'Contraseña inicial' : resetComplete ? 'Nueva contraseña' : 'Contraseña', delivery.password || 'La que ya definió'],
     ['Tipo de usuario', role],
   ];
 
   return <section className="page-content user-edit-page">
     <p className="eyebrow dark">{creating ? 'ALTA' : 'ENVÍO'}</p>
-    <h1>{creating ? 'Cuenta creada' : resetting ? 'Contraseña actualizada' : 'Invitación reenviada'}</h1>
+    <h1>{creating ? 'Cuenta creada' : resetComplete ? 'Contraseña actualizada' : 'Invitación reenviada'}</h1>
     <p className="subtitle">{user.nombres} {user.apellidos} · DNI {user.dni} · {role}</p>
 
-    {resetting
+    {resetComplete
       ? <p className="form-hint">El mensaje con la nueva contraseña está listo para enviarse al celular registrado por WhatsApp.</p>
       : mode === 'resend'
       ? <p className="form-hint">El recordatorio está listo para enviarse al celular registrado por WhatsApp.</p>
@@ -560,7 +582,7 @@ function UserCredentials({ user, delivery, mode, onFinish }: {
       {delivery.whatsappUrl && (
         <a className="whatsapp-action" href={delivery.whatsappUrl} target="_blank" rel="noopener noreferrer">
           <WhatsAppGlyph />
-          {creating ? 'Enviar por WhatsApp' : resetting ? 'Enviar nueva contraseña por WhatsApp' : 'Enviar recordatorio por WhatsApp'}
+          {creating ? 'Enviar por WhatsApp' : resetComplete ? 'Enviar nueva contraseña por WhatsApp' : 'Enviar recordatorio por WhatsApp'}
         </a>
       )}
       <button type="button" className="back-button" onClick={copy}>
@@ -568,12 +590,26 @@ function UserCredentials({ user, delivery, mode, onFinish }: {
         Copiar mensaje
       </button>
       <button type="button" className="primary-button" onClick={() => onFinish(
-        `${creating ? `Usuario ${user.dni} creado.` : resetting ? `Nueva contraseña enviada a ${user.nombres} ${user.apellidos}.` : `Invitación reenviada a ${user.nombres} ${user.apellidos}.`}`
+        `${creating ? `Usuario ${user.dni} creado.` : resetComplete ? `Nueva contraseña enviada a ${user.nombres} ${user.apellidos}.` : `Invitación reenviada a ${user.nombres} ${user.apellidos}.`}`
         + (delivery.emailSent ? ` Acceso enviado a ${delivery.email}.` : creating ? ' Su contraseña inicial es su DNI.' : ''),
       )}>
         Volver al listado
       </button>
     </div>
+    {mode === 'resend' && onResetPassword && <div className="credentials-reset">
+      <p className="form-hint">Puedes definir una nueva contraseña para el agente. Al restablecerla, quedará visible y lista para enviar por WhatsApp.</p>
+      <label> Nueva contraseña
+        <input type="text" value={newPassword} onChange={(event) => { setNewPassword(event.target.value); setPasswordError(''); }} minLength={6} maxLength={128} autoComplete="new-password" />
+      </label>
+      <button type="button" className="danger-button" onClick={() => {
+        if (newPassword.length < 6) { setPasswordError('La contraseña debe tener al menos 6 caracteres.'); return; }
+        void onResetPassword(newPassword);
+      }} disabled={resetting}>
+        <span className="material-symbols-outlined" aria-hidden="true">key</span>
+        {resetting ? 'Restableciendo…' : 'Cambiar y preparar mensaje'}
+      </button>
+      {(passwordError || resetError) && <p className="form-error" role="alert">{passwordError || resetError}</p>}
+    </div>}
     {copyNote && <p className="form-hint credentials-note">{copyNote}</p>}
     <details className="credentials-preview">
       <summary>Ver el mensaje que recibe</summary>
