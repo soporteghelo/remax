@@ -33,7 +33,7 @@ import {
 type SyncStatus = 'sincronizado' | 'pendiente' | 'sincronizando' | 'sin-conexion';
 
 interface NewUserInput { dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario']; correo?: string; celular?: string }
-interface EditUserInput { dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string }
+interface EditUserInput { dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string; categoria?: string }
 
 interface ChangeBase {
   id: string;

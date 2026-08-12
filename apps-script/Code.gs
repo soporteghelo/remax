@@ -700,6 +700,7 @@ function updateUser_(ss, data) {
   if (dni === adminDni && estado === 'CESADO') return createResponse({ status: 'error', message: 'No puedes cesar tu propia cuenta.' });
 
   var lock = LockService.getScriptLock();
+  var updated = null;
   lock.waitLock(10000);
   try {
     var admin = verifyAdmin_(ss, adminDni, adminPassword);
@@ -723,13 +724,20 @@ function updateUser_(ss, data) {
     if (categoria !== null && categoriaIndex !== -1) values[categoriaIndex] = categoria;
     if (password) values[headers.indexOf('Pass')] = hashPassword_(password);
     values = writeSheetValues_(sheet, row, headers, values);
-    crmAudit_(ss, { dni: adminDni }, estado === 'CESADO' ? 'DESACTIVAR' : 'EDITAR', 'USUARIO', dni, nombres + ' ' + apellidos);
-
     var storedPass = String(valueAt_(values, headers, 'Pass') || '');
-    return createResponse({ status: 'ok', message: 'Usuario actualizado correctamente.', record: publicRecord_(headers, values), stamp: sessionStamp_(storedPass) });
+    updated = { record: publicRecord_(headers, values), stamp: sessionStamp_(storedPass) };
   } finally {
     lock.releaseLock();
   }
+
+  crmAudit_(ss, { dni: adminDni }, estado === 'CESADO' ? 'DESACTIVAR' : 'EDITAR', 'USUARIO', dni, nombres + ' ' + apellidos);
+  // La contraseña solo existe en esta solicitud. Si se cambió, se prepara el
+  // mensaje de WhatsApp ahora, sin intentar recuperar luego el hash guardado.
+  var delivery = password ? deliverCredentials_(ss, {
+    dni: String(updated.record.DNI || dni), apellidos: String(updated.record.Apellidos || ''), nombres: String(updated.record.Nombres || ''),
+    tipoUsuario: getValidUserType_(updated.record.TipoUsuario, dni), correo: String(updated.record.Correo || ''), celular: String(updated.record.Celular || ''),
+  }, password, { resend: true, sendEmail: false }) : null;
+  return createResponse({ status: 'ok', message: 'Usuario actualizado correctamente.', record: updated.record, stamp: updated.stamp, delivery: delivery });
 }
 
 /** Devuelve los usuarios sin Pass, únicamente después de validar a un administrador. */

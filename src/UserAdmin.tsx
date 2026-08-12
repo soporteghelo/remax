@@ -10,7 +10,7 @@ import { listCatalogs, readCatalogCache } from './crm-api';
  * El alta es una vista más, no una ventana flotante: se escribe con el mismo
  * ancho y el mismo formulario que la edición.
  */
-type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string } | { name: 'invite'; dni: string };
+type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string } | { name: 'invite'; dni: string } | { name: 'credentials'; dni: string; delivery: CredentialDelivery };
 
 export default function UserAdmin({ user, onSessionUserChange }: { user: User; onSessionUserChange: (user: User) => void }) {
   const [view, setView] = useState<View>({ name: 'list' });
@@ -76,10 +76,27 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
     if (saved.dni === user.dni) onSessionUserChange(saved);
   };
 
-  const list = <UserList {...{ user, users, lastSync, syncMessage, refreshing, refreshError }}
+  const quickUpdateCategory = async (target: User, categoria: string) => {
+    const input = { dni: target.dni, apellidos: target.apellidos, nombres: target.nombres, estado: target.estado, tipoUsuario: target.tipoUsuario, correo: target.correo, celular: target.celular, categoria };
+    try {
+      const { user: saved } = await updateUser({ adminDni: user.dni, ...input });
+      markSaved();
+      upsert(saved);
+    } catch (cause) {
+      if (isNetworkError(cause)) {
+        queueChange({ kind: 'editar-usuario', label: `Categoría actualizada ${target.dni}`, payload: input });
+        upsert({ ...target, categoria });
+        return;
+      }
+      throw cause;
+    }
+  };
+
+  const list = <UserList {...{ user, users, lastSync, syncMessage, refreshing, refreshError, categories }}
                          onNew={() => { setSyncMessage(''); setView({ name: 'create' }); }}
                          onOpen={(dni) => setView({ name: 'detail', dni })}
-                         onInvite={(dni) => { setSyncMessage(''); setView({ name: 'invite', dni }); }} />;
+                         onInvite={(dni) => { setSyncMessage(''); setView({ name: 'invite', dni }); }}
+                         onQuickUpdateCategory={quickUpdateCategory} />;
 
   if (view.name === 'create') {
     return <UserCreate
@@ -105,13 +122,20 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
       onFinish={(message) => { setSyncMessage(message); setView({ name: 'list' }); }}
     />;
   }
+  if (view.name === 'credentials' && selected) {
+    return <UserCredentials user={selected} delivery={view.delivery} mode="reset" onFinish={(message) => { setSyncMessage(message); setView({ name: 'list' }); }} />;
+  }
   if (view.name === 'edit' && selected) {
     return <UserEdit
       target={selected}
       adminDni={user.dni}
       categories={categories}
       onCancel={() => setView({ name: 'detail', dni: selected.dni })}
-      onSaved={(saved, message) => { upsert(saved); setSyncMessage(message); setView({ name: 'detail', dni: saved.dni }); }}
+      onSaved={(saved, message, delivery) => {
+        upsert(saved);
+        if (delivery) setView({ name: 'credentials', dni: saved.dni, delivery });
+        else { setSyncMessage(message); setView({ name: 'detail', dni: saved.dni }); }
+      }}
     />;
   }
   return list;
@@ -119,25 +143,34 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
 
 /* ─── Resumen ─── */
 interface ListProps {
-  user: User; users: User[]; lastSync: string; syncMessage: string; refreshing: boolean; refreshError: string;
+  user: User; users: User[]; lastSync: string; syncMessage: string; refreshing: boolean; refreshError: string; categories: string[];
   onNew: () => void; onOpen: (dni: string) => void; onInvite: (dni: string) => void;
+  onQuickUpdateCategory: (target: User, categoria: string) => Promise<void>;
 }
 
-function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError, onNew, onOpen, onInvite }: ListProps) {
+function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError, categories, onNew, onOpen, onInvite, onQuickUpdateCategory }: ListProps) {
   // Los filtros solo recortan lo que se lista; el resumen de arriba sigue
   // contando todo el equipo, que es el dato que se consulta de un vistazo.
   const [estado, setEstado] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState('');
+  const [agentQuery, setAgentQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [savingCategoryDni, setSavingCategoryDni] = useState('');
+  const [categoryError, setCategoryError] = useState('');
   const syncedAt = lastSync ? formatDateTime(lastSync) : 'Aún no sincronizado';
   const activos = users.filter((row) => row.estado === 'ACTIVO').length;
-  const activeFilters = [estado, tipoUsuario].filter(Boolean).length;
+  const normalizedAgentQuery = agentQuery.trim().toLocaleLowerCase('es-PE');
+  const activeFilters = [estado, tipoUsuario, normalizedAgentQuery].filter(Boolean).length;
   const hasFilters = activeFilters > 0;
   const filtered = useMemo(
-    () => users.filter((row) => (!estado || row.estado === estado) && (!tipoUsuario || row.tipoUsuario === tipoUsuario)),
-    [users, estado, tipoUsuario],
+    () => users.filter((row) => {
+      const agentText = `${row.nombres} ${row.apellidos} ${row.dni}`.toLocaleLowerCase('es-PE');
+      return (!estado || row.estado === estado) && (!tipoUsuario || row.tipoUsuario === tipoUsuario) && (!normalizedAgentQuery || agentText.includes(normalizedAgentQuery));
+    }),
+    [users, estado, tipoUsuario, normalizedAgentQuery],
   );
-  const status = syncMessage
+  const status = categoryError
+    || syncMessage
     || (refreshError ? `${refreshError} Se muestra la copia guardada.`
       : refreshing ? 'Consultando la hoja USUARIOS…'
       : hasFilters ? `Mostrando ${filtered.length} de ${users.length} cuenta(s).`
@@ -173,14 +206,15 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
           <option value="USUARIO">AGENTE</option>
           <option value="ADMINISTRADOR">ADMINISTRADOR</option>
         </select></label>
-        <button type="button" className="crm-clear-filters" onClick={() => { setEstado(''); setTipoUsuario(''); }} disabled={!hasFilters} aria-label="Eliminar todos los filtros">
+        <label><span>Agente</span><input type="search" value={agentQuery} onChange={(event) => setAgentQuery(event.target.value)} placeholder="Escribe para filtrar por agente o DNI" autoComplete="off" /></label>
+        <button type="button" className="crm-clear-filters" onClick={() => { setEstado(''); setTipoUsuario(''); setAgentQuery(''); }} disabled={!hasFilters} aria-label="Eliminar todos los filtros">
           <span className="material-symbols-outlined" aria-hidden="true">filter_alt_off</span><span>Limpiar filtros</span>
         </button>
       </div>
       {/* La acción solo aparece si existe un celular al que enviar el
           recordatorio por WhatsApp. */}
       <div className={`user-table${filtered.some((row) => row.celular) ? ' has-row-actions' : ''}`}>
-        <div className="table-head"><span>Usuario</span><span>DNI</span><span>Estado</span></div>
+        <div className="table-head"><span>Usuario</span><span>DNI</span><span>Categoría</span><span>Estado</span></div>
         {filtered.length ? filtered.map((row) => (
           // La acción de WhatsApp va FUERA del botón de la fila: anidar dos
           // controles no es válido, así que ocupa su propia columna. Cuando la
@@ -189,9 +223,24 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
           <div className="user-row" key={row.dni}>
             <button type="button" className="table-row" onClick={() => onOpen(row.dni)} aria-label={`Ver detalle de ${row.nombres} ${row.apellidos}`}>
               <span><b>{row.nombres} {row.apellidos}</b><small>{row.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR'}{row.dni === user.dni ? ' · Tu cuenta' : ''}</small></span>
-              <span>{row.dni}</span>
-              <span><EstadoBadge estado={row.estado} /></span>
             </button>
+            <span className="user-dni-cell">{row.dni}</span>
+            <span className="user-category-cell">
+              <label className="sr-only-ds" htmlFor={`user-category-${row.dni}`}>Categoría de {row.nombres} {row.apellidos}</label>
+              <select id={`user-category-${row.dni}`} value={row.categoria} disabled={savingCategoryDni === row.dni}
+                onChange={(event) => {
+                  const categoria = event.target.value;
+                  setCategoryError(''); setSavingCategoryDni(row.dni);
+                  void onQuickUpdateCategory(row, categoria).catch((cause) => {
+                    setCategoryError(cause instanceof Error ? cause.message : 'No se pudo actualizar la categoría.');
+                  }).finally(() => setSavingCategoryDni(''));
+                }}>
+                <option value="">Sin categoría</option>
+                {row.categoria && !categories.includes(row.categoria) && <option value={row.categoria}>{row.categoria}</option>}
+                {categories.map((item) => <option value={item} key={item}>{item}</option>)}
+              </select>
+            </span>
+            <span className="user-state-cell"><EstadoBadge estado={row.estado} /></span>
             {row.celular ? (
               <button type="button" className="row-action" onClick={() => onInvite(row.dni)}
                       title={`Enviar recordatorio de credenciales por WhatsApp a ${row.nombres} ${row.apellidos}`}
@@ -250,7 +299,7 @@ function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: bool
 }
 
 /* ─── Edición ─── */
-function UserEdit({ target, adminDni, categories, onCancel, onSaved }: { target: User; adminDni: string; categories: string[]; onCancel: () => void; onSaved: (saved: User, message: string) => void }) {
+function UserEdit({ target, adminDni, categories, onCancel, onSaved }: { target: User; adminDni: string; categories: string[]; onCancel: () => void; onSaved: (saved: User, message: string, delivery: CredentialDelivery | null) => void }) {
   const isSelf = target.dni === adminDni;
   const [apellidos, setApellidos] = useState(target.apellidos);
   const [nombres, setNombres] = useState(target.nombres);
@@ -271,9 +320,10 @@ function UserEdit({ target, adminDni, categories, onCancel, onSaved }: { target:
     if (password && password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.');
     setSaving(true);
     try {
-      const saved = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular, categoria });
+      const { user: saved, delivery } = await updateUser({ adminDni, dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular, categoria });
       markSaved();
-      onSaved(saved, cierraSesion ? `Usuario actualizado. ${saved.nombres} deberá iniciar sesión de nuevo.` : 'Usuario actualizado correctamente.');
+      if (delivery) { onSaved(saved, '', delivery); return; }
+      onSaved(saved, cierraSesion ? `Usuario actualizado. ${saved.nombres} deberá iniciar sesión de nuevo.` : 'Usuario actualizado correctamente.', null);
     } catch (cause) {
       if (isNetworkError(cause)) {
         queueChange({ kind: 'editar-usuario', label: `Usuario modificado ${target.dni}`, payload: { dni: target.dni, apellidos, nombres, estado, tipoUsuario, password: password || undefined, correo, celular, categoria } });
@@ -461,10 +511,11 @@ function UserInvite({ target, adminDni, onBack, onFinish }: {
  * copiado quedan a mano porque el navegador no puede enviarlos por su cuenta.
  */
 function UserCredentials({ user, delivery, mode, onFinish }: {
-  user: User; delivery: CredentialDelivery; mode: 'create' | 'resend'; onFinish: (message: string) => void;
+  user: User; delivery: CredentialDelivery; mode: 'create' | 'resend' | 'reset'; onFinish: (message: string) => void;
 }) {
   const [copyNote, setCopyNote] = useState('');
   const creating = mode === 'create';
+  const resetting = mode === 'reset';
   const role = user.tipoUsuario === 'USUARIO' ? 'AGENTE' : 'ADMINISTRADOR';
   const copy = async () => {
     try { await navigator.clipboard.writeText(delivery.text); setCopyNote('Mensaje copiado: pégalo donde quieras enviarlo.'); }
@@ -475,16 +526,18 @@ function UserCredentials({ user, delivery, mode, onFinish }: {
     ['Usuario (DNI)', user.dni],
     // Al reenviar, una contraseña ya cambiada no se puede recuperar: el mensaje
     // remite a la que esa persona definió, y aquí se dice lo mismo.
-    [creating ? 'Contraseña inicial' : 'Contraseña', delivery.password || 'La que ya definió'],
+    [creating ? 'Contraseña inicial' : resetting ? 'Nueva contraseña' : 'Contraseña', delivery.password || 'La que ya definió'],
     ['Tipo de usuario', role],
   ];
 
   return <section className="page-content user-edit-page">
     <p className="eyebrow dark">{creating ? 'ALTA' : 'ENVÍO'}</p>
-    <h1>{creating ? 'Cuenta creada' : 'Invitación reenviada'}</h1>
+    <h1>{creating ? 'Cuenta creada' : resetting ? 'Contraseña actualizada' : 'Invitación reenviada'}</h1>
     <p className="subtitle">{user.nombres} {user.apellidos} · DNI {user.dni} · {role}</p>
 
-    {mode === 'resend'
+    {resetting
+      ? <p className="form-hint">El mensaje con la nueva contraseña está listo para enviarse al celular registrado por WhatsApp.</p>
+      : mode === 'resend'
       ? <p className="form-hint">El recordatorio está listo para enviarse al celular registrado por WhatsApp.</p>
       : delivery.emailSent
       ? <p className="form-success"><span className="material-symbols-outlined" aria-hidden="true">mark_email_read</span>Acceso enviado a {delivery.email}.</p>
@@ -507,7 +560,7 @@ function UserCredentials({ user, delivery, mode, onFinish }: {
       {delivery.whatsappUrl && (
         <a className="whatsapp-action" href={delivery.whatsappUrl} target="_blank" rel="noopener noreferrer">
           <WhatsAppGlyph />
-          {creating ? 'Enviar por WhatsApp' : 'Enviar recordatorio por WhatsApp'}
+          {creating ? 'Enviar por WhatsApp' : resetting ? 'Enviar nueva contraseña por WhatsApp' : 'Enviar recordatorio por WhatsApp'}
         </a>
       )}
       <button type="button" className="back-button" onClick={copy}>
@@ -515,7 +568,7 @@ function UserCredentials({ user, delivery, mode, onFinish }: {
         Copiar mensaje
       </button>
       <button type="button" className="primary-button" onClick={() => onFinish(
-        `${creating ? `Usuario ${user.dni} creado.` : `Invitación reenviada a ${user.nombres} ${user.apellidos}.`}`
+        `${creating ? `Usuario ${user.dni} creado.` : resetting ? `Nueva contraseña enviada a ${user.nombres} ${user.apellidos}.` : `Invitación reenviada a ${user.nombres} ${user.apellidos}.`}`
         + (delivery.emailSent ? ` Acceso enviado a ${delivery.email}.` : creating ? ' Su contraseña inicial es su DNI.' : ''),
       )}>
         Volver al listado

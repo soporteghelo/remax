@@ -222,7 +222,7 @@ export async function resendInvite(adminDni: string, dni: string, canal: InviteC
  * reemplaza y esa persona quedará fuera de la app en su siguiente carga. Marcarla
  * como CESADO tiene el mismo efecto.
  */
-export async function updateUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string; categoria?: string }): Promise<User> {
+export async function updateUser(input: { adminDni: string; dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string; categoria?: string }): Promise<{ user: User; delivery: CredentialDelivery | null }> {
   const { adminDni, ...usuario } = input;
   const result = await request({ action: 'updateUser', adminDni, adminPassword: adminPasswordFor(adminDni), usuario });
   if (!result.record) throw new Error('El servidor no devolvió el usuario actualizado.');
@@ -231,7 +231,7 @@ export async function updateUser(input: { adminDni: string; dni: string; apellid
     if (result.stamp) rememberStamp(result.stamp);
     if (usuario.password) rememberAdmin(adminDni, usuario.password);
   }
-  return mapUser(result.record, usuario.dni);
+  return { user: mapUser(result.record, usuario.dni), delivery: usuario.password ? mapDelivery(result.delivery) : null };
 }
 
 export async function syncUsers(adminDni: string): Promise<User[]> {

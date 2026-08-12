@@ -331,7 +331,7 @@ function searchableAgentText(agent: User): string {
 }
 
 /** Selector con búsqueda local para no obligar a recorrer listas largas de agentes. */
-function AgentSearch({ agents, value, onChange, onValidityChange, id }: { agents: User[]; value: string; onChange: (dni: string) => void; onValidityChange: (valid: boolean) => void; id: string }) {
+function LegacyAgentSearch({ agents, value, onChange, onValidityChange, id }: { agents: User[]; value: string; onChange: (dni: string) => void; onValidityChange: (valid: boolean) => void; id: string }) {
   const selected = agents.find((agent) => agent.dni === value);
   const [query, setQuery] = useState(() => selected ? agentLabel(selected) : '');
   const [open, setOpen] = useState(false);
@@ -398,6 +398,15 @@ function AgentSearch({ agents, value, onChange, onValidityChange, id }: { agents
       {!matches.length && <p>No se encontraron agentes.</p>}
     </div>}
   </div>;
+}
+
+/** Selector nativo compartido, igual al usado por los demás filtros del CRM. */
+function AgentSelect({ agents, value, onChange, onValidityChange, id }: { agents: User[]; value: string; onChange: (dni: string) => void; onValidityChange: (valid: boolean) => void; id: string }) {
+  const orderedAgents = [...agents].sort((left, right) => agentLabel(left).localeCompare(agentLabel(right), 'es'));
+  return <select id={id} value={value} onChange={(event) => { onChange(event.target.value); onValidityChange(true); }}>
+    <option value="">Todos los agentes</option>
+    {orderedAgents.map((agent) => <option value={agent.dni} key={agent.dni}>{agentLabel(agent)}</option>)}
+  </select>;
 }
 
 export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; isAdmin: boolean; onNavigate: (section: SectionId) => void }) {
@@ -744,7 +753,7 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       <div className={`date-filter dash-filter-fields${metricsFiltersOpen ? ' is-open' : ''}`} aria-label="Filtro de fechas de indicadores y paneles superiores">
         <button type="button" className="back-button dash-filter-action" onClick={clearMetricsFilter} disabled={metricLoading}><span className="material-symbols-outlined">filter_alt_off</span>Limpiar filtro</button>
         <button type="button" className="back-button dash-filter-action dash-reset-order" onClick={resetLayout} disabled={!customized}><span className="material-symbols-outlined">restart_alt</span>Diseño original</button>
-        {isAdmin && <label>Agente<AgentSearch id="metric-agent" agents={availableAgents} value={metricAgentDni} onChange={setMetricAgentDni} onValidityChange={setMetricAgentValid} /></label>}
+        {isAdmin && <label>Agente<AgentSelect id="metric-agent" agents={availableAgents} value={metricAgentDni} onChange={setMetricAgentDni} onValidityChange={setMetricAgentValid} /></label>}
         <div className="dash-date-mode" aria-label="Unidad del rango superior"><span>Periodo</span><div><button type="button" className={metricDateMode === 'days' ? 'is-active' : ''} aria-pressed={metricDateMode === 'days'} onClick={() => changeMetricDateMode('days')}>Días</button><button type="button" className={metricDateMode === 'months' ? 'is-active' : ''} aria-pressed={metricDateMode === 'months'} onClick={() => changeMetricDateMode('months')}>Meses</button></div></div>
         <label>Desde<input type={metricDateMode === 'months' ? 'month' : 'date'} value={metricDateMode === 'months' ? monthValue(from) : from} onChange={(e) => setFrom(metricDateMode === 'months' ? monthStart(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
         <label>Hasta<input type={metricDateMode === 'months' ? 'month' : 'date'} value={metricDateMode === 'months' ? monthValue(to) : to} onChange={(e) => setTo(metricDateMode === 'months' ? monthEnd(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
@@ -767,7 +776,7 @@ export default function Dashboard({ user, isAdmin, onNavigate }: { user: User; i
       <div className={`date-filter dash-filter-fields${boardFiltersOpen ? ' is-open' : ''}`} aria-label="Filtro de fechas del tablero">
         <button type="button" className="back-button dash-filter-action" onClick={clearBoardFilter} disabled={loading}><span className="material-symbols-outlined">filter_alt_off</span>Limpiar filtro</button>
         <button type="button" className="back-button dash-filter-action dash-reset-order" onClick={resetLayout} disabled={!customized}><span className="material-symbols-outlined">restart_alt</span>Diseño original</button>
-        {isAdmin && <label>Agente<AgentSearch id="board-agent" agents={availableAgents} value={boardAgentDni} onChange={setBoardAgentDni} onValidityChange={setBoardAgentValid} /></label>}
+        {isAdmin && <label>Agente<AgentSelect id="board-agent" agents={availableAgents} value={boardAgentDni} onChange={setBoardAgentDni} onValidityChange={setBoardAgentValid} /></label>}
         <div className="dash-date-mode" aria-label="Unidad del rango del tablero"><span>Periodo</span><div><button type="button" className={boardDateMode === 'days' ? 'is-active' : ''} aria-pressed={boardDateMode === 'days'} onClick={() => changeBoardDateMode('days')}>Días</button><button type="button" className={boardDateMode === 'months' ? 'is-active' : ''} aria-pressed={boardDateMode === 'months'} onClick={() => changeBoardDateMode('months')}>Meses</button></div></div>
         <label>Desde<input type={boardDateMode === 'months' ? 'month' : 'date'} value={boardDateMode === 'months' ? monthValue(boardFrom) : boardFrom} onChange={(e) => setBoardFrom(boardDateMode === 'months' ? monthStart(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>
         <label>Hasta<input type={boardDateMode === 'months' ? 'month' : 'date'} value={boardDateMode === 'months' ? monthValue(boardTo) : boardTo} onChange={(e) => setBoardTo(boardDateMode === 'months' ? monthEnd(e.target.value) : e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} /></label>

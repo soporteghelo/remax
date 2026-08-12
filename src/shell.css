@@ -334,13 +334,24 @@ html, body, #root {
    padding lateral que fija admin-compact.css en escritorio y en móvil. */
 .user-table { --row-action: 44px; }
 .user-table .user-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) var(--row-action);
-  align-items: center; gap: 20px; padding-right: 18px;
+  display: grid; grid-template-columns: 2fr 1fr minmax(150px, 1fr) 1fr var(--row-action);
+  align-items: center; gap: 20px; padding: 0 18px;
   border-top: 1px solid var(--ds-border-soft);
 }
 .user-table .user-row:hover { background: var(--ds-surface-sunken); }
-.user-table .user-row > button.table-row { padding-right: 0; border-top: 0; }
+.user-table .user-row > button.table-row { display: block; padding: 12px 0; border-top: 0; }
 .user-admin-page .user-table .table-head { padding-right: calc(18px + var(--row-action) + 20px); }
+
+.user-category-cell select {
+  width: 100%; min-height: 36px; padding: 7px 28px 7px 10px;
+  border: 1px solid var(--ds-border); border-radius: 8px;
+  background: var(--ds-surface); color: var(--ds-fg);
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease), box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+.user-category-cell select:hover { border-color: var(--color-primary); }
+.user-category-cell select:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-primary) 24%, transparent); outline-offset: 2px; }
+.user-category-cell select:disabled { cursor: wait; opacity: .65; }
 
 .row-action {
   display: grid; place-items: center;
@@ -354,8 +365,10 @@ html, body, #root {
 .row-action .material-symbols-outlined { font-size: 19px; }
 
 @media (max-width: 760px) {
-  .user-table .user-row { gap: 9px; padding-right: 14px; }
+  .user-table .user-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) var(--row-action); gap: 9px; padding: 0 14px; }
   .user-admin-page .user-table .table-head { padding-right: calc(14px + var(--row-action) + 9px); }
+  .user-table .user-dni-cell, .user-table .user-state-cell { display: none; }
+  .user-category-cell select { min-height: 44px; }
 }
 
 button.table-row {

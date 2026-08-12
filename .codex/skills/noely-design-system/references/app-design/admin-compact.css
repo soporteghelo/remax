@@ -3,7 +3,7 @@
 
 /* Los filtros reutilizan los campos de .crm-filters, pero dentro del panel son
    una banda y no otra tarjeta: sin borde propio ni esquinas redondeadas. */
-.user-admin-page .user-admin-filters{grid-template-columns:repeat(2,minmax(150px,220px)) auto;justify-content:start;align-items:end;margin:0;padding:13px 18px;border-width:0 0 1px;border-radius:0;background:var(--ds-surface-sunken)}
+.user-admin-page .user-admin-filters{grid-template-columns:repeat(2,minmax(150px,220px)) minmax(220px,300px) auto;justify-content:start;align-items:end;margin:0;padding:13px 18px;border-width:0 0 1px;border-radius:0;background:var(--ds-surface-sunken)}
 .user-admin-page .user-admin-filters.is-collapsed{display:none}
 .user-admin-page .user-admin-empty{margin:0;padding:26px 18px;color:var(--ds-fg-muted);font-size:13px;text-align:center}
 /* El chevron se va al extremo solo cuando el botón se estira (móvil); en
@@ -15,7 +15,7 @@
 .user-admin-filter-toggle .material-symbols-outlined{font-size:19px}
 .user-admin-filter-toggle .material-symbols-outlined:last-child{margin-left:auto}
 .user-admin-filter-toggle small{display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--color-primary);color:var(--color-on-primary);font-size:10px;font-weight:850}
-@media(max-width:760px){.user-admin-page .user-admin-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px 14px}.user-admin-page .user-admin-filters label{font-size:12px}.user-admin-page .user-admin-filters select{min-height:44px}.user-admin-page .user-admin-filters .crm-clear-filters{grid-column:1/-1;min-height:44px}.user-admin-page .user-admin-empty{padding:22px 14px}.user-admin-filter-toggle{min-height:44px}}
+@media(max-width:760px){.user-admin-page .user-admin-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px 14px}.user-admin-page .user-admin-filters label{font-size:12px}.user-admin-page .user-admin-filters label:nth-of-type(3){grid-column:1/-1}.user-admin-page .user-admin-filters select{min-height:44px}.user-admin-page .user-admin-filters .crm-clear-filters{grid-column:1/-1;min-height:44px}.user-admin-page .user-admin-empty{padding:22px 14px}.user-admin-filter-toggle{min-height:44px}}
 
 /* En móvil, filtros y alta comparten fila: apilados empujaban la tabla fuera de
    la primera pantalla. El toggle se queda con su ancho y el alta ocupa el resto. */
