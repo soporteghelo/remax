@@ -153,6 +153,7 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
   // contando todo el equipo, que es el dato que se consulta de un vistazo.
   const [estado, setEstado] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState('');
+  const [categoriaUsuario, setCategoriaUsuario] = useState('');
   const [agentQuery, setAgentQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [savingCategoryDni, setSavingCategoryDni] = useState('');
@@ -160,14 +161,20 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
   const syncedAt = lastSync ? formatDateTime(lastSync) : 'Aún no sincronizado';
   const activos = users.filter((row) => row.estado === 'ACTIVO').length;
   const normalizedAgentQuery = agentQuery.trim().toLocaleLowerCase('es-PE');
-  const activeFilters = [estado, tipoUsuario, normalizedAgentQuery].filter(Boolean).length;
+  const filterCategories = useMemo(
+    () => [...new Set([...categories, ...users.map((row) => row.categoria.trim()).filter(Boolean)])].sort((a, b) => a.localeCompare(b, 'es')),
+    [categories, users],
+  );
+  const activeFilters = [estado, tipoUsuario, categoriaUsuario, normalizedAgentQuery].filter(Boolean).length;
   const hasFilters = activeFilters > 0;
   const filtered = useMemo(
     () => users.filter((row) => {
       const agentText = `${row.nombres} ${row.apellidos} ${row.dni}`.toLocaleLowerCase('es-PE');
-      return (!estado || row.estado === estado) && (!tipoUsuario || row.tipoUsuario === tipoUsuario) && (!normalizedAgentQuery || agentText.includes(normalizedAgentQuery));
+      const matchesCategory = !categoriaUsuario
+        || (categoriaUsuario === '__SIN_CATEGORIA__' ? !row.categoria.trim() : row.categoria === categoriaUsuario);
+      return (!estado || row.estado === estado) && (!tipoUsuario || row.tipoUsuario === tipoUsuario) && matchesCategory && (!normalizedAgentQuery || agentText.includes(normalizedAgentQuery));
     }),
-    [users, estado, tipoUsuario, normalizedAgentQuery],
+    [users, estado, tipoUsuario, categoriaUsuario, normalizedAgentQuery],
   );
   const status = categoryError
     || syncMessage
@@ -206,8 +213,13 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
           <option value="USUARIO">AGENTE</option>
           <option value="ADMINISTRADOR">ADMINISTRADOR</option>
         </select></label>
+        <label><span>Categoría de usuario</span><select value={categoriaUsuario} onChange={(event) => setCategoriaUsuario(event.target.value)}>
+          <option value="">Todas</option>
+          <option value="__SIN_CATEGORIA__">Sin categoría</option>
+          {filterCategories.map((item) => <option value={item} key={item}>{item}</option>)}
+        </select></label>
         <label><span>Agente</span><input type="search" value={agentQuery} onChange={(event) => setAgentQuery(event.target.value)} placeholder="Escribe para filtrar por agente o DNI" autoComplete="off" /></label>
-        <button type="button" className="crm-clear-filters" onClick={() => { setEstado(''); setTipoUsuario(''); setAgentQuery(''); }} disabled={!hasFilters} aria-label="Eliminar todos los filtros">
+        <button type="button" className="crm-clear-filters" onClick={() => { setEstado(''); setTipoUsuario(''); setCategoriaUsuario(''); setAgentQuery(''); }} disabled={!hasFilters} aria-label="Eliminar todos los filtros">
           <span className="material-symbols-outlined" aria-hidden="true">filter_alt_off</span><span>Limpiar filtros</span>
         </button>
       </div>
