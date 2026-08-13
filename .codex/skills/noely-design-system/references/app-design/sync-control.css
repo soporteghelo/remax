@@ -12,7 +12,7 @@
 /* Verde = hay conexión y no existe nada por subir. */
 .global-sync-button.is-ready { color: var(--sev-ok-fg); }
 /* Naranja = hay conexión, pero la cola aún tiene cambios. */
-.global-sync-button.is-pending { color: #d97706; animation: global-sync-breathe 1.8s ease-in-out infinite; }
+.global-sync-button.is-pending { color: var(--sev-med-fg); animation: global-sync-breathe 1.8s ease-in-out infinite; }
 /* Rojo siempre manda cuando el navegador no tiene conexión. */
 .global-sync-button.is-offline { color: var(--sev-high-fg); animation: global-sync-breathe 1.35s ease-in-out infinite; }
 .global-sync-button.is-syncing { color: var(--sev-ok-fg); }
@@ -20,7 +20,7 @@
 .global-sync-badge {
   position: absolute; top: 1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px;
   display: grid; place-items: center; border: 2px solid var(--ds-surface); border-radius: 999px;
-  background: #d97706; color: #fff; font-size: 10px; font-weight: 800; line-height: 1;
+  background: var(--sev-med-fg); color: var(--brand-on-primary); font-size: 10px; font-weight: 800; line-height: 1;
   animation: global-sync-pop .2s ease-out;
 }
 .is-offline .global-sync-badge { background: var(--sev-high-fg); }

@@ -261,7 +261,14 @@ export async function saveSettings(adminDni: string, settings: AppSettings): Pro
 
 /** Completa los campos que no existían en versiones anteriores (Estado, Correo, Celular). */
 export function normalizeUser(saved: User): User {
-  return { ...saved, estado: saved.estado === 'CESADO' ? 'CESADO' : 'ACTIVO', tipoUsuario: saved.tipoUsuario === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO', correo: saved.correo ?? '', celular: saved.celular ?? '', categoria: saved.categoria ?? '' };
+  const row = saved as unknown as Record<string, unknown>;
+  return {
+    dni: String(row.dni ?? row.DNI ?? ''), apellidos: String(row.apellidos ?? row.Apellidos ?? ''), nombres: String(row.nombres ?? row.Nombres ?? ''),
+    estado: String(row.estado ?? row.Estado ?? 'ACTIVO').toUpperCase() === 'CESADO' ? 'CESADO' : 'ACTIVO',
+    tipoUsuario: String(row.tipoUsuario ?? row.TipoUsuario ?? 'USUARIO').toUpperCase() === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO',
+    fechaRegistro: String(row.fechaRegistro ?? row.FechaRegistro ?? ''), ultimoAcceso: String(row.ultimoAcceso ?? row.UltimoAcceso ?? ''), dispositivo: String(row.dispositivo ?? row.Dispositivo ?? ''),
+    correo: String(row.correo ?? row.Correo ?? ''), celular: String(row.celular ?? row.Celular ?? ''), categoria: String(row.categoria ?? row.Categoria ?? ''),
+  };
 }
 
 /** Caché local de usuarios: la comparten el módulo de administración y el panel principal. */

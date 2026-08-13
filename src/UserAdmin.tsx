@@ -3,7 +3,7 @@ import { createUser, isNetworkError, readUsersCache, resendInvite, syncUsers, up
 import { formatDateTime } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
 import { WhatsAppGlyph } from './whatsapp';
-import { listCatalogs, readCatalogCache } from './crm-api';
+import { listCatalogs, readCatalogCache, updateUserCategory } from './crm-api';
 
 /**
  * Resumen → Detalle → Edición, el mismo recorrido de los módulos de MOTOR.
@@ -77,14 +77,13 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
   };
 
   const quickUpdateCategory = async (target: User, categoria: string) => {
-    const input = { dni: target.dni, apellidos: target.apellidos, nombres: target.nombres, estado: target.estado, tipoUsuario: target.tipoUsuario, correo: target.correo, celular: target.celular, categoria };
     try {
-      const { user: saved } = await updateUser({ adminDni: user.dni, ...input });
+      const saved = await updateUserCategory(user.dni, target.dni, categoria);
       markSaved();
       upsert(saved);
     } catch (cause) {
       if (isNetworkError(cause)) {
-        queueChange({ kind: 'editar-usuario', label: `Categoría actualizada ${target.dni}`, payload: input });
+        queueChange({ kind: 'actualizar-categoria-usuario', label: `Categoría actualizada ${target.dni}`, payload: { dni: target.dni, categoria } });
         upsert({ ...target, categoria });
         return;
       }
@@ -511,7 +510,18 @@ function UserInvite({ target, adminDni, onBack, onFinish }: {
       if (!newDelivery) throw new Error('No se pudo preparar la nueva contraseña.');
       markSaved(); setResetDelivery(newDelivery);
     } catch (cause) {
-      setResetError(cause instanceof Error ? cause.message : 'No se pudo restablecer la contraseña.');
+      if (isNetworkError(cause)) {
+        queueChange({
+          kind: 'editar-usuario',
+          label: `Restablecimiento de contraseña ${target.dni}`,
+          payload: {
+            dni: target.dni, apellidos: target.apellidos, nombres: target.nombres,
+            estado: target.estado, tipoUsuario: target.tipoUsuario, correo: target.correo,
+            celular: target.celular, categoria: target.categoria, password,
+          },
+        });
+        setResetError('El restablecimiento quedó pendiente en este dispositivo. Se enviará desde la nube al recuperar conexión.');
+      } else setResetError(cause instanceof Error ? cause.message : 'No se pudo restablecer la contraseña.');
     } finally { setResetting(false); }
   };
 

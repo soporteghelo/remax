@@ -108,6 +108,7 @@ function doPost(e) {
     if (data.action === 'crmSaveClient') return crmSaveClient_(ss, data);
     if (data.action === 'crmDashboard') return crmDashboard_(ss, data);
     if (data.action === 'crmListAgents') return crmListAgents_(ss, data);
+    if (data.action === 'crmUpdateUserCategory') return crmUpdateUserCategory_(ss, data);
     if (data.action === 'crmExportProspects') return crmExportProspects_(ss, data);
     if (data.action === 'crmUpdateProfile') return crmUpdateProfile_(ss, data);
     return createResponse({ status: 'error', message: 'Acción no reconocida' });
@@ -1877,6 +1878,34 @@ function crmDashboard_(ss, data) {
 function crmListAgents_(ss, data) {
   var actor = crmActor_(ss, data); if (!actor.ok) return crmError_(actor.message); if (!crmIsAdmin_(actor)) return crmError_('Solo un administrador puede consultar el equipo.'); var sheet = getOrCreateSheetWithHeaders(ss, USERS_SHEET_NAME, USERS_HEADERS);
   var result = crmObjects_(sheet).map(function (row) { return { dni: String(row.DNI), apellidos: String(row.Apellidos || ''), nombres: String(row.Nombres || ''), estado: getValidEstado_(row.Estado), tipoUsuario: getValidUserType_(row.TipoUsuario, String(row.DNI)), fechaRegistro: apiDateValue_(row.FechaRegistro), ultimoAcceso: apiDateValue_(row.UltimoAcceso), dispositivo: String(row.Dispositivo || ''), correo: String(row.Correo || ''), celular: String(row.Celular || ''), categoria: String(row.Categoria || '') }; }); return crmResponse_(result);
+}
+
+/** Actualización rápida desde la tabla Equipo; usa la sesión CRM, no una contraseña en memoria. */
+function crmUpdateUserCategory_(ss, data) {
+  var actor = crmActor_(ss, data);
+  if (!actor.ok) return crmError_(actor.message);
+  if (!crmIsAdmin_(actor)) return crmError_('Solo un administrador puede cambiar categorías de usuarios.');
+
+  var dni = crmText_(data.dni, 12);
+  if (!/^\d{8}$/.test(dni)) return crmError_('El DNI del usuario no es válido.');
+  var categoria = crmLabelText_(data.categoria);
+  if (categoria) {
+    categoria = crmCatalogLabel_(crmCatalogRows_(ss), 'CATEGORIA_AGENTE', categoria);
+    if (!categoria) return crmError_('La categoría seleccionada no está disponible.');
+  }
+
+  var sheet = getOrCreateSheetWithHeaders(ss, USERS_SHEET_NAME, USERS_HEADERS);
+  var headers = getHeaders_(sheet);
+  var row = findRowByDni_(sheet, dni, headers);
+  if (!row) return crmError_('No existe un usuario con ese DNI.');
+  var categoryIndex = headers.indexOf('Categoria');
+  if (categoryIndex === -1) return crmError_('La hoja USUARIOS no tiene la columna Categoria. Ejecuta Actualizar en Apps Script.');
+
+  var values = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+  values[categoryIndex] = categoria;
+  values = writeSheetValues_(sheet, row, headers, values);
+  crmAudit_(ss, actor, 'EDITAR', 'USUARIO', dni, 'Categoría: ' + (categoria || 'Sin categoría'));
+  return crmResponse_(publicRecord_(headers, values));
 }
 
 function crmUpdateProfile_(ss, data) {

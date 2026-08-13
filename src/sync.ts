@@ -5,7 +5,7 @@ import {
 } from './api';
 import { writeSettingsCache, type AppSettings } from './settings';
 import {
-  addInteraction, convertProspect, convertProspectToClient, dashboard, listCatalogs, listClients, listProspects, markProspectNoContinue, rescheduleInteraction, restoreProspectStage, saveCatalog, saveClient, saveProfile, saveProspect,
+  addInteraction, convertProspect, convertProspectToClient, dashboard, listCatalogs, listClients, listProspects, markProspectNoContinue, rescheduleInteraction, restoreProspectStage, saveCatalog, saveClient, saveProfile, saveProspect, updateUserCategory,
   type CatalogInput, type Client, type ConvertDetails, type InteractionInput, type ProspectInput,
 } from './crm-api';
 
@@ -32,7 +32,7 @@ import {
  */
 type SyncStatus = 'sincronizado' | 'pendiente' | 'sincronizando' | 'sin-conexion';
 
-interface NewUserInput { dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario']; correo?: string; celular?: string }
+interface NewUserInput { dni: string; apellidos: string; nombres: string; tipoUsuario: User['tipoUsuario']; correo?: string; celular?: string; categoria?: string }
 interface EditUserInput { dni: string; apellidos: string; nombres: string; estado: User['estado']; tipoUsuario: User['tipoUsuario']; password?: string; correo?: string; celular?: string; categoria?: string }
 
 interface ChangeBase {
@@ -45,6 +45,7 @@ interface ChangeBase {
 export type PendingChange = ChangeBase & (
   | { kind: 'crear-usuario'; payload: NewUserInput }
   | { kind: 'editar-usuario'; payload: EditUserInput }
+  | { kind: 'actualizar-categoria-usuario'; payload: { dni: string; categoria: string } }
   | { kind: 'guardar-config'; payload: AppSettings }
   | { kind: 'guardar-prospecto'; payload: ProspectInput }
   | { kind: 'registrar-interaccion'; payload: InteractionInput }
@@ -55,7 +56,7 @@ export type PendingChange = ChangeBase & (
   | { kind: 'restaurar-prospecto'; payload: { id: string } }
   | { kind: 'guardar-cliente'; payload: Partial<Client> & { id: string } }
   | { kind: 'guardar-catalogo'; payload: CatalogInput }
-  | { kind: 'guardar-perfil'; payload: { nombres: string; apellidos: string } }
+  | { kind: 'guardar-perfil'; payload: { nombres: string; apellidos: string; correo?: string; celular?: string } }
 );
 
 export interface SyncState {
@@ -154,6 +155,7 @@ export function queueChange(change: Omit<PendingChange, 'id' | 'createdAt'>): vo
 async function apply(change: PendingChange, adminDni: string): Promise<void> {
   if (change.kind === 'crear-usuario') { await createUser({ adminDni, ...change.payload }); return; }
   if (change.kind === 'editar-usuario') { await updateUser({ adminDni, ...change.payload }); return; }
+  if (change.kind === 'actualizar-categoria-usuario') { await updateUserCategory(adminDni, change.payload.dni, change.payload.categoria); return; }
   if (change.kind === 'guardar-config') { await saveSettings(adminDni, change.payload); return; }
   if (change.kind === 'guardar-prospecto') { await saveProspect(adminDni, change.payload); return; }
   if (change.kind === 'registrar-interaccion') { await addInteraction(adminDni, change.payload); return; }

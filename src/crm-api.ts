@@ -1,4 +1,4 @@
-import { authenticatedRequest, isTimeoutError, type User } from './api';
+import { authenticatedRequest, isTimeoutError, normalizeUser, type User } from './api';
 
 export type CatalogType = 'CANAL' | 'ESTADO' | 'RESULTADO' | 'CAPTADO_RESULTADO' | 'REUNION' | 'CATEGORIA_AGENTE';
 
@@ -430,6 +430,11 @@ export async function restoreProspectStage(dni: string, id: string): Promise<{ p
 
 export async function reassignProspect(dni: string, id: string, agentDni: string): Promise<Prospect> {
   return authenticatedRequest('crmReassignProspect', dni, { id, agentDni });
+}
+
+/** Cambia solo la categoría de una cuenta desde la tabla Equipo. */
+export async function updateUserCategory(dni: string, targetDni: string, categoria: string): Promise<User> {
+  return normalizeUser(await authenticatedRequest<User>('crmUpdateUserCategory', dni, { dni: targetDni, categoria }));
 }
 
 export async function listClients(dni: string): Promise<Client[]> {
