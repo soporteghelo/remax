@@ -21,6 +21,10 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
   const [refreshError, setRefreshError] = useState('');
   const [categories, setCategories] = useState<string[]>(() => categoryOptions(readCatalogCache(user.dni)));
   const syncState = useSyncState();
+  // Una lectura puede haber salido antes de que se confirme una clasificación.
+  // Conservamos ese valor hasta recibir una lectura que ya lo contenga, para que
+  // una respuesta antigua no vuelva a pintar «Sin categoría» temporalmente.
+  const confirmedCategories = useRef(new Map<string, string>());
 
   useEffect(() => {
     const cached = readUsersCache(user.dni);
@@ -46,10 +50,19 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
       try {
         const fresh = await syncUsers(user.dni);
         if (!active) return;
+        const protectedCategories = confirmedCategories.current;
+        const merged = fresh.map((row) => {
+          if (!protectedCategories.has(row.dni)) return row;
+          const categoria = protectedCategories.get(row.dni) || '';
+          // Esta respuesta ya vio la escritura remota: deja de necesitarse la
+          // protección para las siguientes actualizaciones normales.
+          if (row.categoria === categoria) protectedCategories.delete(row.dni);
+          return { ...row, categoria };
+        });
         const date = new Date().toISOString();
-        setUsers(fresh);
+        setUsers(merged);
         setLastSync(date);
-        writeUsersCache(user.dni, { users: fresh, lastSync: date });
+        writeUsersCache(user.dni, { users: merged, lastSync: date });
       } catch (cause) {
         if (active) setRefreshError(cause instanceof Error ? cause.message : 'No se pudieron actualizar los usuarios.');
       } finally {
@@ -68,21 +81,27 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
     };
   }, [user.dni]);
 
-  const saveCache = (nextUsers: User[], date = new Date().toISOString()) => {
-    setUsers(nextUsers); setLastSync(date); writeUsersCache(user.dni, { users: nextUsers, lastSync: date });
-  };
   const upsert = (saved: User) => {
-    saveCache([...users.filter((item) => item.dni !== saved.dni), saved].sort((a, b) => a.apellidos.localeCompare(b.apellidos, 'es')));
+    const date = new Date().toISOString();
+    setUsers((current) => {
+      const next = [...current.filter((item) => item.dni !== saved.dni), saved]
+        .sort((a, b) => a.apellidos.localeCompare(b.apellidos, 'es'));
+      writeUsersCache(user.dni, { users: next, lastSync: date });
+      return next;
+    });
+    setLastSync(date);
     if (saved.dni === user.dni) onSessionUserChange(saved);
   };
 
   const quickUpdateCategory = async (target: User, categoria: string) => {
     try {
       const saved = await updateUserCategory(user.dni, target.dni, categoria);
+      confirmedCategories.current.set(target.dni, saved.categoria);
       markSaved();
       upsert(saved);
     } catch (cause) {
       if (isNetworkError(cause)) {
+        confirmedCategories.current.set(target.dni, categoria);
         queueChange({ kind: 'actualizar-categoria-usuario', label: `Categoría actualizada ${target.dni}`, payload: { dni: target.dni, categoria } });
         upsert({ ...target, categoria });
         return;
