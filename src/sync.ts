@@ -5,7 +5,7 @@ import {
 } from './api';
 import { writeSettingsCache, type AppSettings } from './settings';
 import {
-  addInteraction, convertProspect, convertProspectToClient, dashboard, listCatalogs, listClients, listProspects, markProspectNoContinue, rescheduleInteraction, restoreProspectStage, saveCatalog, saveClient, saveProfile, saveProspect, updateUserCategory,
+  addInteraction, convertProspect, dashboard, listCatalogs, listClients, listProspects, rescheduleInteraction, saveCatalog, saveClient, saveProfile, saveProspect, updateUserCategory,
   type CatalogInput, type Client, type ConvertDetails, type InteractionInput, type ProspectInput,
 } from './crm-api';
 
@@ -51,9 +51,6 @@ export type PendingChange = ChangeBase & (
   | { kind: 'registrar-interaccion'; payload: InteractionInput }
   | { kind: 'reprogramar-interaccion'; payload: { interactionId: string; proximoContacto: string } }
   | { kind: 'convertir-prospecto'; payload: { id: string; details: ConvertDetails } }
-  | { kind: 'convertir-cliente'; payload: { id: string } }
-  | { kind: 'marcar-no-continua'; payload: { id: string } }
-  | { kind: 'restaurar-prospecto'; payload: { id: string } }
   | { kind: 'guardar-cliente'; payload: Partial<Client> & { id: string } }
   | { kind: 'guardar-catalogo'; payload: CatalogInput }
   | { kind: 'guardar-perfil'; payload: { nombres: string; apellidos: string; correo?: string; celular?: string } }
@@ -152,21 +149,28 @@ export function queueChange(change: Omit<PendingChange, 'id' | 'createdAt'>): vo
   setState({ pending, status: 'sin-conexion' });
 }
 
+/**
+ * Cada tipo de cambio se envía por su propia vía. La lista es exhaustiva a
+ * propósito: la cola vive en localStorage y puede contener un cambio guardado
+ * por una versión anterior de la app. Antes esos casos caían en el último
+ * `await` de la función y se enviaban como si fueran un catálogo; ahora se
+ * descartan, que es lo único seguro cuando ya no se sabe qué significaban.
+ */
 async function apply(change: PendingChange, adminDni: string): Promise<void> {
-  if (change.kind === 'crear-usuario') { await createUser({ adminDni, ...change.payload }); return; }
-  if (change.kind === 'editar-usuario') { await updateUser({ adminDni, ...change.payload }); return; }
-  if (change.kind === 'actualizar-categoria-usuario') { await updateUserCategory(adminDni, change.payload.dni, change.payload.categoria); return; }
-  if (change.kind === 'guardar-config') { await saveSettings(adminDni, change.payload); return; }
-  if (change.kind === 'guardar-prospecto') { await saveProspect(adminDni, change.payload); return; }
-  if (change.kind === 'registrar-interaccion') { await addInteraction(adminDni, change.payload); return; }
-  if (change.kind === 'reprogramar-interaccion') { await rescheduleInteraction(adminDni, change.payload.interactionId, change.payload.proximoContacto); return; }
-  if (change.kind === 'convertir-prospecto') { await convertProspect(adminDni, change.payload.id, change.payload.details); return; }
-  if (change.kind === 'convertir-cliente') { await convertProspectToClient(adminDni, change.payload.id); return; }
-  if (change.kind === 'marcar-no-continua') { await markProspectNoContinue(adminDni, change.payload.id); return; }
-  if (change.kind === 'restaurar-prospecto') { await restoreProspectStage(adminDni, change.payload.id); return; }
-  if (change.kind === 'guardar-cliente') { await saveClient(adminDni, change.payload); return; }
-  if (change.kind === 'guardar-perfil') { await saveProfile(adminDni, change.payload); return; }
-  await saveCatalog(adminDni, change.payload);
+  switch (change.kind) {
+    case 'crear-usuario': await createUser({ adminDni, ...change.payload }); return;
+    case 'editar-usuario': await updateUser({ adminDni, ...change.payload }); return;
+    case 'actualizar-categoria-usuario': await updateUserCategory(adminDni, change.payload.dni, change.payload.categoria); return;
+    case 'guardar-config': await saveSettings(adminDni, change.payload); return;
+    case 'guardar-prospecto': await saveProspect(adminDni, change.payload); return;
+    case 'registrar-interaccion': await addInteraction(adminDni, change.payload); return;
+    case 'reprogramar-interaccion': await rescheduleInteraction(adminDni, change.payload.interactionId, change.payload.proximoContacto); return;
+    case 'convertir-prospecto': await convertProspect(adminDni, change.payload.id, change.payload.details); return;
+    case 'guardar-cliente': await saveClient(adminDni, change.payload); return;
+    case 'guardar-perfil': await saveProfile(adminDni, change.payload); return;
+    case 'guardar-catalogo': await saveCatalog(adminDni, change.payload); return;
+    default: return;
+  }
 }
 
 /** Envía la cola y luego vuelve a traer los datos de la nube. */

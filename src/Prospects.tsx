@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isNetworkError, isTimeoutError, type User } from './api';
 import {
-  addInteraction, convertProspect, exportProspects, getClient, getProspect, hasCrmCache, hasProspectDetailCache, listAgents, listCatalogs, listProspects,
+  addInteraction, convertProspect, getClient, getProspect, hasCrmCache, hasProspectDetailCache, listAgents, listCatalogs, listProspects,
   readCatalogCache, readCrmCache, readProspectInteractionsCache, rescheduleInteraction, saveClient, saveProspect, type CatalogItem, type ConvertDetails, type CustomField, type Interaction, type Prospect, type ProspectInput,
 } from './crm-api';
 import { formatDate as formatDateOnly, formatDateTime, toDateInput, toDateTimeInput } from './dates';
@@ -12,6 +12,7 @@ type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; id: string
 type ProspectSortKey = 'nombre' | 'resultado' | 'canal' | 'proximoContacto' | 'agente' | 'etapa';
 const EMPTY: ProspectInput = { nombre: '', documento: '', telefono: '', correo: '', canal: '', observaciones: '' };
 const OTHER_MEDIUM = '__OTRO__';
+const LIMA_DISTRICTS = ['Ancón', 'Ate', 'Barranco', 'Breña', 'Carabayllo', 'Chaclacayo', 'Chorrillos', 'Cieneguilla', 'Comas', 'El Agustino', 'Independencia', 'Jesús María', 'La Molina', 'La Victoria', 'Lima', 'Lince', 'Los Olivos', 'Lurigancho-Chosica', 'Lurín', 'Magdalena del Mar', 'Miraflores', 'Pachacámac', 'Pucusana', 'Pueblo Libre', 'Puente Piedra', 'Punta Hermosa', 'Punta Negra', 'Rímac', 'San Bartolo', 'San Borja', 'San Isidro', 'San Juan de Lurigancho', 'San Juan de Miraflores', 'San Luis', 'San Martín de Porres', 'San Miguel', 'Santa Anita', 'Santa María del Mar', 'Santa Rosa', 'Santiago de Surco', 'Surquillo', 'Villa El Salvador', 'Villa María del Triunfo'];
 
 /** Solo los datos editables del prospecto; resultado y próxima fecha se gestionan desde sus interacciones. */
 function prospectInput(item: Prospect): ProspectInput {
@@ -19,9 +20,11 @@ function prospectInput(item: Prospect): ProspectInput {
 }
 
 const activeOptions = (catalogs: CatalogItem[], type: string): CatalogItem[] => catalogs.filter((item) => item.tipo === type && item.activo);
-const interactionContactDate = (item: Interaction): string => item.fechaHoraContacto || item.fechaHora || '';
-const isCaptureInteraction = (item: Interaction): boolean => item.captacion === 'SI' || item.resultado.trim().toLocaleUpperCase('es-PE') === 'CAPTACION CERRADA';
-const isWithdrawalInteraction = (item: Interaction | undefined): boolean => item?.estadoCaptacion.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleUpperCase('es-PE') === 'DESISTIO';
+const agentName = (agent: User): string => `${agent.nombres} ${agent.apellidos}`.trim() || agent.dni;
+const agentSearchText = (agent: User): string => `${agentName(agent)} ${agent.dni}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-PE');
+const interactionContactDate = (item?: Interaction): string => item?.fechaHoraContacto || item?.fechaHora || '';
+const isCaptureInteraction = (item: Interaction): boolean => item.captacion === 'SI' || String(item.resultado || '').trim().toLocaleUpperCase('es-PE') === 'CAPTACION CERRADA';
+const isWithdrawalInteraction = (item: Interaction | undefined): boolean => String(item?.estadoCaptacion || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleUpperCase('es-PE') === 'DESISTIO';
 /** La venta debe ocurrir en un día posterior al de la captación. */
 function dayAfter(value: string): string {
   const date = toDateInput(value);
@@ -57,6 +60,7 @@ export default function Prospects({ user, isAdmin, initialId = '' }: { user: Use
   const [loading, setLoading] = useState(!hasCrmCache(user.dni, 'prospects'));
   const [error, setError] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const [openingDetail, setOpeningDetail] = useState({ id: '', loading: false, error: '' });
   const syncState = useSyncState();
 
   const refresh = async () => {
@@ -82,29 +86,50 @@ export default function Prospects({ user, isAdmin, initialId = '' }: { user: Use
     setCatalogs(readCatalogCache(user.dni));
   }, [syncState.dataVersion, user.dni]);
 
+  // Cumpleaños y Clientes navegan con el ID del prospecto de origen. Si su
+  // lista aún no llegó a esta vista (por una caché vieja o una lectura en curso),
+  // carga la ficha directamente y evita intentar pintar un registro ausente.
+  const selectedId = view.name === 'detail' || view.name === 'edit' ? view.id : '';
+  const hasSelectedItem = Boolean(selectedId && items.some((item) => item.id === selectedId));
+  useEffect(() => {
+    if (!selectedId || hasSelectedItem) return;
+    let active = true;
+    setOpeningDetail({ id: selectedId, loading: true, error: '' });
+    getProspect(user.dni, selectedId)
+      .then((data) => { if (active) setItems((current) => [data.prospect, ...current.filter((item) => item.id !== data.prospect.id)]); })
+      .catch((cause) => { if (active) setOpeningDetail({ id: selectedId, loading: false, error: messageOf(cause) }); })
+      .finally(() => { if (active) setOpeningDetail((current) => current.id === selectedId ? { ...current, loading: false } : current); });
+    return () => { active = false; };
+  }, [hasSelectedItem, selectedId, user.dni]);
+
   const saved = (item: Prospect, message = '') => {
     setItems((current) => [item, ...current.filter((row) => row.id !== item.id)]);
     markSaved(); setConfirmation(message); setView({ name: 'detail', id: item.id });
   };
 
   let content: React.ReactNode;
-  if (view.name === 'list') content = <ProspectList {...{ items, loading, error, catalogs, agents, isAdmin }} dni={user.dni} onNew={() => { setConfirmation(''); setView({ name: 'create' }); }} onOpen={(id) => { setConfirmation(''); setView({ name: 'detail', id }); }} />;
+  if (view.name === 'list') content = <ProspectList {...{ items, loading, error, catalogs, agents, isAdmin }} onNew={() => { setConfirmation(''); setView({ name: 'create' }); }} onOpen={(id) => { setConfirmation(''); setView({ name: 'detail', id }); }} />;
   else if (view.name === 'create') content = <ProspectForm value={EMPTY} dni={user.dni} catalogs={catalogs} agents={agents} isAdmin={isAdmin} onCancel={() => setView({ name: 'list' })} onSave={async (value) => saved(await saveProspect(user.dni, value), 'Prospecto guardado correctamente.')} />;
   else {
     const item = items.find((row) => row.id === view.id);
-    if (!item) content = <State icon="search_off" title="Prospecto no disponible" text="Vuelve al listado y sincroniza los datos." action={() => setView({ name: 'list' })} />;
+    if (!item) {
+      const detailError = openingDetail.id === view.id ? openingDetail.error : '';
+      content = detailError
+        ? <State icon="search_off" title="Prospecto no disponible" text={detailError} action={() => setView({ name: 'list' })} />
+        : <State icon="progress_activity" title="Cargando prospecto" text="Preparando la ficha del usuario…" spin />;
+    }
     else if (view.name === 'edit') content = <ProspectForm value={prospectInput(item)} dni={user.dni} catalogs={catalogs} agents={agents} isAdmin={isAdmin} onCancel={() => setView({ name: 'detail', id: item.id })} onSave={async (value) => saved(await saveProspect(user.dni, { ...value, id: item.id }), 'Cambios guardados correctamente.')} />;
     else content = <ProspectDetail prospect={item} user={user} isAdmin={isAdmin} catalogs={catalogs} agents={agents} professions={items.map((row) => row.profesion)} confirmation={confirmation} onBack={() => { setConfirmation(''); setView({ name: 'list' }); }} onEdit={() => { setConfirmation(''); setView({ name: 'edit', id: item.id }); }} onChanged={saved} />;
   }
   return <div className="page-transition crm-inner-transition" key={`${view.name}-${'id' in view ? view.id : ''}`}>{content}</div>;
 }
 
-function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, onNew, onOpen }: {
-  items: Prospect[]; loading: boolean; error: string; catalogs: CatalogItem[]; agents: User[]; isAdmin: boolean; dni: string;
+function ProspectList({ items, loading, error, catalogs, agents, isAdmin, onNew, onOpen }: {
+  items: Prospect[]; loading: boolean; error: string; catalogs: CatalogItem[]; agents: User[]; isAdmin: boolean;
   onNew: () => void; onOpen: (id: string) => void;
 }) {
   const [query, setQuery] = useState(''); const [etapa, setEtapa] = useState(''); const [resultado, setResultado] = useState(''); const [captado, setCaptado] = useState(''); const [agente, setAgente] = useState('');
-  const [exporting, setExporting] = useState(false); const [exportError, setExportError] = useState(''); const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortBy, setSortBy] = useState<ProspectSortKey | null>(null); const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const hasActiveFilters = Boolean(query || etapa || resultado || captado || agente);
   const activeFiltersCount = [query, etapa, resultado, captado, agente].filter(Boolean).length;
@@ -128,17 +153,8 @@ function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, o
   }, [filtered, sortBy, sortDirection]);
   const toggleSort = (key: ProspectSortKey) => { if (sortBy === key) setSortDirection((current) => current === 'asc' ? 'desc' : 'asc'); else { setSortBy(key); setSortDirection('asc'); } };
   const options = (type: string) => activeOptions(catalogs, type);
-  const download = async () => {
-    setExporting(true); setExportError('');
-    try {
-      const result = await exportProspects(dni, { etapa, resultado, captado, agente });
-      const url = URL.createObjectURL(new Blob(['\ufeff', result.csv], { type: 'text/csv;charset=utf-8' }));
-      const link = document.createElement('a'); link.href = url; link.download = result.filename; link.click(); URL.revokeObjectURL(url);
-    } catch (cause) { setExportError(messageOf(cause)); }
-    finally { setExporting(false); }
-  };
   return <section className={`page-content crm-page crm-prospects-list${isAdmin ? ' is-admin' : ''}`}>
-    <div className="crm-heading"><div><p className="eyebrow dark">GESTIÓN COMERCIAL</p><h1>Prospectos</h1><p className="subtitle">Busca, filtra y continúa cada oportunidad desde su historial.</p></div><div className="crm-actions"><button className="back-button" type="button" disabled={exporting} onClick={() => void download()}><span className="material-symbols-outlined">download</span>{exporting ? 'Exportando…' : 'Exportar CSV'}</button><button className="primary-button crm-icon-button" type="button" onClick={onNew}><span className="material-symbols-outlined">person_add</span>Nuevo prospecto</button></div></div>
+    <div className="crm-heading"><div><p className="eyebrow dark">GESTIÓN COMERCIAL</p><h1>Prospectos</h1><p className="subtitle">Busca, filtra y continúa cada oportunidad desde su historial.</p></div><div className="crm-actions"><button className="primary-button crm-icon-button" type="button" onClick={onNew}><span className="material-symbols-outlined">person_add</span>Nuevo prospecto</button></div></div>
     <button className="crm-mobile-filter-toggle" type="button" aria-expanded={filtersOpen} aria-controls="prospect-filters" onClick={() => setFiltersOpen((current) => !current)}><span className="material-symbols-outlined">filter_list</span><span>Filtros</span>{hasActiveFilters && <small>{activeFiltersCount}</small>}<span className="material-symbols-outlined">{filtersOpen ? 'expand_less' : 'expand_more'}</span></button>
     <div id="prospect-filters" className={`crm-filters crm-prospect-filters${isAdmin ? ' is-admin' : ''}${filtersOpen ? ' is-open' : ' is-collapsed'}`}>
       <label className="crm-search"><span>Buscar</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre, documento o teléfono" /></label>
@@ -150,7 +166,7 @@ function ProspectList({ items, loading, error, catalogs, agents, isAdmin, dni, o
       {isAdmin && <label><span>Agente</span><select value={agente} onChange={(e) => setAgente(e.target.value)}><option value="">Todos</option>{agents.map((row) => <option value={row.dni} key={row.dni}>{row.nombres} {row.apellidos}</option>)}</select></label>}
       <button className="crm-clear-filters" type="button" onClick={clearFilters} disabled={!hasActiveFilters} aria-label="Eliminar todos los filtros"><span className="material-symbols-outlined">filter_alt_off</span><span>Limpiar filtros</span></button>
     </div>
-    {(error || exportError) && <p className="form-error" role="alert">{error || exportError}</p>}
+    {error && <p className="form-error" role="alert">{error}</p>}
     {loading ? <State icon="progress_activity" title="Cargando prospectos" text="Consultando la operación comercial…" spin /> : !filtered.length ? <State icon="person_search" title="Sin prospectos" text={items.length ? 'No hay coincidencias con los filtros.' : 'Crea el primer prospecto para comenzar.'} action={!items.length ? onNew : undefined} /> :
       <div className="crm-table-wrap"><table className="crm-table"><thead><tr><SortHeader label="Prospecto" active={sortBy === 'nombre'} direction={sortDirection} onClick={() => toggleSort('nombre')} /><SortHeader label="Resultado" active={sortBy === 'resultado'} direction={sortDirection} onClick={() => toggleSort('resultado')} /><SortHeader label="Canal" active={sortBy === 'canal'} direction={sortDirection} onClick={() => toggleSort('canal')} /><SortHeader label="Próximo contacto" active={sortBy === 'proximoContacto'} direction={sortDirection} onClick={() => toggleSort('proximoContacto')} />{isAdmin && <SortHeader label="Agente" active={sortBy === 'agente'} direction={sortDirection} onClick={() => toggleSort('agente')} />}<SortHeader label="Etapa" active={sortBy === 'etapa'} direction={sortDirection} onClick={() => toggleSort('etapa')} /></tr></thead><tbody>{ordered.map((item) => <tr key={item.id} onClick={() => onOpen(item.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(item.id); }}><td data-label="Prospecto"><b>{item.nombre}</b><small>{item.documento || item.telefono}</small></td><td data-label="Resultado"><Badge value={item.resultado} /></td><td data-label="Canal">{item.canal}</td><td data-label="Próximo contacto">{formatDate(item.proximoContacto)}</td>{isAdmin && <td data-label="Agente">{item.agenteNombre || item.agenteDni}</td>}<td data-label="Etapa"><StageBadge value={item.etapa || 'PROSPECTO'} /></td></tr>)}</tbody></table></div>}
   </section>;
@@ -195,7 +211,7 @@ function ProspectForm({ value, dni, catalogs, agents, isAdmin, onCancel, onSave 
 }
 
 function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions, confirmation, onBack, onEdit, onChanged }: { prospect: Prospect; user: User; isAdmin: boolean; catalogs: CatalogItem[]; agents: User[]; professions: string[]; confirmation: string; onBack: () => void; onEdit: () => void; onChanged: (prospect: Prospect, message?: string) => void }) {
-  const [interactions, setInteractions] = useState<Interaction[]>(() => readProspectInteractionsCache(user.dni, prospect.id)); const [historyLoading, setHistoryLoading] = useState(() => !hasProspectDetailCache(user.dni, prospect.id)); const [error, setError] = useState(''); const [showInteraction, setShowInteraction] = useState(false); const [showConvert, setShowConvert] = useState(false); const [showCapturedDetails, setShowCapturedDetails] = useState(false); const [editingNextContact, setEditingNextContact] = useState(''); const [nextContactValue, setNextContactValue] = useState(''); const [rescheduling, setRescheduling] = useState(false);
+  const [interactions, setInteractions] = useState<Interaction[]>(() => readProspectInteractionsCache(user.dni, prospect.id)); const [historyLoading, setHistoryLoading] = useState(() => !hasProspectDetailCache(user.dni, prospect.id)); const [error, setError] = useState(''); const [showInteraction, setShowInteraction] = useState(false); const [showConvert, setShowConvert] = useState(false); const [showCapturedDetails, setShowCapturedDetails] = useState(false); const [reassigning, setReassigning] = useState(false); const [editingNextContact, setEditingNextContact] = useState(''); const [nextContactValue, setNextContactValue] = useState(''); const [rescheduling, setRescheduling] = useState(false);
   const interactionSectionRef = useRef<HTMLElement>(null);
   const latestInteraction = interactions[0];
   const latestInteractionIsWithdrawal = isWithdrawalInteraction(latestInteraction);
@@ -226,6 +242,16 @@ function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions
     document.addEventListener('visibilitychange', loadHistory);
     return () => { active = false; window.clearTimeout(confirmationRefresh); window.removeEventListener('focus', loadHistory); document.removeEventListener('visibilitychange', loadHistory); };
   }, [user.dni, prospect.id]);
+  const reassign = async (agentDni: string) => {
+    if (!agentDni || agentDni === prospect.agenteDni) return;
+    setReassigning(true); setError('');
+    try {
+      const saved = await saveProspect(user.dni, { ...prospectInput(prospect), agenteDni: agentDni });
+      onChanged(saved, 'Prospecto reasignado correctamente.');
+    } catch (cause) {
+      setError(messageOf(cause));
+    } finally { setReassigning(false); }
+  };
   const interactionSaved = (result: { prospect: Prospect; interaction: Interaction }) => {
     setInteractions((current) => [...current.filter((item) => item.id !== result.interaction.id), result.interaction].sort((a, b) => new Date(interactionContactDate(b)).getTime() - new Date(interactionContactDate(a)).getTime()));
     setError('');
@@ -251,7 +277,7 @@ function ProspectDetail({ prospect, user, isAdmin, catalogs, agents, professions
     <div className="crm-heading"><div><p className="eyebrow dark">DETALLE DEL PROSPECTO</p><h1>{prospect.nombre}</h1><p className="subtitle">Creado {formatDate(prospect.fechaCreacion)}</p></div><div className="crm-actions"><button className="back-button" type="button" onClick={onEdit}><span className="material-symbols-outlined">edit</span>Editar</button>{!isClient && <button className="primary-button" type="button" onClick={() => setShowInteraction(!showInteraction)}><span className="material-symbols-outlined">add_call</span>Registrar interacción</button>}</div></div>
     {confirmation && <p className="form-success" role="status"><span className="material-symbols-outlined">check_circle</span>{confirmation}</p>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    <div className="crm-detail-grid"><section className="ds-panel crm-info"><div className="crm-info-heading"><h2>Información principal</h2>{captured && <button className="back-button crm-full-details-button" type="button" onClick={() => setShowCapturedDetails(true)}><span className="material-symbols-outlined">visibility</span>Ver detalles completos</button>}</div><dl><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Canal" value={prospect.canal} /><Field label="Resultado" value={displayedResult} /><Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} /><Field label="Próximo contacto" value={displayedNextContact ? formatDate(displayedNextContact) : ''} /></dl>{prospect.observaciones && <div className="crm-notes"><b>Observaciones</b><p>{prospect.observaciones}</p></div>}
+    <div className="crm-detail-grid"><section className="ds-panel crm-info"><div className="crm-info-heading"><h2>Información principal</h2>{captured && <button className="back-button crm-full-details-button" type="button" onClick={() => setShowCapturedDetails(true)}><span className="material-symbols-outlined">visibility</span>Ver detalles completos</button>}</div><dl><Field label="Documento" value={prospect.documento} /><Field label="Teléfono" value={prospect.telefono} /><Field label="Correo" value={prospect.correo} /><Field label="Canal" value={prospect.canal} /><Field label="Resultado" value={displayedResult} /><Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} /><Field label="Próximo contacto" value={displayedNextContact ? formatDate(displayedNextContact) : ''} /></dl>{prospect.observaciones && <div className="crm-notes"><b>Observaciones</b><p>{prospect.observaciones}</p></div>}{isAdmin && <AgentReassignment agents={agents} value={prospect.agenteDni} disabled={reassigning} onChange={(agentDni) => void reassign(agentDni)} />}
       {!captured && (
         <div className="crm-prospect-actions"><div className="crm-convert">
           <button className="success-button" type="button" disabled={!canCapture} title={canCapture ? undefined : captureUnavailableMessage} onClick={() => setShowConvert(true)}><span className="material-symbols-outlined">verified</span>Captar y registrar cliente</button>
@@ -429,7 +455,7 @@ function CapturedProspectDetails({ prospect, dni, catalogs, agents, isAdmin, con
             <DetailSelect label="Canal *" value={form.canal} disabled={saving} onChange={(value) => update('canal', value)}><option value="">Selecciona</option>{form.canal && !channelOptions.some((row) => row.etiqueta === form.canal) && <option value={form.canal}>{form.canal}</option>}{channelOptions.map((row) => <option value={row.etiqueta} key={row.etiqueta}>{row.etiqueta}</option>)}</DetailSelect>
             <DetailInput label="Fecha de nacimiento *" value={form.fechaNacimiento} disabled={saving} type="date" onChange={(value) => update('fechaNacimiento', value)} />
             <DetailInput label="Profesión *" value={form.profesion} disabled={saving} onChange={(value) => update('profesion', value)} />
-            <DetailInput label="Distrito *" value={form.distrito} disabled={saving} onChange={(value) => update('distrito', value)} />
+            <DetailDistrictCombobox value={form.distrito} disabled={saving} onChange={(value) => update('distrito', value)} />
             <DetailInput label="Dirección *" value={form.direccion} disabled={saving} className="span-2" onChange={(value) => update('direccion', value)} />
             {isAdmin ? <DetailSelect label="Agente" value={form.agenteDni || ''} disabled={saving} onChange={(value) => update('agenteDni', value)}>{prospect.agenteDni && !agents.some((row) => row.dni === prospect.agenteDni) && <option value={prospect.agenteDni}>{prospect.agenteNombre || prospect.agenteDni}</option>}{agents.filter((row) => row.estado === 'ACTIVO' || row.dni === prospect.agenteDni).map((row) => <option value={row.dni} key={row.dni}>{row.nombres} {row.apellidos}</option>)}</DetailSelect> : <Field label="Agente" value={prospect.agenteNombre || prospect.agenteDni} />}
           </> : <>
@@ -463,6 +489,28 @@ function DetailInput({ label, value, onChange, className = '', ...inputProps }: 
 
 function DetailSelect({ label, value, onChange, children, disabled }: { label: string; value: string; onChange: (value: string) => void; children: React.ReactNode; disabled?: boolean }) {
   return <div className="crm-detail-control"><dt>{label}</dt><dd><select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>{children}</select></dd></div>;
+}
+
+function DetailDistrictCombobox({ value, disabled, onChange }: { value: string; disabled: boolean; onChange: (value: string) => void }) {
+  return <div className="crm-detail-control"><dt>Distrito *</dt><dd><DistrictCombobox value={value} disabled={disabled} onChange={onChange} inputId="captured-district" menuId="captured-district-options" /></dd></div>;
+}
+
+function AgentReassignment({ agents, value, disabled, onChange }: { agents: User[]; value: string; disabled: boolean; onChange: (dni: string) => void }) {
+  return <label className="crm-reassign"><span>Reasignar a</span><AgentCombobox agents={agents} value={value} disabled={disabled} onChange={onChange} inputId="prospect-reassign-agent" menuId="prospect-reassign-agent-options" /></label>;
+}
+
+function AgentCombobox({ agents, value, disabled, onChange, inputId, menuId }: { agents: User[]; value: string; disabled: boolean; onChange: (dni: string) => void; inputId: string; menuId: string }) {
+  const selected = agents.find((agent) => agent.dni === value);
+  const availableAgents = useMemo(() => agents.filter((agent) => agent.estado === 'ACTIVO' || agent.dni === value).sort((left, right) => agentName(left).localeCompare(agentName(right), 'es')), [agents, value]);
+  const [query, setQuery] = useState(() => selected ? agentName(selected) : '');
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const terms = query.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-PE').split(/\s+/).filter(Boolean);
+  const matches = availableAgents.filter((agent) => terms.every((term) => agentSearchText(agent).includes(term)));
+  useEffect(() => { if (!editing) setQuery(selected ? agentName(selected) : ''); }, [editing, selected?.dni, selected?.nombres, selected?.apellidos]);
+  const selectAgent = (agent: User) => { setEditing(false); setQuery(agentName(agent)); setOpen(false); onChange(agent.dni); };
+  const close = () => { setEditing(false); setOpen(false); setQuery(selected ? agentName(selected) : ''); };
+  return <div className="agent-combobox"><div className="agent-combobox-input"><input id={inputId} type="search" value={query} disabled={disabled} placeholder="Escribe nombre o DNI" autoComplete="off" role="combobox" aria-label="Reasignar prospecto a otro agente" aria-autocomplete="list" aria-expanded={open} aria-controls={menuId} onFocus={(event) => { event.currentTarget.select(); setEditing(true); setOpen(true); }} onBlur={() => window.setTimeout(close, 120)} onChange={(event) => { setQuery(event.target.value); setEditing(true); setOpen(true); }} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); close(); } else if (event.key === 'ArrowDown') setOpen(true); else if (event.key === 'Enter' && matches.length === 1) { event.preventDefault(); selectAgent(matches[0]); } }} /><button type="button" tabIndex={-1} disabled={disabled} aria-label={open ? 'Ocultar agentes' : 'Mostrar agentes'} onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen((current) => !current)}><span className="material-symbols-outlined" aria-hidden="true">expand_more</span></button></div>{open && <div id={menuId} className="agent-combobox-menu" role="listbox">{matches.length ? matches.map((agent) => <button type="button" role="option" aria-selected={agent.dni === value} key={agent.dni} onMouseDown={(event) => event.preventDefault()} onClick={() => selectAgent(agent)}><b>{agentName(agent)}</b><small>DNI {agent.dni}</small></button>) : <p>No se encontraron agentes.</p>}</div>}</div>;
 }
 
 function ContactDetail({ label, value, action }: { label: string; value: string; action: React.ReactNode }) {
@@ -504,13 +552,20 @@ function ConvertForm({ prospect, dni, professions, onCancel, onSaved }: { prospe
       <form className="crm-modal-form" onSubmit={submit}><div className="interaction-fields">
         <label>Fecha de nacimiento *<input required type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} autoFocus /></label>
         <label>Profesión *<ProfessionCombobox value={profesion} options={professionOptions} disabled={saving} onChange={setProfesion} /></label>
-        <label>Distrito *<input required value={distrito} onChange={(e) => setDistrito(e.target.value)} placeholder="Escribe el distrito" disabled={saving} /></label>
+        <label>Distrito *<DistrictCombobox value={distrito} disabled={saving} onChange={setDistrito} inputId="capture-district" menuId="capture-district-options" /></label>
         <label>Dirección *<textarea className="crm-autogrow-input" required rows={1} value={direccion} onChange={(e) => setDireccion(e.target.value)} onInput={(e) => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`; }} placeholder="Calle, avenida, número y referencia" /></label>
         <label className="span-2">Notas<textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} /></label>
         <CustomFieldsEditor value={customFields} onChange={setCustomFields} disabled={saving} idPrefix="capture-custom" />
       </div>{error && <p className="form-error" role="alert">{error}</p>}<footer className="form-buttons"><button type="button" className="back-button" disabled={saving} onClick={onCancel}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : 'Captar y registrar cliente'}</button></footer></form>
     </section>
   </div>, document.body);
+}
+
+function DistrictCombobox({ value, disabled, onChange, inputId, menuId }: { value: string; disabled: boolean; onChange: (value: string) => void; inputId: string; menuId: string }) {
+  const [open, setOpen] = useState(false);
+  const visibleOptions = LIMA_DISTRICTS.filter((item) => item.toLocaleLowerCase('es').includes(value.trim().toLocaleLowerCase('es')));
+  const selectOption = (option: string) => { onChange(option); setOpen(false); };
+  return <div className="district-combobox"><div className="district-combobox-input"><input id={inputId} required value={value} disabled={disabled} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onChange={(event) => { onChange(event.target.value); setOpen(true); }} onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); if (event.key === 'ArrowDown') setOpen(true); if (event.key === 'Enter' && visibleOptions.length === 1) { event.preventDefault(); selectOption(visibleOptions[0]); } }} placeholder="Escribe o selecciona un distrito" autoComplete="off" role="combobox" aria-label="Distrito" aria-autocomplete="list" aria-expanded={open} aria-controls={menuId} /><button type="button" tabIndex={-1} disabled={disabled} aria-label={open ? 'Ocultar distritos' : 'Mostrar distritos'} onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen((current) => !current)}><span className="material-symbols-outlined" aria-hidden="true">expand_more</span></button></div>{open && <div id={menuId} className="district-combobox-menu" role="listbox">{visibleOptions.length ? visibleOptions.map((item) => <button type="button" role="option" aria-selected={item === value} key={item} onMouseDown={(event) => { event.preventDefault(); selectOption(item); }}>{item}</button>) : <p>Puedes registrar el distrito que escribiste.</p>}</div>}</div>;
 }
 
 function ProfessionCombobox({ value, options, disabled, onChange }: { value: string; options: string[]; disabled: boolean; onChange: (value: string) => void }) {

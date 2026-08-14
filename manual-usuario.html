@@ -819,6 +819,7 @@ footer.doc{border-top:1px solid var(--line);padding:26px max(16px,3vw);text-alig
         <tbody>
           <tr><td><b>Cliente</b></td><td>Nombre y documento.</td></tr>
           <tr><td><b>Teléfono</b> y <b>Correo</b></td><td>Datos de contacto directo.</td></tr>
+          <tr><td><b>Canal</b></td><td>Por dónde llegó originalmente. Viene del prospecto de origen y solo se cambia allí.</td></tr>
           <tr><td><b>Fecha de cierre</b></td><td>El día en que se captó a la persona y pasó a ser cliente.</td></tr>
           <tr><td><b>Estado de captación</b></td><td>En qué condición económica se cerró: EN PRECIO, HASTA 20% SOBRE PRECIO, SOBREPRECIO o SIN DEFINIR.</td></tr>
           <tr><td><b>Cierre de venta</b></td><td>La fecha registrada en la ficha (<a href="#s10">sección 10</a>). Un guion «—» significa que la venta todavía no se registró.</td></tr>
@@ -904,7 +905,7 @@ footer.doc{border-top:1px solid var(--line);padding:26px max(16px,3vw);text-alig
           <tr><td><b>Prospectos por fecha de creación</b></td><td>Altas por día: cuántas personas nuevas entran cada jornada.</td><td>Superior</td></tr>
           <tr><td><b>% de captación por agente</b> <span class="badge-admin">ADMIN</span></td><td>Qué parte de la cartera propia de cada agente llegó a captación.</td><td>Superior</td></tr>
           <tr><td><b>Resultados</b></td><td>Cómo terminó el último contacto de cada prospecto.</td><td>Tablero</td></tr>
-          <tr><td><b>Estado de negociaciones</b></td><td>Reparto de los estados de captación: en precio, sobreprecio, desistió…</td><td>Tablero</td></tr>
+          <tr><td><b>Estado de negociaciones</b></td><td>Panel heredado de la versión anterior. Solo muestra información registrada con aquel flujo, así que normalmente aparecerá vacío.</td><td>Tablero</td></tr>
           <tr><td><b>Interacciones por etapa</b></td><td>Reparto del esfuerzo entre prospección, cliente y cierres por desistimiento.</td><td>Tablero</td></tr>
           <tr><td><b>Interacciones por día</b></td><td>Ritmo de trabajo diario del equipo.</td><td>Tablero</td></tr>
           <tr><td><b>¿Quién hizo más interacciones?</b> <span class="badge-admin">ADMIN</span></td><td>Interacciones registradas por agente y prospectos distintos atendidos.</td><td>Tablero</td></tr>
@@ -1261,6 +1262,7 @@ footer.doc{border-top:1px solid var(--line);padding:26px max(16px,3vw);text-alig
       <table>
         <thead><tr><th>Campo</th><th>Para qué se usa</th></tr></thead>
         <tbody>
+          <tr><td>Canal</td><td>Por dónde llegó originalmente. Se muestra desde el prospecto de origen; no es editable aquí.</td></tr>
           <tr><td>Fecha de cierre</td><td>Día en que se captó a la persona y pasó a ser cliente.</td></tr>
           <tr><td>Estado de captación</td><td>Condición económica del cierre. Viene de la interacción de captación.</td></tr>
           <tr><td><b>Cierre de venta</b></td><td>Fecha en que se concretó la venta. <b>Es la que cuenta el indicador «Ventas».</b> Debe ser posterior a la captación.</td></tr>

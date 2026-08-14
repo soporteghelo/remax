@@ -87,7 +87,6 @@ function doPost(e) {
     if (data.action === 'createUser') return createUser_(ss, data);
     if (data.action === 'updateUser') return updateUser_(ss, data);
     if (data.action === 'resendInvite') return resendInvite_(ss, data);
-    if (data.action === 'listUsers') return listUsers_(ss, data);
     if (data.action === 'getSettings') return getSettings_(ss);
     if (data.action === 'saveSettings') return saveSettings_(ss, data);
     if (data.action === 'crmListCatalogs') return crmListCatalogs_(ss, data);
@@ -99,10 +98,6 @@ function doPost(e) {
     if (data.action === 'crmAddInteraction') return crmAddInteraction_(ss, data);
     if (data.action === 'crmRescheduleInteraction') return crmRescheduleInteraction_(ss, data);
     if (data.action === 'crmConvertProspect') return crmConvertProspect_(ss, data);
-    if (data.action === 'crmConvertProspectToClient') return crmConvertProspectToClient_(ss, data);
-    if (data.action === 'crmMarkProspectNoContinue') return crmMarkProspectNoContinue_(ss, data);
-    if (data.action === 'crmRestoreProspectStage') return crmRestoreProspectStage_(ss, data);
-    if (data.action === 'crmReassignProspect') return crmReassignProspect_(ss, data);
     if (data.action === 'crmListClients') return crmListClients_(ss, data);
     if (data.action === 'crmGetClient') return crmGetClient_(ss, data);
     if (data.action === 'crmSaveClient') return crmSaveClient_(ss, data);
@@ -742,18 +737,6 @@ function updateUser_(ss, data) {
   return createResponse({ status: 'ok', message: 'Usuario actualizado correctamente.', record: updated.record, stamp: updated.stamp, delivery: delivery });
 }
 
-/** Devuelve los usuarios sin Pass, únicamente después de validar a un administrador. */
-function listUsers_(ss, data) {
-  var admin = verifyAdmin_(ss, String(data.adminDni || '').trim(), String(data.adminPassword || ''));
-  if (!admin.ok) return createResponse({ status: 'error', message: admin.message });
-  var sheet = admin.sheet;
-  var headers = admin.headers;
-  if (sheet.getLastRow() < 2) return createResponse({ status: 'ok', users: [] });
-  var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
-  var users = rows.map(function (row) { return publicRecord_(headers, row); });
-  return createResponse({ status: 'ok', users: users });
-}
-
 /* ═══════════════ CONFIGURACIÓN GENERAL DE LA APP (pestaña CONFIGURACION) ═══════════════ */
 
 function settingDef_(key) {
@@ -1038,28 +1021,6 @@ function crmCaptureDateForProspect_(ss, prospectId) {
   return parseSheetDate_(captures[0].FechaHoraContacto || captures[0].FechaHora);
 }
 
-/** Marca como captada la interacción más reciente que originó la conversión. */
-function crmCaptureLatestInteraction_(ss, prospectId) {
-  var sheet = crmSheet_(ss, 'interactions');
-  var interactions = crmObjects_(sheet).filter(function (row) { return String(row.ProspectoID || '') === String(prospectId || ''); });
-  if (!interactions.length) return null;
-  interactions.sort(function (a, b) {
-    var registrationDifference = dateMillis_(b.FechaHora) - dateMillis_(a.FechaHora);
-    if (registrationDifference) return registrationDifference;
-    var contactDifference = dateMillis_(b.FechaHoraContacto || b.FechaHora) - dateMillis_(a.FechaHoraContacto || a.FechaHora);
-    return contactDifference || b._row - a._row;
-  });
-  var latest = interactions[0];
-  var headers = getHeaders_(sheet);
-  var captureColumn = headers.indexOf('Captacion') + 1;
-  if (captureColumn && String(latest.Captacion || '').toUpperCase() !== 'SI') sheet.getRange(latest._row, captureColumn).setValue('SI');
-  var stageColumn = headers.indexOf('Etapa') + 1;
-  if (stageColumn && String(latest.Etapa || '').toUpperCase() !== 'PROSPECTO') sheet.getRange(latest._row, stageColumn).setValue('PROSPECTO');
-  latest.Captacion = 'SI';
-  latest.Etapa = 'PROSPECTO';
-  return latest;
-}
-
 /** Al cerrar como cliente, la última negociación queda identificada en el historial. */
 function crmMarkLatestInteractionAsClient_(ss, prospectId) {
   var sheet = crmSheet_(ss, 'interactions');
@@ -1185,7 +1146,7 @@ function crmInteractionPublic_(row, names) {
 function crmClientPublic_(row, names, prospect) {
   prospect = prospect || {};
   // El módulo Clientes puede mostrar los datos, pero su fuente es PROSPECTOS.
-  return { id: String(row.ID || ''), prospectoId: String(row.ProspectoID || ''), nombre: String(row.Nombre || ''), documento: String(row.Documento || ''), telefono: String(row.Telefono || ''), correo: String(row.Correo || ''), fechaNacimiento: apiDateValue_(prospect.FechaNacimiento || row.FechaNacimiento), profesion: String(prospect.Profesion || row.Profesion || ''), distrito: String(prospect.Distrito || row.Distrito || ''), direccion: String(prospect.Direccion || row.Direccion || ''), fechaCierre: apiDateValue_(row.FechaCierre), estado: String(row.Estado || ''), estadoCaptacion: String(row.EstadoCaptacion || ''), cierreVenta: apiDateValue_(row.CierreVenta), notas: String(prospect.Notas || row.Notas || ''), agenteDni: String(row.AgenteDNI || ''), agenteNombre: names[String(row.AgenteDNI || '')] || '' };
+  return { id: String(row.ID || ''), prospectoId: String(row.ProspectoID || ''), nombre: String(row.Nombre || ''), documento: String(row.Documento || ''), telefono: String(row.Telefono || ''), correo: String(row.Correo || ''), canal: String(prospect.Canal || row.Canal || ''), fechaNacimiento: apiDateValue_(prospect.FechaNacimiento || row.FechaNacimiento), profesion: String(prospect.Profesion || row.Profesion || ''), distrito: String(prospect.Distrito || row.Distrito || ''), direccion: String(prospect.Direccion || row.Direccion || ''), fechaCierre: apiDateValue_(row.FechaCierre), estado: String(row.Estado || ''), estadoCaptacion: String(row.EstadoCaptacion || ''), cierreVenta: apiDateValue_(row.CierreVenta), notas: String(prospect.Notas || row.Notas || ''), agenteDni: String(row.AgenteDNI || ''), agenteNombre: names[String(row.AgenteDNI || '')] || '' };
 }
 
 /**
@@ -1250,28 +1211,6 @@ function crmCatalogLabel_(rows, type, value) {
     var row = rows[index];
     if (String(row.Tipo).toUpperCase() !== type || String(row.Activo).toUpperCase() === 'NO') continue;
     if (crmLabelKey_(row.Etiqueta) === key) return crmLabelText_(row.Etiqueta);
-  }
-  return '';
-}
-
-/**
- * Valor con el que la app rellena un campo que llegó vacío: la etiqueta preferida
- * si el administrador la conserva y, si la renombró o la borró, la primera opción
- * activa de ese tipo por Orden.
- */
-function crmDefaultLabel_(rows, type, preferred) {
-  var preferredLabel = preferred ? crmCatalogLabel_(rows, type, preferred) : '';
-  if (preferredLabel) return preferredLabel;
-  var active = rows.filter(function (row) { return String(row.Tipo).toUpperCase() === type && String(row.Activo).toUpperCase() !== 'NO'; });
-  active.sort(function (a, b) { return Number(a.Orden || 0) - Number(b.Orden || 0); });
-  return active.length ? crmLabelText_(active[0].Etiqueta) : '';
-}
-
-/** Primera etiqueta viva de una lista de candidatas; '' si el catálogo no conserva ninguna. */
-function crmAnyLabel_(rows, type, candidates) {
-  for (var index = 0; index < candidates.length; index++) {
-    var label = crmCatalogLabel_(rows, type, candidates[index]);
-    if (label) return label;
   }
   return '';
 }
@@ -1589,75 +1528,6 @@ function crmConvertProspect_(ss, data) {
   crmAudit_(ss, actor, 'CAPTAR', 'PROSPECTO', prospect.ID, prospect.Nombre); var names = crmUserNames_(ss);
   var latestInteraction = crmLatestInteractionsByProspect_(ss)[String(prospect.ID || '')];
   return crmResponse_({ prospect: crmProspectPublic_(prospect, names, latestInteraction), client: crmClientPublic_(record, names, prospect), capturedInteraction: capturedInteraction ? crmInteractionPublic_(capturedInteraction, names) : null });
-}
-
-/** Segunda etapa: solo un usuario ya captado puede generar una fila en CLIENTES. */
-function crmConvertProspectToClient_(ss, data) {
-  var actor = crmActor_(ss, data); if (!actor.ok) return crmError_(actor.message);
-  var lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return crmError_('Hay otra conversión en proceso. Inténtalo nuevamente.');
-  try {
-    var prospectSheet = crmSheet_(ss, 'prospects'); var prospect = crmFind_(crmObjects_(prospectSheet), 'ID', crmText_(data.id, 50)); var denied = crmRequireAccess_(actor, prospect); if (denied) return crmError_(denied);
-    if (!crmProspectCaptured_(prospect)) return crmError_('Primero debes convertir el prospecto en usuario captado.');
-    var currentStage = String((crmLatestInteractionsByProspect_(ss)[String(prospect.ID || '')] || {}).Etapa || '').toUpperCase();
-    if (currentStage === 'NO CONTINUA') return crmError_('El prospecto está cerrado como NO CONTINUA.');
-
-    var clientSheet = crmSheet_(ss, 'clients'); var clients = crmObjects_(clientSheet);
-    var client = prospect.ClienteID ? crmFind_(clients, 'ID', prospect.ClienteID) : null;
-    if (!client) client = crmFind_(clients, 'ProspectoID', prospect.ID);
-    var sameDocument = !client && prospect.Documento ? crmFind_(clients, 'Documento', prospect.Documento) : null;
-    if (sameDocument && String(sameDocument.ProspectoID || '') !== String(prospect.ID)) return crmError_('Ya existe otro cliente con el mismo documento.');
-    if (sameDocument) client = sameDocument;
-
-    var now = new Date(); var latestCaptureInteraction = crmLatestInteractionsByProspect_(ss)[String(prospect.ID || '')] || null; var record = client || { ID: crmId_('CLI'), ProspectoID: prospect.ID, FechaCierre: now, Estado: 'ACTIVO' };
-    record.ProspectoID = prospect.ID; record.Nombre = prospect.Nombre; record.Documento = prospect.Documento; record.Telefono = prospect.Telefono; record.Correo = prospect.Correo; record.AgenteDNI = prospect.AgenteDNI;
-    record.EstadoCaptacion = crmText_(latestCaptureInteraction && latestCaptureInteraction.EstadoCaptacion, 80);
-    if (!record.FechaCierre) record.FechaCierre = now; if (!record.Estado) record.Estado = 'ACTIVO';
-    crmWriteRow_(clientSheet, client ? client._row : 0, record);
-    prospect.ClienteID = record.ID; prospect.Captado = 'SI'; prospect.FechaActualizacion = now; crmWriteRow_(prospectSheet, prospect._row, prospect);
-
-    var latestInteraction = crmMarkLatestInteractionAsClient_(ss, prospect.ID);
-    crmAudit_(ss, actor, 'CONVERTIR', 'PROSPECTO', prospect.ID, 'Cliente ' + record.ID); var names = crmUserNames_(ss);
-    return crmResponse_({ prospect: crmProspectPublic_(prospect, names, latestInteraction), client: crmClientPublic_(record, names, prospect), clientInteraction: latestInteraction ? crmInteractionPublic_(latestInteraction, names) : null });
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function crmSetProspectStage_(ss, data, targetStage) {
-  var actor = crmActor_(ss, data); if (!actor.ok) return crmError_(actor.message);
-  var prospectSheet = crmSheet_(ss, 'prospects');
-  var prospect = crmFind_(crmObjects_(prospectSheet), 'ID', crmText_(data.id, 50));
-  var denied = crmRequireAccess_(actor, prospect); if (denied) return crmError_(denied);
-  if (prospect.ClienteID) return crmError_('El prospecto ya es cliente y su etapa comercial está cerrada.');
-
-  var interactionSheet = crmSheet_(ss, 'interactions');
-  var latest = crmLatestInteractionsByProspect_(ss)[String(prospect.ID || '')];
-  if (!latest) return crmError_('El prospecto no tiene una interacción para actualizar.');
-  var currentStage = String(latest.Etapa || '').toUpperCase();
-  if (targetStage === 'PROSPECTO' && currentStage !== 'NO CONTINUA') return crmError_('Solo una etapa NO CONTINUA puede regresar a PROSPECTO.');
-  var stageColumn = getHeaders_(interactionSheet).indexOf('Etapa') + 1;
-  if (!stageColumn) return crmError_('La columna Etapa no existe en INTERACCIONES. Ejecuta Actualizar().');
-  if (currentStage !== targetStage) interactionSheet.getRange(latest._row, stageColumn).setValue(targetStage);
-  latest.Etapa = targetStage;
-  prospect.FechaActualizacion = new Date(); crmWriteRow_(prospectSheet, prospect._row, prospect);
-  crmAudit_(ss, actor, 'EDITAR', 'PROSPECTO', prospect.ID, 'Etapa ' + targetStage);
-  var names = crmUserNames_(ss);
-  return crmResponse_({ prospect: crmProspectPublic_(prospect, names, latest), interaction: crmInteractionPublic_(latest, names) });
-}
-
-/** Cierra el ciclo comercial de un usuario captado sin convertirlo en cliente. */
-function crmMarkProspectNoContinue_(ss, data) { return crmSetProspectStage_(ss, data, 'NO CONTINUA'); }
-
-/** Reabre como prospecto un ciclo comercial cerrado previamente. */
-function crmRestoreProspectStage_(ss, data) { return crmSetProspectStage_(ss, data, 'PROSPECTO'); }
-
-function crmReassignProspect_(ss, data) {
-  var actor = crmActor_(ss, data); if (!actor.ok) return crmError_(actor.message); if (!crmIsAdmin_(actor)) return crmError_('Solo un administrador puede reasignar prospectos.');
-  var sheet = crmSheet_(ss, 'prospects'); var prospect = crmFind_(crmObjects_(sheet), 'ID', crmText_(data.id, 50)); if (!prospect) return crmError_('El prospecto no existe.'); var target = crmText_(data.agentDni, 12); if (!crmActiveAgent_(ss, target)) return crmError_('El agente destino no existe o está cesado.');
-  var previous = String(prospect.AgenteDNI); prospect.AgenteDNI = target; prospect.FechaActualizacion = new Date(); crmWriteRow_(sheet, prospect._row, prospect); crmAudit_(ss, actor, 'REASIGNAR', 'PROSPECTO', prospect.ID, previous + ' → ' + target);
-  var latestInteraction = crmLatestInteractionsByProspect_(ss)[String(prospect.ID || '')];
-  return crmResponse_(crmProspectPublic_(prospect, crmUserNames_(ss), latestInteraction));
 }
 
 function crmListClients_(ss, data) {

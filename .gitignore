@@ -13,3 +13,11 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+# Archivos de bloqueo que Office deja mientras un documento está abierto
+~$*
+
+# Volcados del navegador automatizado usado para documentar la aplicación
+.playwright-mcp/
+
+# Capturas de pantalla sueltas en la raíz: el manual las lleva incrustadas
+/*.png

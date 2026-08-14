@@ -128,8 +128,6 @@ export default function Agenda({ user, isAdmin, onOpenProspect }: { user: User; 
                     aria-label={`${formatDate(day)}, ${events.length} ${events.length === 1 ? 'contacto' : 'contactos'}`}
                     aria-selected={selectedDay === dayKey}
                     tabIndex={events.length ? 0 : undefined}
-                    onPointerEnter={() => { if (events.length) setSelectedDay(dayKey); }}
-                    onPointerDown={() => { if (events.length) setSelectedDay(dayKey); }}
                     onClick={() => { if (events.length) setSelectedDay(dayKey); }}
                     onKeyDown={(event) => { if (events.length && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setSelectedDay(dayKey); } }}
                   >

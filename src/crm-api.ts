@@ -90,6 +90,8 @@ export interface Client {
   documento: string;
   telefono: string;
   correo: string;
+  /** Solo lectura: el canal se administra desde el prospecto de origen. */
+  canal: string;
   fechaNacimiento: string;
   profesion: string;
   distrito: string;
@@ -199,6 +201,8 @@ interface ProspectDetailData { prospect: Prospect; interactions: Interaction[] }
 interface ProspectDetailCache extends Partial<ProspectDetailData> { protectedIds?: string[]; preserveUntil?: number }
 const RECENT_WRITE_GRACE_MS = 3000;
 
+/** Las cachés de versiones previas pueden no traer todavía el historial como arreglo. */
+const interactionList = (value: unknown): Interaction[] => Array.isArray(value) ? value as Interaction[] : [];
 const interactionDate = (item: Interaction): number => new Date(item.fechaHoraContacto || item.fechaHora || 0).getTime() || 0;
 
 /** Une únicamente registros que deban protegerse durante una escritura reciente. */
@@ -216,7 +220,7 @@ function readProspectDetailCache(dni: string, id: string): ProspectDetailCache {
 function protectedCachedInteractions(cache: ProspectDetailCache): Interaction[] {
   if (!cache.preserveUntil || cache.preserveUntil <= Date.now()) return [];
   const ids = new Set(cache.protectedIds || []);
-  return (cache.interactions || []).filter((item) => ids.has(item.id));
+  return interactionList(cache.interactions).filter((item) => ids.has(item.id));
 }
 
 function prospectWithInteractions(prospect: Prospect, interactions: Interaction[]): Prospect {
@@ -277,7 +281,7 @@ export function hasProspectDetailCache(dni: string, id: string): boolean {
 }
 
 export function readProspectInteractionsCache(dni: string, id: string): Interaction[] {
-  return readProspectDetailCache(dni, id).interactions ?? [];
+  return interactionList(readProspectDetailCache(dni, id).interactions);
 }
 
 /**
@@ -343,9 +347,10 @@ export async function listProspects(dni: string, filters: Record<string, string>
 export async function getProspect(dni: string, id: string): Promise<{ prospect: Prospect; interactions: Interaction[] }> {
   const fresh = await sharedRead<ProspectDetailData>('crmGetProspect', dni, { id });
   const cached = readProspectDetailCache(dni, id);
-  const freshIds = new Set(fresh.interactions.map((item) => item.id));
+  const freshInteractions = interactionList(fresh.interactions);
+  const freshIds = new Set(freshInteractions.map((item) => item.id));
   const protectedMissing = protectedCachedInteractions(cached).filter((item) => !freshIds.has(item.id));
-  const interactions = mergeInteractions(fresh.interactions, protectedMissing);
+  const interactions = mergeInteractions(freshInteractions, protectedMissing);
   const data = { prospect: prospectWithInteractions(fresh.prospect, interactions), interactions };
   writeCache(dni, prospectDetailCacheName(id), { ...data, protectedIds: protectedMissing.map((item) => item.id), preserveUntil: protectedMissing.length ? cached.preserveUntil : 0 });
   updateCachedProspect(dni, data.prospect);
@@ -378,7 +383,7 @@ export async function addInteraction(dni: string, interaction: InteractionInput)
 export async function rescheduleInteraction(dni: string, interactionId: string, proximoContacto: string): Promise<{ prospect: Prospect; interaction: Interaction }> {
   const saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmRescheduleInteraction', dni, { interactionId, proximoContacto });
   const cached = readProspectDetailCache(dni, saved.interaction.prospectoId);
-  const interactions = (cached.interactions || []).map((item) => item.id === saved.interaction.id ? saved.interaction : item);
+  const interactions = interactionList(cached.interactions).map((item) => item.id === saved.interaction.id ? saved.interaction : item);
   writeCache(dni, prospectDetailCacheName(saved.interaction.prospectoId), { ...cached, prospect: saved.prospect, interactions });
   updateCachedProspect(dni, saved.prospect);
   return saved;
@@ -388,8 +393,8 @@ export async function convertProspect(dni: string, id: string, details: ConvertD
   const saved = await authenticatedRequest<{ prospect: Prospect; client: Client; capturedInteraction: Interaction | null }>('crmConvertProspect', dni, { id, details });
   const cached = readProspectDetailCache(dni, id);
   const interactions = saved.capturedInteraction
-    ? (cached.interactions || []).map((item) => item.id === saved.capturedInteraction?.id ? saved.capturedInteraction : item)
-    : (cached.interactions || []);
+    ? interactionList(cached.interactions).map((item) => item.id === saved.capturedInteraction?.id ? saved.capturedInteraction : item)
+    : interactionList(cached.interactions);
   writeCache(dni, prospectDetailCacheName(id), { ...cached, prospect: saved.prospect, interactions });
   updateCachedProspect(dni, saved.prospect);
   const clients = readCrmCache<Client[]>(dni, 'clients', []);
@@ -397,40 +402,6 @@ export async function convertProspect(dni: string, id: string, details: ConvertD
   return saved;
 }
 
-export async function convertProspectToClient(dni: string, id: string): Promise<{ prospect: Prospect; client: Client; clientInteraction: Interaction | null }> {
-  const saved = await authenticatedRequest<{ prospect: Prospect; client: Client; clientInteraction: Interaction | null }>('crmConvertProspectToClient', dni, { id });
-  const cached = readProspectDetailCache(dni, id);
-  const interactions = saved.clientInteraction
-    ? (cached.interactions || []).map((item) => item.id === saved.clientInteraction?.id ? saved.clientInteraction : item)
-    : (cached.interactions || []);
-  writeCache(dni, prospectDetailCacheName(id), { ...cached, prospect: saved.prospect, interactions });
-  updateCachedProspect(dni, saved.prospect);
-  const clients = readCrmCache<Client[]>(dni, 'clients', []);
-  writeCache(dni, 'clients', [saved.client, ...clients.filter((item) => item.id !== saved.client.id)]);
-  return saved;
-}
-
-export async function markProspectNoContinue(dni: string, id: string): Promise<{ prospect: Prospect; interaction: Interaction }> {
-  const saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmMarkProspectNoContinue', dni, { id });
-  const cached = readProspectDetailCache(dni, id);
-  const interactions = mergeInteractions([saved.interaction], cached.interactions || []);
-  writeCache(dni, prospectDetailCacheName(id), { ...cached, prospect: saved.prospect, interactions, protectedIds: [saved.interaction.id], preserveUntil: Date.now() + RECENT_WRITE_GRACE_MS });
-  updateCachedProspect(dni, saved.prospect);
-  return saved;
-}
-
-export async function restoreProspectStage(dni: string, id: string): Promise<{ prospect: Prospect; interaction: Interaction }> {
-  const saved = await authenticatedRequest<{ prospect: Prospect; interaction: Interaction }>('crmRestoreProspectStage', dni, { id });
-  const cached = readProspectDetailCache(dni, id);
-  const interactions = mergeInteractions([saved.interaction], cached.interactions || []);
-  writeCache(dni, prospectDetailCacheName(id), { ...cached, prospect: saved.prospect, interactions, protectedIds: [saved.interaction.id], preserveUntil: Date.now() + RECENT_WRITE_GRACE_MS });
-  updateCachedProspect(dni, saved.prospect);
-  return saved;
-}
-
-export async function reassignProspect(dni: string, id: string, agentDni: string): Promise<Prospect> {
-  return authenticatedRequest('crmReassignProspect', dni, { id, agentDni });
-}
 
 /** Cambia solo la categoría de una cuenta desde la tabla Equipo. */
 export async function updateUserCategory(dni: string, targetDni: string, categoria: string): Promise<User> {

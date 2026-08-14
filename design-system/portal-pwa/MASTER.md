@@ -166,9 +166,9 @@ filtra. Cada segmento lleva su cifra en la leyenda, no solo el color.
 
 280px, fijo a la izquierda, `translateX(-100%) → 0`. Cabecera con degradado de
 marca (`--drawer-gradient`), patrón de puntos al 7%, avatar, nombre, DNI y chip
-de rol. Lista de destinos con icono **y** texto; el activo lleva `aria-current`.
-Cuando hay más de 5 módulos aparece "Ver más módulos". Cerrar sesión va separado
-del resto por una línea. Pie con estado del sistema y versión.
+de rol. Lista completa de destinos con icono **y** texto; el activo lleva
+`aria-current`. Cerrar sesión va separado del resto por una línea. Pie con estado
+del sistema y versión.
 
 ### Footer de navegación (`.main-footer`)
 
@@ -205,8 +205,10 @@ Para que un módulo nuevo entre en esa pulsación:
    `registerSyncModule({ id, label, appliesTo?, refresh })` en `src/sync.ts`.
    `refresh` trae los datos de la nube y los guarda en su caché local.
 2. En la vista, relee esa caché reaccionando a `useSyncState().dataVersion`.
-3. Las escrituras usan `reportSaved` (llegó a la nube) o `reportQueued` (falló
-   por conexión y espera en la cola).
+3. Las escrituras usan `markSaved()` cuando el cambio llegó a la nube, o
+   `queueChange({ kind, label, payload })` cuando falló por conexión y espera en
+   la cola. Ambas salen de `src/sync.ts`; distingue el fallo de red del error de
+   servidor con `isNetworkError` (`src/api.ts`), porque solo el de red se encola.
 
 Los textos de estado remiten siempre a "la nube de la barra superior"; el sello
 de frescura (`.dash-updated`, resúmenes) es texto, nunca un botón.
@@ -216,6 +218,31 @@ de frescura (`.dash-updated`, resúmenes) es texto, nunca un botón.
 `.primary-button`, `.secondary-button`, `.new-user-button`,
 `.admin-form input|select` viven en `src/styles.css`. Al modificarlos, replica el
 cambio en todos los módulos que usen el mismo patrón.
+
+### Campo con sugerencias y texto libre
+
+Úsalo cuando haya valores habituales que ayuden a completar un campo, pero no
+deban limitar el valor que se guarda (distrito, profesión, empresa o referencia).
+No lo sustituyas por un `<select>` cerrado.
+
+- El input conserva siempre el texto escrito y filtra las sugerencias sin
+  distinguir mayúsculas ni minúsculas. Nunca completa o reemplaza un
+  valor por sí solo.
+- La lista abre al enfocar o tocar el botón de despliegue; queda superpuesta,
+  con altura máxima y scroll, para no mover el formulario. Elegir una sugerencia
+  copia su texto y cierra la lista.
+- Si no hay coincidencias, informa que el valor manual se guardará y acepta el
+  envío tal como fue escrito.
+- Expón `role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`,
+  `aria-controls` y un `role="listbox"` con IDs únicos. `Escape` cierra,
+  `ArrowDown` abre y `Enter` selecciona solo cuando hay una coincidencia visible;
+  de otro modo conserva el texto libre.
+- Usa tokens de superficie, borde, foco y `--shadow-lg`; conserva 42 px de alto
+  mínimo y 44 px en táctil, foco visible y contraste correcto en ambos temas.
+
+La referencia implementada es `DistrictCombobox` y `ProfessionCombobox` en
+`src/Prospects.tsx`, con `.district-combobox` y `.profession-combobox` en
+`src/crm.css`. Ante un tercer uso, extrae un componente y estilo compartidos.
 
 ### Fechas y horas (`src/dates.ts`)
 
