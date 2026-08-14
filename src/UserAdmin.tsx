@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createUser, isNetworkError, readUsersCache, resendInvite, syncUsers, updateUser, writeUsersCache, type CredentialDelivery, type InviteChannel, type User } from './api';
+import { createUser, deleteAgent, isNetworkError, readUsersCache, resendInvite, syncUsers, updateUser, writeUsersCache, type CredentialDelivery, type InviteChannel, type User } from './api';
 import { formatDateTime } from './dates';
 import { markSaved, queueChange, useSyncState } from './sync';
 import { WhatsAppGlyph } from './whatsapp';
@@ -11,6 +11,7 @@ import { listCatalogs, readCatalogCache, updateUserCategory } from './crm-api';
  * ancho y el mismo formulario que la edición.
  */
 type View = { name: 'list' } | { name: 'create' } | { name: 'detail'; dni: string } | { name: 'edit'; dni: string } | { name: 'invite'; dni: string } | { name: 'credentials'; dni: string; delivery: CredentialDelivery };
+type UserSortKey = 'usuario' | 'dni' | 'categoria' | 'estado';
 
 export default function UserAdmin({ user, onSessionUserChange }: { user: User; onSessionUserChange: (user: User) => void }) {
   const [view, setView] = useState<View>({ name: 'list' });
@@ -110,6 +111,21 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
     }
   };
 
+  const removeAgent = async (target: User) => {
+    await deleteAgent(user.dni, target.dni);
+    const date = new Date().toISOString();
+    confirmedCategories.current.delete(target.dni);
+    setUsers((current) => {
+      const next = current.filter((item) => item.dni !== target.dni);
+      writeUsersCache(user.dni, { users: next, lastSync: date });
+      return next;
+    });
+    setLastSync(date);
+    setSyncMessage(`Agente ${target.nombres} ${target.apellidos} eliminado.`);
+    markSaved();
+    setView({ name: 'list' });
+  };
+
   const list = <UserList {...{ user, users, lastSync, syncMessage, refreshing, refreshError, categories }}
                          onNew={() => { setSyncMessage(''); setView({ name: 'create' }); }}
                          onOpen={(dni) => setView({ name: 'detail', dni })}
@@ -130,7 +146,7 @@ export default function UserAdmin({ user, onSessionUserChange }: { user: User; o
   if (view.name !== 'list' && !selected) return list;
 
   if (view.name === 'detail' && selected) {
-    return <UserDetail user={selected} isSelf={selected.dni === user.dni} onBack={() => setView({ name: 'list' })} onEdit={() => setView({ name: 'edit', dni: selected.dni })} />;
+    return <UserDetail user={selected} isSelf={selected.dni === user.dni} onBack={() => setView({ name: 'list' })} onEdit={() => setView({ name: 'edit', dni: selected.dni })} onDelete={removeAgent} />;
   }
   if (view.name === 'invite' && selected) {
     return <UserInvite
@@ -176,6 +192,8 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [savingCategoryDni, setSavingCategoryDni] = useState('');
   const [categoryError, setCategoryError] = useState('');
+  const [sortKey, setSortKey] = useState<UserSortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const syncedAt = lastSync ? formatDateTime(lastSync) : 'Aún no sincronizado';
   const activos = users.filter((row) => row.estado === 'ACTIVO').length;
   const normalizedAgentQuery = agentQuery.trim().toLocaleLowerCase('es-PE');
@@ -194,6 +212,21 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
     }),
     [users, estado, tipoUsuario, categoriaUsuario, normalizedAgentQuery],
   );
+  const ordered = useMemo(() => {
+    if (!sortKey) return filtered;
+    const valueFor = (row: User) => {
+      if (sortKey === 'usuario') return `${row.nombres} ${row.apellidos}`;
+      if (sortKey === 'dni') return row.dni;
+      if (sortKey === 'categoria') return row.categoria || 'Sin categoría';
+      return row.estado;
+    };
+    const multiplier = sortDirection === 'asc' ? 1 : -1;
+    return [...filtered].sort((left, right) => multiplier * valueFor(left).localeCompare(valueFor(right), 'es', { sensitivity: 'base', numeric: true }));
+  }, [filtered, sortKey, sortDirection]);
+  const toggleSort = (nextKey: UserSortKey) => {
+    if (sortKey === nextKey) setSortDirection((current) => current === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(nextKey); setSortDirection('asc'); }
+  };
   const status = categoryError
     || syncMessage
     || (refreshError ? `${refreshError} Se muestra la copia guardada.`
@@ -243,9 +276,14 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
       </div>
       {/* La acción solo aparece si existe un celular al que enviar el
           recordatorio por WhatsApp. */}
-      <div className={`user-table${filtered.some((row) => row.celular) ? ' has-row-actions' : ''}`}>
-        <div className="table-head"><span>Usuario</span><span>DNI</span><span>Categoría</span><span>Estado</span></div>
-        {filtered.length ? filtered.map((row) => (
+      <div className={`user-table${ordered.some((row) => row.celular) ? ' has-row-actions' : ''}`}>
+        <div className="table-head">
+          <UserSortHeader label="Usuario" sortKey="usuario" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+          <UserSortHeader label="DNI" sortKey="dni" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+          <UserSortHeader label="Categoría" sortKey="categoria" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+          <UserSortHeader label="Estado" sortKey="estado" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+        </div>
+        {ordered.length ? ordered.map((row) => (
           // La acción de WhatsApp va FUERA del botón de la fila: anidar dos
           // controles no es válido, así que ocupa su propia columna. Cuando la
           // cuenta no tiene por dónde recibirla queda un hueco, y así todas las
@@ -285,6 +323,15 @@ function UserList({ user, users, lastSync, syncMessage, refreshing, refreshError
   </section>;
 }
 
+function UserSortHeader({ label, sortKey, activeKey, direction, onSort }: { label: string; sortKey: UserSortKey; activeKey: UserSortKey | null; direction: 'asc' | 'desc'; onSort: (key: UserSortKey) => void }) {
+  const active = activeKey === sortKey;
+  const order = active ? (direction === 'asc' ? 'ascendente' : 'descendente') : 'sin ordenar';
+  return <button type="button" className={`user-sort-header${active ? ' is-active' : ''}`} onClick={() => onSort(sortKey)} aria-label={`Ordenar por ${label}: ${order}`}>
+    <span>{label}</span>
+    <span className="material-symbols-outlined" aria-hidden="true">{active ? (direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}</span>
+  </button>;
+}
+
 function EstadoBadge({ estado }: { estado: User['estado'] }) {
   return <span className={`state-badge ${estado === 'ACTIVO' ? 'is-activo' : 'is-cesado'}`}>
     <span className="material-symbols-outlined" aria-hidden="true">{estado === 'ACTIVO' ? 'check_circle' : 'block'}</span>
@@ -297,7 +344,11 @@ function categoryOptions(items: Array<{ tipo: string; etiqueta: string; activo: 
 }
 
 /* ─── Detalle ─── */
-function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: boolean; onBack: () => void; onEdit: () => void }) {
+function UserDetail({ user, isSelf, onBack, onEdit, onDelete }: { user: User; isSelf: boolean; onBack: () => void; onEdit: () => void; onDelete: (user: User) => Promise<void> }) {
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const canDelete = user.tipoUsuario === 'USUARIO' && !isSelf;
   const fields: [string, React.ReactNode][] = [
     ['Apellidos', user.apellidos || '—'],
     ['Nombres', user.nombres || '—'],
@@ -324,7 +375,25 @@ function UserDetail({ user, isSelf, onBack, onEdit }: { user: User; isSelf: bool
     </dl>
     <div className="profile-actions">
       <button type="button" className="new-user-button" onClick={onEdit}>Editar usuario</button>
+      {canDelete && !confirmingDeletion && <button type="button" className="danger-button" onClick={() => { setDeleteError(''); setConfirmingDeletion(true); }}>
+        <span className="material-symbols-outlined" aria-hidden="true">delete</span>Eliminar agente
+      </button>}
     </div>
+    {canDelete && confirmingDeletion && <section className="user-delete-confirm ds-panel" aria-labelledby="delete-agent-title">
+      <h2 id="delete-agent-title">¿Eliminar a {user.nombres} {user.apellidos}?</h2>
+      <p>Esta acción borra definitivamente la cuenta del agente.</p>
+      <p>Para proteger el historial, el agente no puede tener prospectos, clientes ni interacciones vinculados. Si ya tiene actividad, conserva la cuenta como cesada.</p>
+      {deleteError && <p className="form-error" role="alert">{deleteError}</p>}
+      <div className="profile-actions">
+        <button type="button" className="back-button" disabled={deleting} onClick={() => setConfirmingDeletion(false)}>Cancelar</button>
+        <button type="button" className="danger-button" disabled={deleting} onClick={() => {
+          setDeleting(true); setDeleteError('');
+          void onDelete(user).catch((cause) => {
+            setDeleteError(isNetworkError(cause) ? 'Sin conexión: vuelve a intentarlo cuando estés en línea.' : cause instanceof Error ? cause.message : 'No se pudo eliminar el agente.');
+          }).finally(() => setDeleting(false));
+        }}><span className="material-symbols-outlined" aria-hidden="true">delete_forever</span>{deleting ? 'Eliminando…' : 'Eliminar definitivamente'}</button>
+      </div>
+    </section>}
   </section>;
 }
 

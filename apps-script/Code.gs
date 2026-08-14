@@ -109,6 +109,7 @@ function doPost(e) {
     if (data.action === 'crmDashboard') return crmDashboard_(ss, data);
     if (data.action === 'crmListAgents') return crmListAgents_(ss, data);
     if (data.action === 'crmUpdateUserCategory') return crmUpdateUserCategory_(ss, data);
+    if (data.action === 'crmDeleteAgent') return crmDeleteAgent_(ss, data);
     if (data.action === 'crmExportProspects') return crmExportProspects_(ss, data);
     if (data.action === 'crmUpdateProfile') return crmUpdateProfile_(ss, data);
     return createResponse({ status: 'error', message: 'Acción no reconocida' });
@@ -1906,6 +1907,47 @@ function crmUpdateUserCategory_(ss, data) {
   values = writeSheetValues_(sheet, row, headers, values);
   crmAudit_(ss, actor, 'EDITAR', 'USUARIO', dni, 'Categoría: ' + (categoria || 'Sin categoría'));
   return crmResponse_(publicRecord_(headers, values));
+}
+
+/**
+ * Elimina una cuenta de agente que ya no conserva trabajo comercial. Los
+ * registros históricos resuelven el nombre desde USUARIOS, por eso no se borra
+ * una cuenta con prospectos, clientes o interacciones vinculadas: primero se
+ * deben reasignar o conservar la cuenta como cesada.
+ */
+function crmDeleteAgent_(ss, data) {
+  var actor = crmActor_(ss, data);
+  if (!actor.ok) return crmError_(actor.message);
+  if (!crmIsAdmin_(actor)) return crmError_('Solo un administrador puede eliminar agentes.');
+
+  var dni = crmText_(data.dni, 12);
+  if (!/^\d{8}$/.test(dni)) return crmError_('El DNI del agente no es válido.');
+  if (dni === actor.dni) return crmError_('No puedes eliminar tu propia cuenta.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sheet = getOrCreateSheetWithHeaders(ss, USERS_SHEET_NAME, USERS_HEADERS);
+    var headers = getHeaders_(sheet);
+    var row = findRowByDni_(sheet, dni, headers);
+    if (!row) return crmError_('El agente ya no existe.');
+
+    var values = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+    if (getValidUserType_(valueAt_(values, headers, 'TipoUsuario'), dni) !== 'USUARIO') return crmError_('Solo se pueden eliminar cuentas de agente.');
+
+    var prospects = crmObjects_(crmSheet_(ss, 'prospects')).filter(function (item) { return String(item.AgenteDNI || '') === dni; }).length;
+    var clients = crmObjects_(crmSheet_(ss, 'clients')).filter(function (item) { return String(item.AgenteDNI || '') === dni; }).length;
+    var interactions = crmObjects_(crmSheet_(ss, 'interactions')).filter(function (item) { return String(item.AgenteDNI || '') === dni; }).length;
+    if (prospects || clients || interactions) {
+      return crmError_('No se puede eliminar: el agente tiene ' + prospects + ' prospecto(s), ' + clients + ' cliente(s) y ' + interactions + ' interacción(es) vinculados. Reasigna sus registros o conserva la cuenta como cesada.');
+    }
+
+    sheet.deleteRow(row);
+    crmAudit_(ss, actor, 'ELIMINAR', 'USUARIO', dni, String(valueAt_(values, headers, 'Nombres') || '') + ' ' + String(valueAt_(values, headers, 'Apellidos') || ''));
+    return crmResponse_({ dni: dni, eliminado: true });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function crmUpdateProfile_(ss, data) {

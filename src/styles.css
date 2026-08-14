@@ -159,7 +159,7 @@ button { cursor: pointer; }
   .panel-actions { width: 100%; flex-direction: column; align-items: stretch; }
   .new-user-button { width: 100%; }
   .table-head, .table-row { grid-template-columns: 1.5fr 1fr; gap: 9px; padding: 14px; }
-  .table-head span:nth-child(2), .table-head span:nth-child(4), .table-row > span:nth-child(2), .table-row > span:nth-child(4) { display: none; }
+  .table-head > :nth-child(2), .table-head > :nth-child(4), .table-row > span:nth-child(2), .table-row > span:nth-child(4) { display: none; }
   .login-card { padding: 33px 23px; }
   .admin-form { grid-template-columns: 1fr; }
 }

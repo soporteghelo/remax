@@ -234,6 +234,15 @@ export async function updateUser(input: { adminDni: string; dni: string; apellid
   return { user: mapUser(result.record, usuario.dni), delivery: usuario.password ? mapDelivery(result.delivery) : null };
 }
 
+/**
+ * Elimina definitivamente una cuenta de agente sin historial comercial. Esta
+ * operación no se encola: si no hay conexión, no se puede verificar que sus
+ * prospectos, clientes e interacciones estén protegidos antes de borrarla.
+ */
+export async function deleteAgent(adminDni: string, dni: string): Promise<void> {
+  await authenticatedRequest('crmDeleteAgent', adminDni, { dni });
+}
+
 export async function syncUsers(adminDni: string): Promise<User[]> {
   // La lectura usa la huella de sesión persistente, igual que el resto del CRM.
   // Así Equipo puede actualizarse al entrar incluso después de recargar la app,
